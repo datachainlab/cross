@@ -17,20 +17,25 @@ const (
 	TX_STATUS_PREPARE = keeper.TX_STATUS_PREPARE
 	TX_STATUS_COMMIT  = keeper.TX_STATUS_COMMIT
 	TX_STATUS_ABORT   = keeper.TX_STATUS_ABORT
+
+	PREPARE_STATUS_FAILED = types.PREPARE_STATUS_FAILED
+	PREPARE_STATUS_OK     = types.PREPARE_STATUS_OK
 )
 
 // nolint
 var (
-	NewKeeper          = keeper.NewKeeper
-	NewQuerier         = keeper.NewQuerier
-	ModuleCdc          = types.ModuleCdc
-	RegisterCodec      = types.RegisterCodec
-	SignerFromContext  = types.SignerFromContext
-	WithSigner         = types.WithSigner
-	NewMsgInitiate     = types.NewMsgInitiate
-	NewMsgConfirm      = types.NewMsgConfirm
-	NewStateTransition = types.NewStateTransition
-	NewChannelInfo     = types.NewChannelInfo
+	NewKeeper             = keeper.NewKeeper
+	NewQuerier            = keeper.NewQuerier
+	ModuleCdc             = types.ModuleCdc
+	RegisterCodec         = types.RegisterCodec
+	SignerFromContext     = types.SignerFromContext
+	WithSigner            = types.WithSigner
+	NewMsgInitiate        = types.NewMsgInitiate
+	NewMsgConfirm         = types.NewMsgConfirm
+	NewStateTransition    = types.NewStateTransition
+	NewChannelInfo        = types.NewChannelInfo
+	NewPacketDataInitiate = types.NewPacketDataInitiate
+	NewPacketDataPrepare  = types.NewPacketDataPrepare
 )
 
 // nolint

@@ -55,6 +55,7 @@ func (k Keeper) MulticastInitiatePacket(
 			s.Channel,
 			c.Counterparty.PortID,
 			c.Counterparty.ChannelID,
+			txID,
 			transitions[i],
 			sender,
 		)
@@ -75,10 +76,11 @@ func (k Keeper) createInitiatePacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
+	txID []byte,
 	transition types.StateTransition,
 	sender sdk.AccAddress,
 ) error {
-	packetData := types.NewPacketDataInitiate(sender, transition)
+	packetData := types.NewPacketDataInitiate(sender, txID, transition)
 	packet := channel.NewPacket(
 		packetData,
 		seq,
@@ -116,7 +118,8 @@ func (k Keeper) PrepareTransaction(
 	}
 
 	// Send a Prepared Packet to coordinator (reply to source channel)
-	if err := k.createPreparePacket(ctx, seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, status); err != nil {
+	packet := k.CreatePreparePacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, status)
+	if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
 		return err
 	}
 
@@ -150,8 +153,7 @@ func (k Keeper) prepareTransaction(
 	return nil
 }
 
-func (k Keeper) createPreparePacket(
-	ctx sdk.Context,
+func (k Keeper) CreatePreparePacket(
 	seq uint64,
 	sourcePort,
 	sourceChannel,
@@ -160,9 +162,9 @@ func (k Keeper) createPreparePacket(
 	sender sdk.AccAddress,
 	txID []byte,
 	status uint8,
-) error {
+) channel.Packet {
 	packetData := types.NewPacketDataPrepare(sender, txID, status)
-	packet := channel.NewPacket(
+	return channel.NewPacket(
 		packetData,
 		seq,
 		sourcePort,
@@ -170,7 +172,6 @@ func (k Keeper) createPreparePacket(
 		destinationPort,
 		destinationChannel,
 	)
-	return k.channelKeeper.SendPacket(ctx, packet)
 }
 
 func (k Keeper) MulticastCommitPacket(

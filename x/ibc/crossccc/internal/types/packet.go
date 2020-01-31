@@ -12,8 +12,8 @@ type PacketDataInitiate struct {
 	StateTransition StateTransition
 }
 
-func NewPacketDataInitiate(sender sdk.AccAddress, transition StateTransition) PacketDataInitiate {
-	return PacketDataInitiate{Sender: sender, StateTransition: transition}
+func NewPacketDataInitiate(sender sdk.AccAddress, txID []byte, transition StateTransition) PacketDataInitiate {
+	return PacketDataInitiate{Sender: sender, TxID: txID, StateTransition: transition}
 }
 
 func (p PacketDataInitiate) Hash() []byte {
@@ -22,6 +22,9 @@ func (p PacketDataInitiate) Hash() []byte {
 }
 
 func (p PacketDataInitiate) ValidateBasic() error {
+	if err := p.StateTransition.ValidateBasic(); err != nil {
+		return err
+	}
 	return nil
 }
 

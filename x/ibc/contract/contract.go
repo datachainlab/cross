@@ -19,18 +19,18 @@ func (c contract) CallMethod(ctx Context, store crossccc.Store, method string) e
 	if !ok {
 		return fmt.Errorf("method '%v' not found", method)
 	}
-	return m.f(ctx, store)
+	return m.F(ctx, store)
 }
 
 type Method struct {
-	name string
-	f    func(ctx Context, store crossccc.Store) error
+	Name string
+	F    func(ctx Context, store crossccc.Store) error
 }
 
 func NewContract(methods []Method) Contract {
 	mm := make(map[string]Method)
 	for _, m := range methods {
-		mm[m.name] = m
+		mm[m.Name] = m
 	}
 	return &contract{methods: mm}
 }

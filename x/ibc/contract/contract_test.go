@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bluele/crossccc/x/ibc/store/lock"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/crossccc/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
@@ -156,8 +156,8 @@ func makeContract() Contract {
 
 	c := NewContract([]Method{
 		{
-			name: "issue",
-			f: func(ctx Context, store crossccc.Store) error {
+			Name: "issue",
+			F: func(ctx Context, store crossccc.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -169,8 +169,8 @@ func makeContract() Contract {
 			},
 		},
 		{
-			name: "transfer",
-			f: func(ctx Context, store crossccc.Store) error {
+			Name: "transfer",
+			F: func(ctx Context, store crossccc.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -194,8 +194,8 @@ func makeContract() Contract {
 			},
 		},
 		{
-			name: "test-balance",
-			f: func(ctx Context, store crossccc.Store) error {
+			Name: "test-balance",
+			F: func(ctx Context, store crossccc.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err

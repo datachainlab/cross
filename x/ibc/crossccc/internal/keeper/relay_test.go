@@ -2,17 +2,20 @@ package keeper_test
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/bluele/crossccc/x/ibc/contract"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	"github.com/bluele/crossccc/x/ibc/store/lock"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clientexported "github.com/cosmos/cosmos-sdk/x/ibc/02-client/exported"
 	connection "github.com/cosmos/cosmos-sdk/x/ibc/03-connection"
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
+	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
 	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint"
 	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
@@ -108,10 +111,10 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	initiator := sdk.AccAddress("initiator")
 
 	signer1 := sdk.AccAddress("signer1")
-	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("100")})
+	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
 
 	signer2 := sdk.AccAddress("signer2")
-	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("100")})
+	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
 
 	app0 := suite.createApp("app0") // coordinator node
 	app1 := suite.createApp("app1")
@@ -119,7 +122,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 
 	ch0to1 := crossccc.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
 	ch1to0 := crossccc.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
-	ch0to2 := crossccc.NewChannelInfo("testportonetwo", "testchannelonetwo")   // app0 -> app2
+	ch0to2 := crossccc.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
 	ch2to0 := crossccc.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
 
 	var err error
@@ -129,7 +132,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 			ch0to1,
 			signer1,
 			ci1.Bytes(),
-			[]crossccc.OP{lock.Read{}, lock.Write{}},
+			[]crossccc.OP{lock.Read{K: signer1}, lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 		),
 		crossccc.NewStateTransition(
 			ch0to2,
@@ -144,6 +147,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		tss,
 		nonce,
 	)
+	txID := msg.GetTxID()
 
 	err = app0.app.CrosscccKeeper.MulticastInitiatePacket(
 		app0.ctx,
@@ -197,4 +201,160 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	suite.NotNil(packetCommitment)
 	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
+
+	{
+		var err error
+		// FIXME sender is correctly?
+		packetData := crossccc.NewPacketDataInitiate(initiator, txID, tss[0])
+		stk := app1.app.GetKey(crossccc.StoreKey)
+		contractHandler := contract.NewContractHandler(stk, func(kvs sdk.KVStore) crossccc.State {
+			return lock.NewStore(kvs)
+		})
+		c1 := contract.NewContract([]contract.Method{
+			{
+				Name: "issue",
+				F: func(ctx contract.Context, store crossccc.Store) error {
+					coin, err := parseCoin(ctx, 0, 1)
+					if err != nil {
+						return err
+					}
+					balance := getBalanceOf(store, ctx.Signer())
+					balance = balance.Add(coin)
+					setBalance(store, ctx.Signer(), balance)
+					return nil
+				},
+			},
+		})
+		contractHandler.AddRoute("c1", c1)
+
+		{
+			ctx, _ := app1.ctx.CacheContext()
+			err = app1.app.CrosscccKeeper.PrepareTransaction(
+				ctx,
+				contractHandler,
+				ch0to1.Port,
+				ch0to1.Channel,
+				ch1to0.Port,
+				ch1to0.Channel,
+				packetData,
+				initiator,
+			)
+			suite.NoError(err)
+			tx, ok := app1.app.CrosscccKeeper.GetTx(ctx, txID)
+			if suite.True(ok) {
+				suite.Equal(crossccc.TX_STATUS_PREPARE, tx.Status)
+			}
+			newNextSeqSend, found := app1.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(ctx, ch1to0.Port, ch1to0.Channel)
+			suite.True(found)
+			suite.Equal(nextSeqSend+1, newNextSeqSend)
+
+			packetCommitment := app1.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(ctx, ch1to0.Port, ch1to0.Channel, nextSeqSend)
+			suite.NotNil(packetCommitment)
+			suite.Equal(
+				packetCommitment,
+				channeltypes.CommitPacket(
+					app1.app.CrosscccKeeper.CreatePreparePacket(
+						nextSeqSend,
+						ch1to0.Port,
+						ch1to0.Channel,
+						ch0to1.Port,
+						ch0to1.Channel,
+						initiator,
+						txID,
+						crossccc.PREPARE_STATUS_FAILED,
+					).Data,
+				),
+			)
+		}
+
+		{
+			ctx, writer := app1.ctx.CacheContext()
+			ctx = crossccc.WithSigner(ctx, tss[0].Signer)
+			err = app1.app.CrosscccKeeper.PrepareTransaction(
+				ctx,
+				contractHandler,
+				ch0to1.Port,
+				ch0to1.Channel,
+				ch1to0.Port,
+				ch1to0.Channel,
+				packetData,
+				initiator,
+			)
+			suite.NoError(err)
+			tx, ok := app1.app.CrosscccKeeper.GetTx(ctx, txID)
+			if suite.True(ok) {
+				suite.Equal(crossccc.TX_STATUS_PREPARE, tx.Status)
+			}
+			newNextSeqSend, found := app1.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(ctx, ch1to0.Port, ch1to0.Channel)
+			suite.True(found)
+			suite.Equal(nextSeqSend+1, newNextSeqSend)
+
+			packetCommitment := app1.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(ctx, ch1to0.Port, ch1to0.Channel, nextSeqSend)
+			suite.NotNil(packetCommitment)
+
+			suite.Equal(
+				packetCommitment,
+				channeltypes.CommitPacket(
+					app1.app.CrosscccKeeper.CreatePreparePacket(
+						nextSeqSend,
+						ch1to0.Port,
+						ch1to0.Channel,
+						ch0to1.Port,
+						ch0to1.Channel,
+						initiator,
+						txID,
+						crossccc.PREPARE_STATUS_OK,
+					).Data,
+				),
+			)
+			writer()
+		}
+
+		// TODO ctx is re-set?
+	}
+}
+
+func parseCoin(ctx contract.Context, denomIdx, amountIdx int) (sdk.Coin, error) {
+	denom := string(ctx.Args()[denomIdx])
+	amount, err := strconv.Atoi(string(ctx.Args()[amountIdx]))
+	if err != nil {
+		return sdk.Coin{}, err
+	}
+	if amount < 0 {
+		return sdk.Coin{}, fmt.Errorf("amount must be positive number")
+	}
+	coin := sdk.NewInt64Coin(denom, int64(amount))
+	return coin, nil
+}
+
+func marshalCoin(coins sdk.Coins) []byte {
+	return testcdc.MustMarshalBinaryLengthPrefixed(coins)
+}
+
+func unmarshalCoin(bz []byte) sdk.Coins {
+	var coins sdk.Coins
+	testcdc.MustUnmarshalBinaryLengthPrefixed(bz, &coins)
+	return coins
+}
+
+func getBalanceOf(store crossccc.Store, address sdk.AccAddress) sdk.Coins {
+	bz := store.Get(address)
+	if bz == nil {
+		return sdk.NewCoins()
+	}
+	return unmarshalCoin(bz)
+}
+
+func setBalance(store crossccc.Store, address sdk.AccAddress, balance sdk.Coins) {
+	bz := marshalCoin(balance)
+	store.Set(address, bz)
+}
+
+var testcdc *codec.Codec
+
+func init() {
+	testcdc = codec.New()
+
+	testcdc.RegisterConcrete(sdk.Coin{}, "sdk/Coin", nil)
+	testcdc.RegisterConcrete(sdk.Coins{}, "sdk/Coins", nil)
 }
