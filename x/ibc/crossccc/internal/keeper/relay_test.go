@@ -6,7 +6,6 @@ import (
 	"github.com/bluele/crossccc/x/ibc/contract"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	"github.com/bluele/crossccc/x/ibc/store/lock"
-	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clientexported "github.com/cosmos/cosmos-sdk/x/ibc/02-client/exported"
@@ -17,20 +16,17 @@ import (
 	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint"
 	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // define constants used for testing
 const (
-	testChainID    = "test-chain-id"
-	testClient     = "test-client"
-	testClientType = clientexported.Tendermint
-
-	testConnection     = "testconnection"
+	testClientType     = clientexported.Tendermint
 	testChannelOrder   = channelexported.UNORDERED
 	testChannelVersion = "1.0"
 )
 
-func (suite *KeeperTestSuite) createClient(actx *appContext) {
+func (suite *KeeperTestSuite) createClient(actx *appContext, clientID string) {
 	actx.app.Commit()
 	commitID := actx.app.LastCommitID()
 
@@ -42,11 +38,11 @@ func (suite *KeeperTestSuite) createClient(actx *appContext) {
 		ValidatorSetHash: actx.valSet.Hash(),
 	}
 
-	_, err := actx.app.IBCKeeper.ClientKeeper.CreateClient(actx.ctx, testClient, testClientType, consensusState)
+	_, err := actx.app.IBCKeeper.ClientKeeper.CreateClient(actx.ctx, clientID, testClientType, consensusState)
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) updateClient(actx *appContext) {
+func (suite *KeeperTestSuite) updateClient(actx *appContext, clientID string) {
 	// always commit and begin a new block on updateClient
 	actx.app.Commit()
 	commitID := actx.app.LastCommitID()
@@ -58,22 +54,22 @@ func (suite *KeeperTestSuite) updateClient(actx *appContext) {
 		Root: commitment.NewRoot(commitID.Hash),
 	}
 
-	actx.app.IBCKeeper.ClientKeeper.SetClientConsensusState(actx.ctx, testClient, 1, state)
+	actx.app.IBCKeeper.ClientKeeper.SetClientConsensusState(actx.ctx, clientID, 1, state)
 }
 
-func (suite *KeeperTestSuite) createConnection(actx *appContext, state connectionexported.State) {
+func (suite *KeeperTestSuite) createConnection(actx *appContext, clientID, connectionID, counterpartyClientID, counterpartyConnectionID string, state connectionexported.State) {
 	connection := connection.ConnectionEnd{
 		State:    state,
-		ClientID: testClient,
+		ClientID: clientID,
 		Counterparty: connection.Counterparty{
-			ClientID:     testClient,
-			ConnectionID: testConnection,
+			ClientID:     counterpartyClientID,
+			ConnectionID: counterpartyConnectionID,
 			Prefix:       actx.app.IBCKeeper.ConnectionKeeper.GetCommitmentPrefix(),
 		},
 		Versions: connection.GetCompatibleVersions(),
 	}
 
-	actx.app.IBCKeeper.ConnectionKeeper.SetConnection(actx.ctx, testConnection, connection)
+	actx.app.IBCKeeper.ConnectionKeeper.SetConnection(actx.ctx, connectionID, connection)
 }
 
 func (suite *KeeperTestSuite) createChannel(actx *appContext, portID string, chanID string, connID string, counterpartyPort string, counterpartyChan string, state channelexported.State) {
@@ -109,70 +105,96 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 func (suite *KeeperTestSuite) TestSendInitiate() {
 	lock.RegisterCodec(crossccc.ModuleCdc)
 
-	coordinator := sdk.AccAddress("coordinator")
+	initiator := sdk.AccAddress("initiator")
 
-	signer0 := sdk.AccAddress("signerzero")
-	src0 := crossccc.NewChannelInfo("testportzero", "testchannelzero")
-	ci0 := contract.NewContractInfo("c0", "issue", [][]byte{[]byte("100")})
-	dst0 := crossccc.NewChannelInfo("dstportzero", "dstchannelzero")
-
-	signer1 := sdk.AccAddress("signerfirst")
-	src1 := crossccc.NewChannelInfo("testportone", "testchannelone")
+	signer1 := sdk.AccAddress("signer1")
 	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("100")})
-	dst1 := crossccc.NewChannelInfo("dstportone", "dstchannelone")
+
+	signer2 := sdk.AccAddress("signer2")
+	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("100")})
+
+	app0 := suite.createApp("app0") // coordinator node
+	app1 := suite.createApp("app1")
+	app2 := suite.createApp("app2")
+
+	ch0to1 := crossccc.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
+	ch1to0 := crossccc.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
+	ch0to2 := crossccc.NewChannelInfo("testportonetwo", "testchannelonetwo")   // app0 -> app2
+	ch2to0 := crossccc.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
 
 	var err error
 	var nonce uint64 = 1
 	var tss = []crossccc.StateTransition{
 		crossccc.NewStateTransition(
-			src0,
-			signer0,
-			ci0.Bytes(),
+			ch0to1,
+			signer1,
+			ci1.Bytes(),
 			[]crossccc.OP{lock.Read{}, lock.Write{}},
 		),
 		crossccc.NewStateTransition(
-			src1,
-			signer1,
-			ci1.Bytes(),
+			ch0to2,
+			signer2,
+			ci2.Bytes(),
 			[]crossccc.OP{lock.Read{}, lock.Write{}},
 		),
 	}
 
 	msg := crossccc.NewMsgInitiate(
-		coordinator,
+		initiator,
 		tss,
 		nonce,
 	)
-	actx0 := suite.createApp()
-	err = actx0.app.CrosscccKeeper.MulticastInitiatePacket(
-		actx0.ctx,
-		coordinator,
+
+	err = app0.app.CrosscccKeeper.MulticastInitiatePacket(
+		app0.ctx,
+		initiator,
 		msg,
 		msg.StateTransitions,
 	)
 	suite.Error(err) // channel does not exist
 
-	suite.createChannel(actx0, src0.Port, src0.Channel, testConnection, dst0.Port, dst0.Channel, channelexported.OPEN)
-	suite.createChannel(actx0, src1.Port, src1.Channel, testConnection, dst1.Port, dst1.Channel, channelexported.OPEN)
-	nextSeqSend := uint64(1)
-	actx0.app.IBCKeeper.ChannelKeeper.SetNextSequenceSend(actx0.ctx, src0.Port, src0.Channel, nextSeqSend)
-	actx0.app.IBCKeeper.ChannelKeeper.SetNextSequenceSend(actx0.ctx, src1.Port, src1.Channel, nextSeqSend)
+	// Try to open a channel and connection between app0 and app1, app2
 
-	err = actx0.app.CrosscccKeeper.MulticastInitiatePacket(
-		actx0.ctx,
-		coordinator,
+	suite.openChannels(
+		app1.chainID,
+		app0.chainID+app1.chainID,
+		ch0to1,
+		app0,
+
+		app0.chainID,
+		app1.chainID+app0.chainID,
+		ch1to0,
+		app1,
+	)
+
+	suite.openChannels(
+		app2.chainID,
+		app0.chainID+app2.chainID,
+		ch0to2,
+		app0,
+
+		app0.chainID,
+		app2.chainID+app1.chainID,
+		ch2to0,
+		app2,
+	)
+
+	err = app0.app.CrosscccKeeper.MulticastInitiatePacket(
+		app0.ctx,
+		initiator,
 		msg,
 		msg.StateTransitions,
 	)
 	suite.NoError(err) // successfully executed
 
-	ci, found := actx0.app.CrosscccKeeper.GetCoordinator(actx0.ctx, msg.GetTxID())
+	ci, found := app0.app.CrosscccKeeper.GetCoordinator(app0.ctx, msg.GetTxID())
 	if suite.True(found) {
 		suite.Equal(ci.Status, crossccc.CO_STATUS_INIT)
 	}
 
-	packetCommitment := actx0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(actx0.ctx, src0.Port, src0.Channel, nextSeqSend)
+	nextSeqSend := uint64(1)
+	packetCommitment := app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to1.Port, ch0to1.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
-	packetCommitment = actx0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(actx0.ctx, src1.Port, src1.Channel, nextSeqSend)
+	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
 }
