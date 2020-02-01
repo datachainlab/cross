@@ -138,7 +138,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 			ch0to2,
 			signer2,
 			ci2.Bytes(),
-			[]crossccc.OP{lock.Read{}, lock.Write{}},
+			[]crossccc.OP{lock.Read{K: signer2}, lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
 		),
 	}
 
@@ -202,116 +202,76 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
 
-	{
-		var err error
-		// FIXME sender is correctly?
-		packetData := crossccc.NewPacketDataInitiate(initiator, txID, tss[0])
-		stk := app1.app.GetKey(crossccc.StoreKey)
-		contractHandler := contract.NewContractHandler(stk, func(kvs sdk.KVStore) crossccc.State {
-			return lock.NewStore(kvs)
-		})
-		c1 := contract.NewContract([]contract.Method{
-			{
-				Name: "issue",
-				F: func(ctx contract.Context, store crossccc.Store) error {
-					coin, err := parseCoin(ctx, 0, 1)
-					if err != nil {
-						return err
-					}
-					balance := getBalanceOf(store, ctx.Signer())
-					balance = balance.Add(coin)
-					setBalance(store, ctx.Signer(), balance)
-					return nil
-				},
+	suite.testPreparePacket(app1, ch1to0, ch0to1, initiator, txID, "c1", tss[0], nextSeqSend)
+	suite.testPreparePacket(app2, ch2to0, ch0to2, initiator, txID, "c2", tss[1], nextSeqSend)
+}
+
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, cid string, ts crossccc.StateTransition, nextseq uint64) {
+	var err error
+	// FIXME sender is correctly?
+	packetData := crossccc.NewPacketDataInitiate(initiator, txID, ts)
+	stk := actx.app.GetKey(crossccc.StoreKey)
+	contractHandler := contract.NewContractHandler(stk, func(kvs sdk.KVStore) crossccc.State {
+		return lock.NewStore(kvs)
+	})
+	c := contract.NewContract([]contract.Method{
+		{
+			Name: "issue",
+			F: func(ctx contract.Context, store crossccc.Store) error {
+				coin, err := parseCoin(ctx, 0, 1)
+				if err != nil {
+					return err
+				}
+				balance := getBalanceOf(store, ctx.Signer())
+				balance = balance.Add(coin)
+				setBalance(store, ctx.Signer(), balance)
+				return nil
 			},
-		})
-		contractHandler.AddRoute("c1", c1)
+		},
+	})
+	contractHandler.AddRoute(cid, c)
 
-		{
-			ctx, _ := app1.ctx.CacheContext()
-			err = app1.app.CrosscccKeeper.PrepareTransaction(
-				ctx,
-				contractHandler,
-				ch0to1.Port,
-				ch0to1.Channel,
-				ch1to0.Port,
-				ch1to0.Channel,
-				packetData,
-				initiator,
-			)
-			suite.NoError(err)
-			tx, ok := app1.app.CrosscccKeeper.GetTx(ctx, txID)
-			if suite.True(ok) {
-				suite.Equal(crossccc.TX_STATUS_PREPARE, tx.Status)
-			}
-			newNextSeqSend, found := app1.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(ctx, ch1to0.Port, ch1to0.Channel)
-			suite.True(found)
-			suite.Equal(nextSeqSend+1, newNextSeqSend)
-
-			packetCommitment := app1.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(ctx, ch1to0.Port, ch1to0.Channel, nextSeqSend)
-			suite.NotNil(packetCommitment)
-			suite.Equal(
-				packetCommitment,
-				channeltypes.CommitPacket(
-					app1.app.CrosscccKeeper.CreatePreparePacket(
-						nextSeqSend,
-						ch1to0.Port,
-						ch1to0.Channel,
-						ch0to1.Port,
-						ch0to1.Channel,
-						initiator,
-						txID,
-						crossccc.PREPARE_STATUS_FAILED,
-					).Data,
-				),
-			)
-		}
-
-		{
-			ctx, writer := app1.ctx.CacheContext()
-			ctx = crossccc.WithSigner(ctx, tss[0].Signer)
-			err = app1.app.CrosscccKeeper.PrepareTransaction(
-				ctx,
-				contractHandler,
-				ch0to1.Port,
-				ch0to1.Channel,
-				ch1to0.Port,
-				ch1to0.Channel,
-				packetData,
-				initiator,
-			)
-			suite.NoError(err)
-			tx, ok := app1.app.CrosscccKeeper.GetTx(ctx, txID)
-			if suite.True(ok) {
-				suite.Equal(crossccc.TX_STATUS_PREPARE, tx.Status)
-			}
-			newNextSeqSend, found := app1.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(ctx, ch1to0.Port, ch1to0.Channel)
-			suite.True(found)
-			suite.Equal(nextSeqSend+1, newNextSeqSend)
-
-			packetCommitment := app1.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(ctx, ch1to0.Port, ch1to0.Channel, nextSeqSend)
-			suite.NotNil(packetCommitment)
-
-			suite.Equal(
-				packetCommitment,
-				channeltypes.CommitPacket(
-					app1.app.CrosscccKeeper.CreatePreparePacket(
-						nextSeqSend,
-						ch1to0.Port,
-						ch1to0.Channel,
-						ch0to1.Port,
-						ch0to1.Channel,
-						initiator,
-						txID,
-						crossccc.PREPARE_STATUS_OK,
-					).Data,
-				),
-			)
-			writer()
-		}
-
-		// TODO ctx is re-set?
+	ctx, writer := actx.ctx.CacheContext()
+	ctx = crossccc.WithSigner(ctx, ts.Signer)
+	err = actx.app.CrosscccKeeper.PrepareTransaction(
+		ctx,
+		contractHandler,
+		dst.Port,
+		dst.Channel,
+		src.Port,
+		src.Channel,
+		packetData,
+		initiator,
+	)
+	suite.NoError(err)
+	tx, ok := actx.app.CrosscccKeeper.GetTx(ctx, txID)
+	if suite.True(ok) {
+		suite.Equal(crossccc.TX_STATUS_PREPARE, tx.Status)
 	}
+	newNextSeqSend, found := actx.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(ctx, src.Port, src.Channel)
+	suite.True(found)
+	suite.Equal(nextseq+1, newNextSeqSend)
+
+	packetCommitment := actx.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(ctx, src.Port, src.Channel, nextseq)
+	suite.NotNil(packetCommitment)
+
+	suite.Equal(
+		packetCommitment,
+		channeltypes.CommitPacket(
+			actx.app.CrosscccKeeper.CreatePreparePacket(
+				nextseq,
+				src.Port,
+				src.Channel,
+				dst.Port,
+				dst.Channel,
+				initiator,
+				txID,
+				crossccc.PREPARE_STATUS_OK,
+			).Data,
+		),
+	)
+	writer()
+	// TODO ctx is re-set?
 }
 
 func parseCoin(ctx contract.Context, denomIdx, amountIdx int) (sdk.Coin, error) {
