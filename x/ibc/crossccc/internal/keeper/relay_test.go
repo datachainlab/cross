@@ -253,8 +253,8 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
 
-	suite.testPreparePacket(app1, ch1to0, ch0to1, initiator, txID, chd1, tss[0], nextSeqSend)
-	suite.testPreparePacket(app2, ch2to0, ch0to2, initiator, txID, chd2, tss[1], nextSeqSend)
+	suite.testPreparePacket(app1, ch1to0, ch0to1, txID, chd1, tss[0], nextSeqSend)
+	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, chd2, tss[1], nextSeqSend)
 
 	// Tests for Confirm step
 
@@ -276,7 +276,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
 	}
 	// ensure that coordinator decides 'abort'
 	{
@@ -286,7 +286,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
 	}
 	// ensure that coordinator decides 'abort'
 	{
@@ -296,7 +296,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
 	}
 	// ensure that coordinator decides 'commit'
 	{
@@ -306,7 +306,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, writer := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
 		ci, found := capp.app.CrosscccKeeper.GetCoordinator(capp.ctx, msg.GetTxID())
 		if suite.True(found) {
 			suite.Equal(ci.Status, crossccc.CO_STATUS_COMMIT)
@@ -316,28 +316,29 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 
 	// ensure that each corhorts commit or abort
 	{
+		relayer := sdk.AccAddress("relayer2")
 		// In a1, execute to commit
 		{
 			capp, _ := app1.Cache()
-			suite.testCommitPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(initiator, txID, true), signer1)
+			suite.testCommitPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(relayer, txID, true), signer1)
 		}
 
 		// In a2, execute to commit
 		{
 			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(initiator, txID, true), signer2)
+			suite.testCommitPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(relayer, txID, true), signer2)
 		}
 
 		// In a1, execute to abort
 		{
 			capp, _ := app1.Cache()
-			suite.testAbortPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(initiator, txID, false), signer1)
+			suite.testAbortPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(relayer, txID, false), signer1)
 		}
 
 		// In a2, execute to abort
 		{
 			capp, _ := app2.Cache()
-			suite.testAbortPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(initiator, txID, false), signer2)
+			suite.testAbortPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(relayer, txID, false), signer2)
 		}
 	}
 }
@@ -399,10 +400,11 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, nextseq uint64) {
-	msgConfirm := crossccc.NewMsgConfirm(txID, pps, initiator)
+func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, txID []byte, nextseq uint64) {
+	relayer := sdk.AccAddress("relayer2")
+	msgConfirm := crossccc.NewMsgConfirm(txID, pps, relayer)
 	isCommit := msgConfirm.IsCommittable()
-	err := actx.app.CrosscccKeeper.MulticastCommitPacket(actx.ctx, txID, pps, initiator, isCommit)
+	err := actx.app.CrosscccKeeper.MulticastCommitPacket(actx.ctx, txID, pps, relayer, isCommit)
 	suite.NoError(err, err)
 
 	for i, src := range srcs {
@@ -423,7 +425,7 @@ func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.Pr
 			src.Channel,
 			dst.Port,
 			dst.Channel,
-			initiator,
+			relayer,
 			txID,
 			isCommit,
 		)
@@ -436,10 +438,11 @@ func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.Pr
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, contractHandler crossccc.ContractHandler, ts crossccc.StateTransition, nextseq uint64) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, txID []byte, contractHandler crossccc.ContractHandler, ts crossccc.StateTransition, nextseq uint64) {
 	var err error
-	// FIXME sender is correctly?
-	packetData := crossccc.NewPacketDataInitiate(initiator, txID, ts)
+
+	relayer := sdk.AccAddress("relayer1")
+	packetData := crossccc.NewPacketDataInitiate(relayer, txID, ts)
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = crossccc.WithSigner(ctx, ts.Signer)
 	err = actx.app.CrosscccKeeper.PrepareTransaction(
@@ -450,7 +453,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 		src.Port,
 		src.Channel,
 		packetData,
-		initiator,
+		relayer,
 	)
 	suite.NoError(err)
 	tx, ok := actx.app.CrosscccKeeper.GetTx(ctx, txID)
@@ -473,7 +476,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 				src.Channel,
 				dst.Port,
 				dst.Channel,
-				initiator,
+				relayer,
 				txID,
 				crossccc.PREPARE_STATUS_OK,
 			).Data,
