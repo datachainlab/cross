@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -121,6 +122,31 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 				balance = balance.Add(coin)
 				setBalance(store, ctx.Signer(), balance)
 				return nil
+			},
+		},
+		{
+			Name: "test-balance",
+			F: func(ctx contract.Context, store crossccc.Store) error {
+				coin, err := parseCoin(ctx, 0, 1)
+				if err != nil {
+					return err
+				}
+				balance := getBalanceOf(store, ctx.Signer())
+				if !balance.AmountOf(coin.Denom).Equal(coin.Amount) {
+					return errors.New("amount is unexpected")
+				}
+				return nil
+			},
+		},
+		{
+			Name: "test-not-issued",
+			F: func(ctx contract.Context, store crossccc.Store) error {
+				balance := getBalanceOf(store, ctx.Signer())
+				if len(balance) == 0 {
+					return nil
+				} else {
+					return errors.New("maybe coin is already issued")
+				}
 			},
 		},
 	})
@@ -287,29 +313,87 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	// TODO
 	// ensure that each corhorts commit or abort
 	{
-		// In a1
+		// In a1, execute to commit
 		{
 			capp, _ := app1.Cache()
-			suite.testCommitPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(initiator, txID, true), initiator)
+			suite.testCommitPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(initiator, txID, true), signer1)
 		}
 
-		// In a2
+		// In a2, execute to commit
 		{
 			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(initiator, txID, true), initiator)
+			suite.testCommitPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(initiator, txID, true), signer2)
+		}
+
+		// In a1, execute to abort
+		{
+			capp, _ := app1.Cache()
+			suite.testAbortPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(initiator, txID, false), signer1)
+		}
+
+		// In a2, execute to abort
+		{
+			capp, _ := app2.Cache()
+			suite.testAbortPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(initiator, txID, false), signer2)
 		}
 	}
 }
 
-func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler crossccc.ContractHandler, src crossccc.ChannelInfo, packet crossccc.PacketDataCommit, sender sdk.AccAddress) {
-	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, packet, sender)
-	suite.NoError(err)
-
-	tx, found := actx.app.CrosscccKeeper.GetTx(actx.ctx, packet.TxID)
-	if suite.True(found) {
-		suite.Equal(crossccc.TX_STATUS_COMMIT, tx.Status)
-		// ensure that the state is expected
+func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler crossccc.ContractHandler, src crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
+	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, packet)
+	if !suite.NoError(err) {
+		return
 	}
+	tx, found := actx.app.CrosscccKeeper.GetTx(actx.ctx, packet.TxID)
+	if !suite.True(found) {
+		return
+	}
+	suite.Equal(crossccc.TX_STATUS_COMMIT, tx.Status)
+	// ensure that the state is expected
+	_, err = contractHandler.GetState(actx.ctx, tx.Contract)
+	if !suite.NoError(err) {
+		return
+	}
+	ci, err := contract.DecodeContractSignature(tx.Contract)
+	if !suite.NoError(err) {
+		return
+	}
+	contractInfo := contract.NewContractInfo(ci.ID, "test-balance", [][]byte{
+		ci.Args[0],
+		ci.Args[1],
+	})
+	bz, err := contract.EncodeContractSignature(contractInfo)
+	if !suite.NoError(err) {
+		return
+	}
+	ctx := crossccc.WithSigner(actx.ctx, txSigner)
+	_, err = contractHandler.Handle(ctx, bz)
+	suite.NoError(err)
+}
+
+func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler crossccc.ContractHandler, src crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
+	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, packet)
+	if !suite.NoError(err) {
+		return
+	}
+	tx, found := actx.app.CrosscccKeeper.GetTx(actx.ctx, packet.TxID)
+	if !suite.True(found) {
+		return
+	}
+	suite.Equal(crossccc.TX_STATUS_ABORT, tx.Status)
+
+	ci, err := contract.DecodeContractSignature(tx.Contract)
+	if !suite.NoError(err) {
+		return
+	}
+	contractInfo := contract.NewContractInfo(ci.ID, "test-not-issued", [][]byte{})
+	bz, err := contract.EncodeContractSignature(contractInfo)
+	if !suite.NoError(err) {
+		return
+	}
+	ctx := crossccc.WithSigner(actx.ctx, txSigner)
+	_, err = contractHandler.Handle(ctx, bz)
+	suite.NoError(err)
 }
 
 func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, nextseq uint64) {

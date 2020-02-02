@@ -69,7 +69,7 @@ func handleMsgConfirm(ctx sdk.Context, k Keeper, msg MsgConfirm) (*sdk.Result, e
 }
 
 func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataCommit) (*sdk.Result, error) {
-	err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, data, msg.Signer)
+	err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, data)
 	if err != nil {
 		return nil, err
 	}

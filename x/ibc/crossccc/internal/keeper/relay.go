@@ -264,7 +264,6 @@ func (k Keeper) ReceiveCommitPacket(
 	sourcePort,
 	sourceChannel string,
 	data types.PacketDataCommit,
-	sender sdk.AccAddress,
 ) error {
 	tx, err := k.EnsureTxStatus(ctx, data.TxID, TX_STATUS_PREPARE)
 	if err != nil {
