@@ -177,7 +177,7 @@ func (k Keeper) CreatePreparePacket(
 func (k Keeper) MulticastCommitPacket(
 	ctx sdk.Context,
 	txID []byte,
-	prepareInfoList []types.PrepareInfo,
+	preparePackets []types.PreparePacket,
 	sender sdk.AccAddress,
 	isCommittable bool,
 ) error {
@@ -192,14 +192,14 @@ func (k Keeper) MulticastCommitPacket(
 
 	var channels []channel.Channel
 	var sequences []uint64
-	for _, info := range prepareInfoList {
-		c, found := k.channelKeeper.GetChannel(ctx, info.Source.Port, info.Source.Channel)
+	for _, p := range preparePackets {
+		c, found := k.channelKeeper.GetChannel(ctx, p.Source.Port, p.Source.Channel)
 		if !found {
-			return sdkerrors.Wrap(channel.ErrChannelNotFound, info.Source.Channel)
+			return sdkerrors.Wrap(channel.ErrChannelNotFound, p.Source.Channel)
 		}
 
 		// get the next sequence
-		seq, found := k.channelKeeper.GetNextSequenceSend(ctx, info.Source.Port, info.Source.Channel)
+		seq, found := k.channelKeeper.GetNextSequenceSend(ctx, p.Source.Port, p.Source.Channel)
 		if !found {
 			return channel.ErrSequenceSendNotFound
 		}
@@ -207,13 +207,13 @@ func (k Keeper) MulticastCommitPacket(
 		channels = append(channels, c)
 		sequences = append(sequences, seq)
 	}
-	if len(prepareInfoList) != len(channels) || len(channels) != len(sequences) {
+	if len(preparePackets) != len(channels) || len(channels) != len(sequences) {
 		panic("unreachable")
 	}
 
 	for i, c := range channels {
-		s := prepareInfoList[i].Source
-		err := k.createCommitPacket(
+		s := preparePackets[i].Source
+		p := k.CreateCommitPacket(
 			ctx,
 			sequences[i],
 			s.Port,
@@ -224,7 +224,7 @@ func (k Keeper) MulticastCommitPacket(
 			txID,
 			isCommittable,
 		)
-		if err != nil {
+		if err := k.channelKeeper.SendPacket(ctx, p); err != nil {
 			return err
 		}
 	}
@@ -234,7 +234,7 @@ func (k Keeper) MulticastCommitPacket(
 	return nil
 }
 
-func (k Keeper) createCommitPacket(
+func (k Keeper) CreateCommitPacket(
 	ctx sdk.Context,
 	seq uint64,
 	sourcePort,
@@ -244,9 +244,9 @@ func (k Keeper) createCommitPacket(
 	sender sdk.AccAddress,
 	txID []byte,
 	isCommitable bool,
-) error {
+) channel.Packet {
 	packetData := types.NewPacketDataCommit(sender, txID, isCommitable)
-	packet := channel.NewPacket(
+	return channel.NewPacket(
 		packetData,
 		seq,
 		sourcePort,
@@ -254,7 +254,6 @@ func (k Keeper) createCommitPacket(
 		destinationPort,
 		destinationChannel,
 	)
-	return k.channelKeeper.SendPacket(ctx, packet)
 }
 
 // Precondition:

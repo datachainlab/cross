@@ -31,6 +31,12 @@ type appContext struct {
 	channels map[crossccc.ChannelInfo]crossccc.ChannelInfo
 }
 
+func (a appContext) Cache() (appContext, func()) {
+	ctx, writer := a.ctx.CacheContext()
+	a.ctx = ctx
+	return a, writer
+}
+
 func (suite *KeeperTestSuite) createClients(
 	srcClientID string, // clientID of dstapp
 	srcapp *appContext,

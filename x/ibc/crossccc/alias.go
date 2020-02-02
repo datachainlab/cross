@@ -36,6 +36,7 @@ var (
 	NewChannelInfo        = types.NewChannelInfo
 	NewPacketDataInitiate = types.NewPacketDataInitiate
 	NewPacketDataPrepare  = types.NewPacketDataPrepare
+	NewPreparePacket      = types.NewPreparePacket
 )
 
 // nolint
@@ -44,8 +45,10 @@ type (
 	ContractHandler    = keeper.ContractHandler
 	MsgInitiate        = types.MsgInitiate
 	MsgConfirm         = types.MsgConfirm
+	PreparePacket      = types.PreparePacket
 	PacketDataInitiate = types.PacketDataInitiate
 	PacketDataCommit   = types.PacketDataCommit
+	MultiplePackets    = types.MultiplePackets
 	OP                 = types.OP
 	OPs                = types.OPs
 	State              = types.State

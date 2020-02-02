@@ -61,7 +61,7 @@ func handlePacketDataInitiate(ctx sdk.Context, k Keeper, contractHandler Contrac
 // Optional: We can specify any networks(more than 0) as coordinator via Initiate msg?
 func handleMsgConfirm(ctx sdk.Context, k Keeper, msg MsgConfirm) (*sdk.Result, error) {
 	// ensure that all prepare packet are successful
-	err := k.MulticastCommitPacket(ctx, msg.TxID, msg.PrepareInfoList, msg.Signer, msg.IsCommittable())
+	err := k.MulticastCommitPacket(ctx, msg.TxID, msg.PreparePackets, msg.Signer, msg.IsCommittable())
 	if err != nil {
 		return nil, err
 	}

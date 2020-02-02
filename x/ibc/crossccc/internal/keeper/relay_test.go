@@ -204,6 +204,84 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 
 	suite.testPreparePacket(app1, ch1to0, ch0to1, initiator, txID, "c1", tss[0], nextSeqSend)
 	suite.testPreparePacket(app2, ch2to0, ch0to2, initiator, txID, "c2", tss[1], nextSeqSend)
+
+	// Tests for Confirm step
+
+	nextSeqSend += 1
+	// ensure that coordinator decides 'abort'
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to1)
+		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to2)
+		pps = append(pps, p1, p2)
+
+		capp, _ := app0.Cache()
+		srcs := [2]crossccc.ChannelInfo{
+			ch0to1,
+			ch0to2,
+		}
+		dsts := [2]crossccc.ChannelInfo{
+			ch1to0,
+			ch2to0,
+		}
+		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+	}
+	// expected success
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to1)
+		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to2)
+		pps = append(pps, p1, p2)
+
+		capp, writer := app0.Cache()
+		srcs := [2]crossccc.ChannelInfo{
+			ch0to1,
+			ch0to2,
+		}
+		dsts := [2]crossccc.ChannelInfo{
+			ch1to0,
+			ch2to0,
+		}
+		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		writer()
+	}
+}
+
+func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, nextseq uint64) {
+	msgConfirm := crossccc.NewMsgConfirm(txID, pps, initiator)
+	isCommit := msgConfirm.IsCommittable()
+	err := actx.app.CrosscccKeeper.MulticastCommitPacket(actx.ctx, txID, pps, initiator, isCommit)
+	suite.NoError(err, err)
+
+	for i, src := range srcs {
+		dst := dsts[i]
+
+		newNextSeqSend, found := actx.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(actx.ctx, src.Port, src.Channel)
+		suite.True(found)
+		suite.Equal(nextseq+1, newNextSeqSend)
+
+		packetCommitment := actx.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(actx.ctx, src.Port, src.Channel, nextseq)
+		suite.NotNil(packetCommitment)
+
+		// ensure that commit packet exists in store
+		expectedPacket1 := actx.app.CrosscccKeeper.CreateCommitPacket(
+			actx.ctx,
+			nextseq,
+			src.Port,
+			src.Channel,
+			dst.Port,
+			dst.Channel,
+			initiator,
+			txID,
+			isCommit,
+		)
+		suite.Equal(
+			packetCommitment,
+			channeltypes.CommitPacket(
+				expectedPacket1.Data,
+			),
+		)
+	}
 }
 
 func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, cid string, ts crossccc.StateTransition, nextseq uint64) {

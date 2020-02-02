@@ -4,8 +4,7 @@ import (
 	"errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
-	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment"
+	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -105,23 +104,43 @@ func (t StateTransition) ValidateBasic() error {
 var _ sdk.Msg = (*MsgConfirm)(nil)
 
 type MsgConfirm struct {
-	TxID            []byte
-	PrepareInfoList []PrepareInfo
-	Signer          sdk.AccAddress
+	TxID           []byte
+	PreparePackets []PreparePacket
+	Signer         sdk.AccAddress
 }
 
-type PrepareInfo struct {
-	Height uint64
-	Packet channelexported.PacketI `json:"packet" yaml:"packet"`
-	Proof  []commitment.Proof      `json:"proof" yaml:"proof"`
-	Status uint8                   `json:"status" yaml:"status"`
-	Source ChannelInfo             `json:"source" yaml:"source"`
+type MultiplePackets interface {
+	Packets() []channel.MsgPacket
+}
+
+var _ MultiplePackets = (*MsgConfirm)(nil)
+
+type PreparePacket struct {
+	Packet channel.MsgPacket
+	Status uint8       `json:"status" yaml:"status"`
+	Source ChannelInfo `json:"source" yaml:"source"`
+}
+
+func NewPreparePacket(msgPacket channel.MsgPacket, status uint8, src ChannelInfo) PreparePacket {
+	return PreparePacket{Packet: msgPacket, Status: status, Source: src}
 }
 
 type Statuses []uint8
 
+func NewMsgConfirm(txID []byte, prepares []PreparePacket, signer sdk.AccAddress) MsgConfirm {
+	return MsgConfirm{TxID: txID, PreparePackets: prepares, Signer: signer}
+}
+
+func (m MsgConfirm) Packets() []channel.MsgPacket {
+	packets := make([]channel.MsgPacket, len(m.PreparePackets))
+	for i, p := range m.PreparePackets {
+		packets[i] = p.Packet
+	}
+	return packets
+}
+
 func (m MsgConfirm) IsCommittable() bool {
-	for _, p := range m.PrepareInfoList {
+	for _, p := range m.PreparePackets {
 		if p.Status == PREPARE_STATUS_FAILED {
 			return false
 		}
@@ -129,20 +148,24 @@ func (m MsgConfirm) IsCommittable() bool {
 	return true
 }
 
-func NewMsgConfirm() MsgConfirm {
-	return MsgConfirm{}
-}
-
 func (MsgConfirm) Route() string {
 	return RouterKey
 }
 
 func (MsgConfirm) Type() string {
-	return "crossccc_commit"
+	return "crossccc_confirm"
 }
 
 func (msg MsgConfirm) ValidateBasic() error {
-	return nil
+	if len(msg.TxID) == 0 {
+		return errors.New("TxID is required")
+	} else if len(msg.Signer) == 0 {
+		return errors.New("Signer is required")
+	} else if len(msg.PreparePackets) == 0 {
+		return errors.New("PrepareInfoList must not be empty")
+	} else {
+		return nil
+	}
 }
 
 func (msg MsgConfirm) GetSignBytes() []byte {
