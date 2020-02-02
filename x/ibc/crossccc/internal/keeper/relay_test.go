@@ -253,8 +253,8 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
 
-	suite.testPreparePacket(app1, ch1to0, ch0to1, txID, chd1, tss[0], nextSeqSend)
-	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, chd2, tss[1], nextSeqSend)
+	suite.testPreparePacket(app1, ch1to0, ch0to1, txID, 0, chd1, tss[0], nextSeqSend)
+	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 1, chd2, tss[1], nextSeqSend)
 
 	// Tests for Confirm step
 
@@ -268,45 +268,90 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		ch2to0,
 	}
 
+	var makePrepareDataPacket = func(sender sdk.AccAddress, txID []byte, transID int, status uint8) channel.MsgPacket {
+		return channel.MsgPacket{Packet: channel.Packet{Data: crossccc.NewPacketDataPrepare(sender, txID, transID, status)}}
+	}
+
+	relayer := sdk.AccAddress("relayer1")
 	// ensure that coordinator decides 'abort'
 	{
 		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to1)
-		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to2)
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
+		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_FAILED), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
 	}
 	// ensure that coordinator decides 'abort'
 	{
 		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to1)
-		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to2)
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_FAILED), ch0to1)
+		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_FAILED), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
 	}
 	// ensure that coordinator decides 'abort'
 	{
 		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to1)
-		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to2)
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_FAILED), ch0to1)
+		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_OK), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
+	}
+	// ensure that coordinator decides nothing
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
+		pps = append(pps, p1)
+
+		capp, _ := app0.Cache()
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
+	}
+	// ensure that transitionID conflict occurs
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
+		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps = append(pps, p1, p2)
+
+		capp, _ := app0.Cache()
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
+	}
+	// invalid transitionID
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
+		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps = append(pps, p1, p2)
+
+		capp, _ := app0.Cache()
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
+	}
+	// includes all expected packets, but also include invalid transitionID
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
+		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_OK), ch0to2)
+		p3 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps = append(pps, p1, p2, p3)
+
+		capp, _ := app0.Cache()
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
 	}
 	// ensure that coordinator decides 'commit'
 	{
 		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to1)
-		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to2)
+		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
+		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_OK), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, writer := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
 		ci, found := capp.app.CrosscccKeeper.GetCoordinator(capp.ctx, msg.GetTxID())
 		if suite.True(found) {
 			suite.Equal(ci.Status, crossccc.CO_STATUS_COMMIT)
@@ -400,13 +445,17 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, txID []byte, nextseq uint64) {
+func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, txID []byte, nextseq uint64, hasMulticastError bool) {
 	relayer := sdk.AccAddress("relayer2")
 	msgConfirm := crossccc.NewMsgConfirm(txID, pps, relayer)
 	isCommit := msgConfirm.IsCommittable()
 	err := actx.app.CrosscccKeeper.MulticastCommitPacket(actx.ctx, txID, pps, relayer, isCommit)
-	suite.NoError(err, err)
-
+	if hasMulticastError {
+		suite.Error(err, err)
+		return
+	} else {
+		suite.NoError(err, err)
+	}
 	for i, src := range srcs {
 		dst := dsts[i]
 
@@ -438,11 +487,11 @@ func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.Pr
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, txID []byte, contractHandler crossccc.ContractHandler, ts crossccc.StateTransition, nextseq uint64) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, txID []byte, tsID int, contractHandler crossccc.ContractHandler, ts crossccc.StateTransition, nextseq uint64) {
 	var err error
 
 	relayer := sdk.AccAddress("relayer1")
-	packetData := crossccc.NewPacketDataInitiate(relayer, txID, ts)
+	packetData := crossccc.NewPacketDataInitiate(relayer, txID, tsID, ts)
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = crossccc.WithSigner(ctx, ts.Signer)
 	err = actx.app.CrosscccKeeper.PrepareTransaction(
@@ -478,6 +527,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 				dst.Channel,
 				relayer,
 				txID,
+				tsID,
 				crossccc.PREPARE_STATUS_OK,
 			).Data,
 		),

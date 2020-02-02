@@ -117,12 +117,11 @@ var _ MultiplePackets = (*MsgConfirm)(nil)
 
 type PreparePacket struct {
 	Packet channel.MsgPacket
-	Status uint8       `json:"status" yaml:"status"`
 	Source ChannelInfo `json:"source" yaml:"source"`
 }
 
-func NewPreparePacket(msgPacket channel.MsgPacket, status uint8, src ChannelInfo) PreparePacket {
-	return PreparePacket{Packet: msgPacket, Status: status, Source: src}
+func NewPreparePacket(msgPacket channel.MsgPacket, src ChannelInfo) PreparePacket {
+	return PreparePacket{Packet: msgPacket, Source: src}
 }
 
 type Statuses []uint8
@@ -141,7 +140,8 @@ func (m MsgConfirm) Packets() []channel.MsgPacket {
 
 func (m MsgConfirm) IsCommittable() bool {
 	for _, p := range m.PreparePackets {
-		if p.Status == PREPARE_STATUS_FAILED {
+		data := p.Packet.GetData().(PacketDataPrepare)
+		if data.Status == PREPARE_STATUS_FAILED {
 			return false
 		}
 	}

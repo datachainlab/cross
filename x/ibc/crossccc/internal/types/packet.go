@@ -9,11 +9,12 @@ import (
 type PacketDataInitiate struct {
 	Sender          sdk.AccAddress
 	TxID            []byte
+	TransitionID    int
 	StateTransition StateTransition
 }
 
-func NewPacketDataInitiate(sender sdk.AccAddress, txID []byte, transition StateTransition) PacketDataInitiate {
-	return PacketDataInitiate{Sender: sender, TxID: txID, StateTransition: transition}
+func NewPacketDataInitiate(sender sdk.AccAddress, txID []byte, transitionID int, transition StateTransition) PacketDataInitiate {
+	return PacketDataInitiate{Sender: sender, TxID: txID, TransitionID: transitionID, StateTransition: transition}
 }
 
 func (p PacketDataInitiate) Hash() []byte {
@@ -46,13 +47,14 @@ const (
 )
 
 type PacketDataPrepare struct {
-	Sender sdk.AccAddress
-	TxID   []byte
-	Status uint8
+	Sender       sdk.AccAddress
+	TxID         []byte
+	TransitionID int
+	Status       uint8
 }
 
-func NewPacketDataPrepare(sender sdk.AccAddress, txID []byte, status uint8) PacketDataPrepare {
-	return PacketDataPrepare{Sender: sender, TxID: txID, Status: status}
+func NewPacketDataPrepare(sender sdk.AccAddress, txID []byte, transitionID int, status uint8) PacketDataPrepare {
+	return PacketDataPrepare{Sender: sender, TxID: txID, TransitionID: transitionID, Status: status}
 }
 
 func (p PacketDataPrepare) ValidateBasic() error {

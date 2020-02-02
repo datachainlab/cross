@@ -6,6 +6,7 @@ import (
 	"github.com/bluele/crossccc/x/ibc/crossccc/internal/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	mapset "github.com/deckarep/golang-set"
 )
 
 // Keeper maintains the link to storage and exposes getter/setter methods for the various parts of the state machine
@@ -96,7 +97,25 @@ const (
 )
 
 type CoordinatorInfo struct {
-	Status uint8
+	Status      uint8
+	Transitions []string // [ConnectionID]
+}
+
+type ConnectionTransitionPair struct {
+	ConnectionID string
+	TransitionID int
+}
+
+func (ci CoordinatorInfo) Set() mapset.Set {
+	set := mapset.NewSet()
+	for tsID, connID := range ci.Transitions {
+		set.Add(ConnectionTransitionPair{connID, tsID})
+	}
+	return set
+}
+
+func NewCoordinatorInfo(status uint8, tss []string) CoordinatorInfo {
+	return CoordinatorInfo{Status: status, Transitions: tss}
 }
 
 func (k Keeper) SetCoordinator(ctx sdk.Context, txID []byte, ci CoordinatorInfo) {

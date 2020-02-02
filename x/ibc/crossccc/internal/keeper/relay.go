@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/bluele/crossccc/x/ibc/crossccc/internal/types"
@@ -46,30 +48,35 @@ func (k Keeper) MulticastInitiatePacket(
 		panic("unreachable")
 	}
 
-	for i, c := range channels {
-		s := transitions[i].Source
-		err := k.createInitiatePacket(
+	tss := make([]string, len(transitions))
+	// tsm := make(map[string][]int)
+	for id, c := range channels {
+		s := transitions[id].Source
+		p := k.CreateInitiatePacket(
 			ctx,
-			sequences[i],
+			sequences[id],
 			s.Port,
 			s.Channel,
 			c.Counterparty.PortID,
 			c.Counterparty.ChannelID,
 			txID,
-			transitions[i],
+			id,
+			transitions[id],
 			sender,
 		)
-		if err != nil {
+		if err := k.channelKeeper.SendPacket(ctx, p); err != nil {
 			return err
 		}
+		hops := c.GetConnectionHops()
+		tss[id] = hops[len(hops)-1]
 	}
 
-	k.SetCoordinator(ctx, txID, CoordinatorInfo{CO_STATUS_INIT})
+	k.SetCoordinator(ctx, txID, NewCoordinatorInfo(CO_STATUS_INIT, tss))
 
 	return nil
 }
 
-func (k Keeper) createInitiatePacket(
+func (k Keeper) CreateInitiatePacket(
 	ctx sdk.Context,
 	seq uint64,
 	sourcePort,
@@ -77,10 +84,11 @@ func (k Keeper) createInitiatePacket(
 	destinationPort,
 	destinationChannel string,
 	txID []byte,
+	transitionID int,
 	transition types.StateTransition,
 	sender sdk.AccAddress,
-) error {
-	packetData := types.NewPacketDataInitiate(sender, txID, transition)
+) channel.Packet {
+	packetData := types.NewPacketDataInitiate(sender, txID, transitionID, transition)
 	packet := channel.NewPacket(
 		packetData,
 		seq,
@@ -89,7 +97,7 @@ func (k Keeper) createInitiatePacket(
 		destinationPort,
 		destinationChannel,
 	)
-	return k.channelKeeper.SendPacket(ctx, packet)
+	return packet
 }
 
 func (k Keeper) PrepareTransaction(
@@ -118,7 +126,7 @@ func (k Keeper) PrepareTransaction(
 	}
 
 	// Send a Prepared Packet to coordinator (reply to source channel)
-	packet := k.CreatePreparePacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, status)
+	packet := k.CreatePreparePacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, data.TransitionID, status)
 	if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
 		return err
 	}
@@ -161,9 +169,10 @@ func (k Keeper) CreatePreparePacket(
 	destinationChannel string,
 	sender sdk.AccAddress,
 	txID []byte,
+	transitionID int,
 	status uint8,
 ) channel.Packet {
-	packetData := types.NewPacketDataPrepare(sender, txID, status)
+	packetData := types.NewPacketDataPrepare(sender, txID, transitionID, status)
 	return channel.NewPacket(
 		packetData,
 		seq,
@@ -189,10 +198,17 @@ func (k Keeper) MulticastCommitPacket(
 	if co.Status != CO_STATUS_INIT {
 		return fmt.Errorf("expected status is %v, but got %v", CO_STATUS_INIT, co.Status)
 	}
+	tsSet := co.Set()
+	tsSet.Contains()
 
 	var channels []channel.Channel
 	var sequences []uint64
 	for _, p := range preparePackets {
+		data := p.Packet.GetData().(types.PacketDataPrepare)
+		if !bytes.Equal(txID, data.TxID) {
+			return fmt.Errorf("unexpected txID: %x", data.TxID)
+		}
+
 		c, found := k.channelKeeper.GetChannel(ctx, p.Source.Port, p.Source.Channel)
 		if !found {
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, p.Source.Channel)
@@ -204,11 +220,22 @@ func (k Keeper) MulticastCommitPacket(
 			return channel.ErrSequenceSendNotFound
 		}
 
+		hops := c.GetConnectionHops()
+		connID := hops[len(hops)-1]
+		pair := ConnectionTransitionPair{connID, data.TransitionID}
+		if !tsSet.Contains(pair) {
+			return errors.New("unknown packet")
+		}
+		tsSet.Remove(pair)
+
 		channels = append(channels, c)
 		sequences = append(sequences, seq)
 	}
 	if len(preparePackets) != len(channels) || len(channels) != len(sequences) {
 		panic("unreachable")
+	}
+	if size := tsSet.Cardinality(); size > 0 {
+		return fmt.Errorf("tsset remains still elements: %v", size)
 	}
 
 	for i, c := range channels {
