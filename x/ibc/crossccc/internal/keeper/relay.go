@@ -233,9 +233,8 @@ func (k Keeper) MulticastCommitPacket(
 	}
 	if len(preparePackets) != len(channels) || len(channels) != len(sequences) {
 		panic("unreachable")
-	}
-	if size := tsSet.Cardinality(); size > 0 {
-		return fmt.Errorf("tsset remains still elements: %v", size)
+	} else if size := tsSet.Cardinality(); size != 0 {
+		return fmt.Errorf("tsset still have some elements: %v", size)
 	}
 
 	for i, c := range channels {
