@@ -208,6 +208,15 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	// Tests for Confirm step
 
 	nextSeqSend += 1
+	srcs := [2]crossccc.ChannelInfo{
+		ch0to1,
+		ch0to2,
+	}
+	dsts := [2]crossccc.ChannelInfo{
+		ch1to0,
+		ch2to0,
+	}
+
 	// ensure that coordinator decides 'abort'
 	{
 		pps := []crossccc.PreparePacket{}
@@ -216,17 +225,29 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		srcs := [2]crossccc.ChannelInfo{
-			ch0to1,
-			ch0to2,
-		}
-		dsts := [2]crossccc.ChannelInfo{
-			ch1to0,
-			ch2to0,
-		}
 		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
 	}
-	// expected success
+	// ensure that coordinator decides 'abort'
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to1)
+		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to2)
+		pps = append(pps, p1, p2)
+
+		capp, _ := app0.Cache()
+		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+	}
+	// ensure that coordinator decides 'abort'
+	{
+		pps := []crossccc.PreparePacket{}
+		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_FAILED, ch0to1)
+		p2 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to2)
+		pps = append(pps, p1, p2)
+
+		capp, _ := app0.Cache()
+		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+	}
+	// ensure that coordinator decides 'commit'
 	{
 		pps := []crossccc.PreparePacket{}
 		p1 := crossccc.NewPreparePacket(channel.MsgPacket{}, crossccc.PREPARE_STATUS_OK, ch0to1)
@@ -234,17 +255,10 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, writer := app0.Cache()
-		srcs := [2]crossccc.ChannelInfo{
-			ch0to1,
-			ch0to2,
-		}
-		dsts := [2]crossccc.ChannelInfo{
-			ch1to0,
-			ch2to0,
-		}
 		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
 		writer()
 	}
+
 }
 
 func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, nextseq uint64) {
@@ -349,7 +363,6 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 		),
 	)
 	writer()
-	// TODO ctx is re-set?
 }
 
 func parseCoin(ctx contract.Context, denomIdx, amountIdx int) (sdk.Coin, error) {
