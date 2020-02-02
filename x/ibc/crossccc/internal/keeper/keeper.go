@@ -40,13 +40,13 @@ const (
 )
 
 type TxInfo struct {
-	Status      uint8
-	Coordinator types.ChannelInfo
-	Contract    []byte
+	Status                  uint8
+	CoordinatorConnectionID string
+	Contract                []byte
 }
 
-func NewTxInfo(status uint8, coordinator types.ChannelInfo, contract []byte) TxInfo {
-	return TxInfo{Status: status, Coordinator: coordinator, Contract: contract}
+func NewTxInfo(status uint8, coordinatorConnectionID string, contract []byte) TxInfo {
+	return TxInfo{Status: status, CoordinatorConnectionID: coordinatorConnectionID, Contract: contract}
 }
 
 func (k Keeper) SetTx(ctx sdk.Context, txID []byte, tx TxInfo) {

@@ -365,31 +365,31 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		// In a1, execute to commit
 		{
 			capp, _ := app1.Cache()
-			suite.testCommitPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(relayer, txID, true), signer1)
+			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, crossccc.NewPacketDataCommit(relayer, txID, true), signer1)
 		}
 
 		// In a2, execute to commit
 		{
 			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(relayer, txID, true), signer2)
+			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, crossccc.NewPacketDataCommit(relayer, txID, true), signer2)
 		}
 
 		// In a1, execute to abort
 		{
 			capp, _ := app1.Cache()
-			suite.testAbortPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(relayer, txID, false), signer1)
+			suite.testAbortPacket(&capp, chd1, ch0to1, ch1to0, crossccc.NewPacketDataCommit(relayer, txID, false), signer1)
 		}
 
 		// In a2, execute to abort
 		{
 			capp, _ := app2.Cache()
-			suite.testAbortPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(relayer, txID, false), signer2)
+			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, crossccc.NewPacketDataCommit(relayer, txID, false), signer2)
 		}
 	}
 }
 
-func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler crossccc.ContractHandler, src crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
-	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, packet)
+func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler crossccc.ContractHandler, src, dst crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
+	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
@@ -420,8 +420,8 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler crossccc.ContractHandler, src crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
-	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, packet)
+func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler crossccc.ContractHandler, src, dst crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
+	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}

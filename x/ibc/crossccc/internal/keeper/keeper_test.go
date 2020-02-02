@@ -64,8 +64,6 @@ func (suite *KeeperTestSuite) createChannels(
 	srcConnectionID string, srcapp *appContext, srcc crossccc.ChannelInfo,
 	dstConnectionID string, dstapp *appContext, dstc crossccc.ChannelInfo,
 ) {
-	// suite.createChannel(srcapp, srcc.Port, srcc.Channel, dstConnectionID, dstc.Port, dstc.Channel, channelexported.OPEN)
-	// suite.createChannel(dstapp, dstc.Port, dstc.Channel, srcConnectionID, srcc.Port, srcc.Channel, channelexported.OPEN)
 	suite.createChannel(srcapp, srcc.Port, srcc.Channel, srcConnectionID, dstc.Port, dstc.Channel, channelexported.OPEN)
 	suite.createChannel(dstapp, dstc.Port, dstc.Channel, dstConnectionID, srcc.Port, srcc.Channel, channelexported.OPEN)
 

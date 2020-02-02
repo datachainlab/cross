@@ -131,7 +131,14 @@ func (k Keeper) PrepareTransaction(
 		return err
 	}
 
-	txinfo := NewTxInfo(TX_STATUS_PREPARE, types.ChannelInfo{Port: sourcePort, Channel: sourceChannel}, data.StateTransition.Contract)
+	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
+	if !found {
+		return errors.New("channel not found")
+	}
+	hops := c.GetConnectionHops()
+	connID := hops[len(hops)-1]
+
+	txinfo := NewTxInfo(TX_STATUS_PREPARE, connID, data.StateTransition.Contract)
 	k.SetTx(ctx, data.TxID, txinfo)
 
 	return nil
@@ -289,15 +296,24 @@ func (k Keeper) ReceiveCommitPacket(
 	ctx sdk.Context,
 	contractHandler ContractHandler,
 	sourcePort,
-	sourceChannel string,
+	sourceChannel,
+	destinationPort,
+	destinationChannel string,
 	data types.PacketDataCommit,
 ) error {
 	tx, err := k.EnsureTxStatus(ctx, data.TxID, TX_STATUS_PREPARE)
 	if err != nil {
 		return err
 	}
-	if tx.Coordinator.Port != sourcePort || tx.Coordinator.Channel != sourceChannel {
-		return fmt.Errorf("expected coordinator is {%v, %v}, but got {%v, %v}", tx.Coordinator.Port, tx.Coordinator.Channel, sourcePort, sourceChannel)
+	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
+	if !found {
+		return fmt.Errorf("channel not found: port=%v channel=%v", destinationPort, destinationChannel)
+	}
+	hops := c.GetConnectionHops()
+	connID := hops[len(hops)-1]
+
+	if tx.CoordinatorConnectionID != connID {
+		return fmt.Errorf("expected coordinatorConnectionID is %v, but got %v", tx.CoordinatorConnectionID, connID)
 	}
 
 	state, err := contractHandler.GetState(ctx, tx.Contract)
