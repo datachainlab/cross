@@ -307,10 +307,13 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 
 		capp, writer := app0.Cache()
 		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		ci, found := capp.app.CrosscccKeeper.GetCoordinator(capp.ctx, msg.GetTxID())
+		if suite.True(found) {
+			suite.Equal(ci.Status, crossccc.CO_STATUS_COMMIT)
+		}
 		writer()
 	}
 
-	// TODO
 	// ensure that each corhorts commit or abort
 	{
 		// In a1, execute to commit

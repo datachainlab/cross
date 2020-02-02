@@ -229,8 +229,9 @@ func (k Keeper) MulticastCommitPacket(
 		}
 	}
 
-	k.UpdateCoordinatorStatus(ctx, txID, CO_STATUS_COMMIT)
-
+	if err := k.UpdateCoordinatorStatus(ctx, txID, CO_STATUS_COMMIT); err != nil {
+		return err
+	}
 	return nil
 }
 

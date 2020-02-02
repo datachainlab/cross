@@ -117,15 +117,12 @@ func (k Keeper) GetCoordinator(ctx sdk.Context, txID []byte) (*CoordinatorInfo, 
 }
 
 func (k Keeper) UpdateCoordinatorStatus(ctx sdk.Context, txID []byte, status uint8) error {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.KeyTx(txID))
-	if bz == nil {
+	ci, found := k.GetCoordinator(ctx, txID)
+	if !found {
 		return fmt.Errorf("txID '%x' not found", txID)
 	}
-	var ci CoordinatorInfo
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &ci)
 	ci.Status = status
-	k.SetCoordinator(ctx, txID, ci)
+	k.SetCoordinator(ctx, txID, *ci)
 	return nil
 }
 
