@@ -37,6 +37,7 @@ var (
 	NewPacketDataInitiate = types.NewPacketDataInitiate
 	NewPacketDataPrepare  = types.NewPacketDataPrepare
 	NewPreparePacket      = types.NewPreparePacket
+	NewPacketDataCommit   = types.NewPacketDataCommit
 )
 
 // nolint

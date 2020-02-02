@@ -105,20 +105,45 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 	return
 }
 
+func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string) crossccc.ContractHandler {
+	contractHandler := contract.NewContractHandler(stk, func(kvs sdk.KVStore) crossccc.State {
+		return lock.NewStore(kvs)
+	})
+	c := contract.NewContract([]contract.Method{
+		{
+			Name: "issue",
+			F: func(ctx contract.Context, store crossccc.Store) error {
+				coin, err := parseCoin(ctx, 0, 1)
+				if err != nil {
+					return err
+				}
+				balance := getBalanceOf(store, ctx.Signer())
+				balance = balance.Add(coin)
+				setBalance(store, ctx.Signer(), balance)
+				return nil
+			},
+		},
+	})
+	contractHandler.AddRoute(cid, c)
+	return contractHandler
+}
+
 func (suite *KeeperTestSuite) TestSendInitiate() {
 	lock.RegisterCodec(crossccc.ModuleCdc)
 
 	initiator := sdk.AccAddress("initiator")
 
+	app0 := suite.createApp("app0") // coordinator node
+
+	app1 := suite.createApp("app1")
 	signer1 := sdk.AccAddress("signer1")
 	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
+	chd1 := suite.createContractHandler(app1.app.GetKey(crossccc.StoreKey), "c1")
 
+	app2 := suite.createApp("app2")
 	signer2 := sdk.AccAddress("signer2")
 	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
-
-	app0 := suite.createApp("app0") // coordinator node
-	app1 := suite.createApp("app1")
-	app2 := suite.createApp("app2")
+	chd2 := suite.createContractHandler(app2.app.GetKey(crossccc.StoreKey), "c2")
 
 	ch0to1 := crossccc.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
 	ch1to0 := crossccc.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
@@ -202,8 +227,8 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
 
-	suite.testPreparePacket(app1, ch1to0, ch0to1, initiator, txID, "c1", tss[0], nextSeqSend)
-	suite.testPreparePacket(app2, ch2to0, ch0to2, initiator, txID, "c2", tss[1], nextSeqSend)
+	suite.testPreparePacket(app1, ch1to0, ch0to1, initiator, txID, chd1, tss[0], nextSeqSend)
+	suite.testPreparePacket(app2, ch2to0, ch0to2, initiator, txID, chd2, tss[1], nextSeqSend)
 
 	// Tests for Confirm step
 
@@ -225,7 +250,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
 	}
 	// ensure that coordinator decides 'abort'
 	{
@@ -235,7 +260,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
 	}
 	// ensure that coordinator decides 'abort'
 	{
@@ -245,7 +270,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
-		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
 	}
 	// ensure that coordinator decides 'commit'
 	{
@@ -255,13 +280,39 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		pps = append(pps, p1, p2)
 
 		capp, writer := app0.Cache()
-		suite.testCommitPacket(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
+		suite.testConfirmMsg(&capp, pps, srcs, dsts, initiator, txID, nextSeqSend)
 		writer()
 	}
 
+	// TODO
+	// ensure that each corhorts commit or abort
+	{
+		// In a1
+		{
+			capp, _ := app1.Cache()
+			suite.testCommitPacket(&capp, chd1, ch0to1, crossccc.NewPacketDataCommit(initiator, txID, true), initiator)
+		}
+
+		// In a2
+		{
+			capp, _ := app2.Cache()
+			suite.testCommitPacket(&capp, chd2, ch0to2, crossccc.NewPacketDataCommit(initiator, txID, true), initiator)
+		}
+	}
 }
 
-func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, nextseq uint64) {
+func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler crossccc.ContractHandler, src crossccc.ChannelInfo, packet crossccc.PacketDataCommit, sender sdk.AccAddress) {
+	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, packet, sender)
+	suite.NoError(err)
+
+	tx, found := actx.app.CrosscccKeeper.GetTx(actx.ctx, packet.TxID)
+	if suite.True(found) {
+		suite.Equal(crossccc.TX_STATUS_COMMIT, tx.Status)
+		// ensure that the state is expected
+	}
+}
+
+func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, nextseq uint64) {
 	msgConfirm := crossccc.NewMsgConfirm(txID, pps, initiator)
 	isCommit := msgConfirm.IsCommittable()
 	err := actx.app.CrosscccKeeper.MulticastCommitPacket(actx.ctx, txID, pps, initiator, isCommit)
@@ -298,31 +349,10 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, pps []crossccc.
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, cid string, ts crossccc.StateTransition, nextseq uint64) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, initiator sdk.AccAddress, txID []byte, contractHandler crossccc.ContractHandler, ts crossccc.StateTransition, nextseq uint64) {
 	var err error
 	// FIXME sender is correctly?
 	packetData := crossccc.NewPacketDataInitiate(initiator, txID, ts)
-	stk := actx.app.GetKey(crossccc.StoreKey)
-	contractHandler := contract.NewContractHandler(stk, func(kvs sdk.KVStore) crossccc.State {
-		return lock.NewStore(kvs)
-	})
-	c := contract.NewContract([]contract.Method{
-		{
-			Name: "issue",
-			F: func(ctx contract.Context, store crossccc.Store) error {
-				coin, err := parseCoin(ctx, 0, 1)
-				if err != nil {
-					return err
-				}
-				balance := getBalanceOf(store, ctx.Signer())
-				balance = balance.Add(coin)
-				setBalance(store, ctx.Signer(), balance)
-				return nil
-			},
-		},
-	})
-	contractHandler.AddRoute(cid, c)
-
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = crossccc.WithSigner(ctx, ts.Signer)
 	err = actx.app.CrosscccKeeper.PrepareTransaction(

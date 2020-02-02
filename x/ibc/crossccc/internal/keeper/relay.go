@@ -262,9 +262,7 @@ func (k Keeper) ReceiveCommitPacket(
 	ctx sdk.Context,
 	contractHandler ContractHandler,
 	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
+	sourceChannel string,
 	data types.PacketDataCommit,
 	sender sdk.AccAddress,
 ) error {
