@@ -14,6 +14,7 @@ type MsgInitiate struct {
 	Sender           sdk.AccAddress
 	StateTransitions []StateTransition // TODO: sorted by Source?
 	Nonce            uint64
+	// Timeout          uint64 // Timeout for this msg
 }
 
 func NewMsgInitiate(sender sdk.AccAddress, transitions []StateTransition, Nonce uint64) MsgInitiate {
@@ -49,12 +50,21 @@ func (msg MsgInitiate) GetSignBytes() []byte {
 }
 
 // GetSigners implements sdk.Msg
+// GetSigners returns the addresses that must sign the transaction.
+// Addresses are returned in a deterministic order.
+// Duplicate addresses will be omitted.
 func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
-	addrs := []sdk.AccAddress{msg.Sender}
+	seen := map[string]bool{}
+	signers := []sdk.AccAddress{msg.Sender}
 	for _, t := range msg.StateTransitions {
-		addrs = append(addrs, t.Signer)
+		for _, addr := range t.Signers {
+			if !seen[addr.String()] {
+				signers = append(signers, addr)
+				seen[addr.String()] = true
+			}
+		}
 	}
-	return addrs
+	return signers
 }
 
 func (msg MsgInitiate) GetTxID() []byte {
@@ -80,15 +90,15 @@ func (c ChannelInfo) ValidateBasic() error {
 type StateTransition struct {
 	Source ChannelInfo `json:"source" yaml:"source"`
 
-	Signer   sdk.AccAddress `json:"signer" yaml:"signer"`
-	Contract []byte         `json:"contract" yaml:"contract"`
-	OPs      []OP           `json:"ops" yaml:"ops"`
+	Signers  []sdk.AccAddress `json:"signers" yaml:"signers"`
+	Contract []byte           `json:"contract" yaml:"contract"`
+	OPs      []OP             `json:"ops" yaml:"ops"`
 }
 
-func NewStateTransition(src ChannelInfo, signer sdk.AccAddress, contract []byte, ops []OP) StateTransition {
+func NewStateTransition(src ChannelInfo, signers []sdk.AccAddress, contract []byte, ops []OP) StateTransition {
 	return StateTransition{
 		Source:   src,
-		Signer:   signer,
+		Signers:  signers,
 		Contract: contract,
 		OPs:      ops,
 	}
@@ -97,6 +107,9 @@ func NewStateTransition(src ChannelInfo, signer sdk.AccAddress, contract []byte,
 func (t StateTransition) ValidateBasic() error {
 	if err := t.Source.ValidateBasic(); err != nil {
 		return err
+	}
+	if len(t.Signers) == 0 {
+		return errors.New("Signers must not be empty")
 	}
 	return nil
 }
@@ -164,6 +177,11 @@ func (msg MsgConfirm) ValidateBasic() error {
 	} else if len(msg.PreparePackets) == 0 {
 		return errors.New("PrepareInfoList must not be empty")
 	} else {
+		for _, p := range msg.PreparePackets {
+			if _, ok := p.Packet.GetData().(PacketDataPrepare); !ok {
+				return errors.New("unexpected packet found")
+			}
+		}
 		return nil
 	}
 }

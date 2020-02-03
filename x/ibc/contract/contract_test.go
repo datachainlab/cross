@@ -42,7 +42,7 @@ func TestContractHandler(t *testing.T) {
 	cms := makeCMStore(t, stk)
 	header := abci.Header{}
 	ctx := sdk.NewContext(cms, header, false, log.NewNopLogger())
-	ctx = crossccc.WithSigner(ctx, []byte("user0"))
+	ctx = crossccc.WithSigners(ctx, []sdk.AccAddress{[]byte("user0")})
 
 	{
 		contractInfo := NewContractInfo(contractID, "issue", [][]byte{
@@ -162,9 +162,9 @@ func makeContract() Contract {
 				if err != nil {
 					return err
 				}
-				balance := getBalanceOf(store, ctx.Signer())
+				balance := getBalanceOf(store, ctx.Signers()[0])
 				balance = balance.Add(coin)
-				setBalance(store, ctx.Signer(), balance)
+				setBalance(store, ctx.Signers()[0], balance)
 				return nil
 			},
 		},
@@ -179,12 +179,12 @@ func makeContract() Contract {
 
 				var recipient sdk.AccAddress = ctx.Args()[2]
 
-				signerBalance := getBalanceOf(store, ctx.Signer())
+				signerBalance := getBalanceOf(store, ctx.Signers()[0])
 				if !signerBalance.IsAllGT(rem) {
 					return fmt.Errorf("balance is insufficent")
 				}
 				signerBalance = signerBalance.Sub(rem)
-				setBalance(store, ctx.Signer(), signerBalance)
+				setBalance(store, ctx.Signers()[0], signerBalance)
 
 				recipientBalance := getBalanceOf(store, recipient)
 				recipientBalance.Add(rem...)
@@ -200,7 +200,7 @@ func makeContract() Contract {
 				if err != nil {
 					return err
 				}
-				balance := getBalanceOf(store, ctx.Signer())
+				balance := getBalanceOf(store, ctx.Signers()[0])
 				if !balance.AmountOf(coin.Denom).Equal(coin.Amount) {
 					return errors.New("amount is unexpected")
 				}

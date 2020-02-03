@@ -2,13 +2,13 @@ package types
 
 import sdk "github.com/cosmos/cosmos-sdk/types"
 
-type signerKey struct{}
+type signersKey struct{}
 
-func WithSigner(ctx sdk.Context, signer sdk.AccAddress) sdk.Context {
-	return ctx.WithValue(signerKey{}, signer)
+func WithSigners(ctx sdk.Context, signers []sdk.AccAddress) sdk.Context {
+	return ctx.WithValue(signersKey{}, signers)
 }
 
-func SignerFromContext(ctx sdk.Context) (sdk.AccAddress, bool) {
-	signer, ok := ctx.Value(signerKey{}).(sdk.AccAddress)
-	return signer, ok
+func SignersFromContext(ctx sdk.Context) ([]sdk.AccAddress, bool) {
+	signers, ok := ctx.Value(signersKey{}).([]sdk.AccAddress)
+	return signers, ok
 }

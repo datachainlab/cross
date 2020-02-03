@@ -163,13 +163,13 @@ func (suite *HandlerTestSuite) TestHandleCrosscccc() {
 	var tss = []crossccc.StateTransition{
 		crossccc.NewStateTransition(
 			src0,
-			signer0,
+			[]sdk.AccAddress{signer0},
 			ci0.Bytes(),
 			[]crossccc.OP{lock.Read{}, lock.Write{}},
 		),
 		crossccc.NewStateTransition(
 			src1,
-			signer1,
+			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
 			[]crossccc.OP{lock.Read{}, lock.Write{}},
 		),

@@ -118,9 +118,9 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 				if err != nil {
 					return err
 				}
-				balance := getBalanceOf(store, ctx.Signer())
+				balance := getBalanceOf(store, ctx.Signers()[0])
 				balance = balance.Add(coin)
-				setBalance(store, ctx.Signer(), balance)
+				setBalance(store, ctx.Signers()[0], balance)
 				return nil
 			},
 		},
@@ -131,7 +131,7 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 				if err != nil {
 					return err
 				}
-				balance := getBalanceOf(store, ctx.Signer())
+				balance := getBalanceOf(store, ctx.Signers()[0])
 				if !balance.AmountOf(coin.Denom).Equal(coin.Amount) {
 					return errors.New("amount is unexpected")
 				}
@@ -141,7 +141,7 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 		{
 			Name: "test-not-issued",
 			F: func(ctx contract.Context, store crossccc.Store) error {
-				balance := getBalanceOf(store, ctx.Signer())
+				balance := getBalanceOf(store, ctx.Signers()[0])
 				if len(balance) == 0 {
 					return nil
 				} else {
@@ -181,13 +181,13 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	var tss = []crossccc.StateTransition{
 		crossccc.NewStateTransition(
 			ch0to1,
-			signer1,
+			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
 			[]crossccc.OP{lock.Read{K: signer1}, lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 		),
 		crossccc.NewStateTransition(
 			ch0to2,
-			signer2,
+			[]sdk.AccAddress{signer2},
 			ci2.Bytes(),
 			[]crossccc.OP{lock.Read{K: signer2}, lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
 		),
@@ -415,7 +415,7 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	if !suite.NoError(err) {
 		return
 	}
-	ctx := crossccc.WithSigner(actx.ctx, txSigner)
+	ctx := crossccc.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
 	_, err = contractHandler.Handle(ctx, bz)
 	suite.NoError(err)
 }
@@ -440,7 +440,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	if !suite.NoError(err) {
 		return
 	}
-	ctx := crossccc.WithSigner(actx.ctx, txSigner)
+	ctx := crossccc.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
 	_, err = contractHandler.Handle(ctx, bz)
 	suite.NoError(err)
 }
@@ -493,7 +493,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	relayer := sdk.AccAddress("relayer1")
 	packetData := crossccc.NewPacketDataInitiate(relayer, txID, tsID, ts)
 	ctx, writer := actx.ctx.CacheContext()
-	ctx = crossccc.WithSigner(ctx, ts.Signer)
+	ctx = crossccc.WithSigners(ctx, ts.Signers)
 	err = actx.app.CrosscccKeeper.PrepareTransaction(
 		ctx,
 		contractHandler,

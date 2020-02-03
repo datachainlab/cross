@@ -28,8 +28,8 @@ var (
 	NewQuerier            = keeper.NewQuerier
 	ModuleCdc             = types.ModuleCdc
 	RegisterCodec         = types.RegisterCodec
-	SignerFromContext     = types.SignerFromContext
-	WithSigner            = types.WithSigner
+	SignersFromContext    = types.SignersFromContext
+	WithSigners           = types.WithSigners
 	NewMsgInitiate        = types.NewMsgInitiate
 	NewMsgConfirm         = types.NewMsgConfirm
 	NewStateTransition    = types.NewStateTransition

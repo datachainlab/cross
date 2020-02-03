@@ -62,11 +62,11 @@ func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state crossc
 	if !ok {
 		return nil, fmt.Errorf("route for '%v' not found", info.ID)
 	}
-	signer, ok := crossccc.SignerFromContext(ctx)
+	signers, ok := crossccc.SignersFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("signer is not set")
 	}
-	c := NewContext(signer, info.Args)
+	c := NewContext(signers, info.Args)
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -139,21 +139,21 @@ func (h *contractHandler) AddRoute(id string, c Contract) {
 }
 
 type Context interface {
-	Signer() sdk.AccAddress
+	Signers() []sdk.AccAddress
 	Args() [][]byte
 }
 
 type context struct {
-	signer sdk.AccAddress
-	args   [][]byte
+	signers []sdk.AccAddress
+	args    [][]byte
 }
 
-func NewContext(signer sdk.AccAddress, args [][]byte) Context {
-	return &context{signer: signer, args: args}
+func NewContext(signers []sdk.AccAddress, args [][]byte) Context {
+	return &context{signers: signers, args: args}
 }
 
-func (c context) Signer() sdk.AccAddress {
-	return c.signer
+func (c context) Signers() []sdk.AccAddress {
+	return c.signers
 }
 
 func (c context) Args() [][]byte {
