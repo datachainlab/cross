@@ -43,6 +43,8 @@ github.com/cosmos/cosmos-sdk v0.34.4-0.20200129095646-e46ec7dda8e2 h1:vT44ZpEQPl
 github.com/cosmos/cosmos-sdk v0.34.4-0.20200129095646-e46ec7dda8e2/go.mod h1:OFyG7kKNQdIt5qQR81MTUBQjlnYTSLH14EP5bNATI1k=
 github.com/cosmos/cosmos-sdk v0.34.4-0.20200129143358-863662ec66dd h1:uoA2FhuIxJObgXPVfBWirK6s2ZEzzdcSaFmnl3qQXiI=
 github.com/cosmos/cosmos-sdk v0.34.4-0.20200129143358-863662ec66dd/go.mod h1:OFyG7kKNQdIt5qQR81MTUBQjlnYTSLH14EP5bNATI1k=
+github.com/cosmos/cosmos-sdk v0.34.4-0.20200203125235-b85c8f52d99d h1:4U1hRCkm4RNeQ/zYosmuLaD/cjmJ1TMfnpQ+3Bn9aBk=
+github.com/cosmos/cosmos-sdk v0.34.4-0.20200203125235-b85c8f52d99d/go.mod h1:OFyG7kKNQdIt5qQR81MTUBQjlnYTSLH14EP5bNATI1k=
 github.com/cosmos/cosmos-sdk v0.37.5 h1:s03HFQ5N2CkiS/nENtACdfCwUUXSn7E5AvkWBk7wNGM=
 github.com/cosmos/cosmos-sdk v0.37.5/go.mod h1:d0WLPdlZyfbfHvFPa+GfWXFxHAiVCpOKp3bDm2YxFN8=
 github.com/cosmos/cosmos-sdk v0.38.0 h1:BrflLMrECI2ZfftRAq2iAlxlyk+W/4iKVCNCC3a+RPc=
