@@ -338,7 +338,7 @@ func (k Keeper) ReceiveCommitPacket(
 		return err
 	}
 
-	// Save Ack packet?
+	// Send Ack packet?
 
 	return nil
 }
