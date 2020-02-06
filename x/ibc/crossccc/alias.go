@@ -57,4 +57,5 @@ type (
 	Committer          = types.Committer
 	ChannelInfo        = types.ChannelInfo
 	StateTransition    = types.StateTransition
+	StateTransitions   = types.StateTransitions
 )

@@ -14,6 +14,7 @@ func init() {
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(StateTransition{}, "crossccc/StateTransition", nil)
+	cdc.RegisterConcrete(StateTransitions{}, "crossccc/StateTransitions", nil)
 	cdc.RegisterConcrete(ChannelInfo{}, "crossccc/ChannelInfo", nil)
 	cdc.RegisterInterface((*OP)(nil), nil)
 }

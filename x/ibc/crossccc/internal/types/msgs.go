@@ -95,6 +95,8 @@ type StateTransition struct {
 	OPs      []OP             `json:"ops" yaml:"ops"`
 }
 
+type StateTransitions = []StateTransition
+
 func NewStateTransition(src ChannelInfo, signers []sdk.AccAddress, contract []byte, ops []OP) StateTransition {
 	return StateTransition{
 		Source:   src,

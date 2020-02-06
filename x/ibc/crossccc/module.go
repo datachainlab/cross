@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
+	"github.com/bluele/crossccc/x/ibc/crossccc/internal/client/cli"
 	"github.com/bluele/crossccc/x/ibc/crossccc/internal/client/rest"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -56,14 +57,12 @@ func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router
 
 // GetQueryCmd returns the root query command of this module
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	// return cli.GetQueryCmd(StoreKey, cdc)
-	return nil
+	return cli.GetQueryCmd(cdc)
 }
 
 // GetTxCmd returns the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	// return cli.GetTxCmd(StoreKey, cdc)
-	return nil
+	return cli.GetTxCmd(cdc)
 }
 
 // AppModule struct
