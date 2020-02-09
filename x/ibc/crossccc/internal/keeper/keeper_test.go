@@ -3,7 +3,7 @@ package keeper_test
 import (
 	"testing"
 
-	"github.com/bluele/crossccc/simapp"
+	"github.com/bluele/crossccc/example/simapp"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"

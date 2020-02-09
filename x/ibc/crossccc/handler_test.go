@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bluele/crossccc/simapp"
+	"github.com/bluele/crossccc/example/simapp"
 	"github.com/bluele/crossccc/x/ibc/contract"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	"github.com/bluele/crossccc/x/ibc/store/lock"
