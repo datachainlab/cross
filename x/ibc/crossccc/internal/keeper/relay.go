@@ -76,7 +76,7 @@ func (k Keeper) MulticastInitiatePacket(
 	return nil
 }
 
-func (k Keeper) CreateInitiatePacket(
+func (k Keeper) CreateInitiatePacket( // PreparePacket?
 	ctx sdk.Context,
 	seq uint64,
 	sourcePort,

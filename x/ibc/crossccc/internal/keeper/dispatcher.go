@@ -5,7 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-/*
+/* TODO
 should return Store(Store?) instead of StoreKeys
 */
 type ContractHandler interface {

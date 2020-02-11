@@ -8,34 +8,40 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const (
+	MainStorePrefix uint8 = iota
+	TxStorePrefix
+	LockStorePrefix
+)
+
+var _ crossccc.Store = (*Store)(nil)
+var _ crossccc.State = (*Store)(nil)
+
 type Store struct {
 	main sdk.KVStore // committed store
 
-	/*
-		txID => serialize(OPs)
-	*/
-	txs sdk.KVStore // serialize and save ops, store is separated by txID
+	// serialize opeations to bytes and save it on store
+	// txID => serialize(OPs)
+	txs sdk.KVStore
 
-	/*
-		{key} => txID
-	*/
-	locks sdk.KVStore
+	lockStore lockStore
 
 	opmgr *OPManager
 }
 
-func NewStore(kvs sdk.KVStore) *Store {
-	main := prefix.NewStore(kvs, []byte{0})
-	txs := prefix.NewStore(kvs, []byte{1})
-	locks := prefix.NewStore(kvs, []byte{2})
-	return &Store{main: main, txs: txs, locks: locks, opmgr: NewOPManager()}
+func NewStore(kvs sdk.KVStore) Store {
+	main := prefix.NewStore(kvs, []byte{MainStorePrefix})
+	txs := prefix.NewStore(kvs, []byte{TxStorePrefix})
+	locks := prefix.NewStore(kvs, []byte{LockStorePrefix})
+
+	return Store{main: main, txs: txs, lockStore: newLockStore(locks), opmgr: NewOPManager()}
 }
 
-func (s *Store) OPs() crossccc.OPs {
+func (s Store) OPs() crossccc.OPs {
 	return s.opmgr.COPs()
 }
 
-func (s *Store) Precommit(id []byte) error {
+func (s Store) Precommit(id []byte) error {
 	if s.txs.Has(id) {
 		return fmt.Errorf("id '%x' already exists", id)
 	}
@@ -47,13 +53,13 @@ func (s *Store) Precommit(id []byte) error {
 	s.txs.Set(id, b)
 
 	for _, op := range ops {
-		s.locks.Set(op.Key(), id)
+		s.lockStore.Lock(convertTxOPTypeToLockType(op.Type()), op.Key())
 	}
 
 	return nil
 }
 
-func (s *Store) Commit(id []byte) error {
+func (s Store) Commit(id []byte) error {
 	b := s.txs.Get(id)
 	if b == nil {
 		return fmt.Errorf("id '%x' not found", id)
@@ -71,32 +77,32 @@ func (s *Store) Commit(id []byte) error {
 	return nil
 }
 
-func (s *Store) CommitImmediately() error {
+func (s Store) CommitImmediately() error {
 	if err := s.apply(s.opmgr.OPs()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Store) apply(ops OPs) error {
+func (s Store) apply(ops OPs) error {
 	for _, op := range ops {
 		op.ApplyTo(s.main)
 	}
 	return nil
 }
 
-func (s *Store) clean(id []byte, ops OPs) error {
+func (s Store) clean(id []byte, ops OPs) error {
 	if !s.txs.Has(id) {
 		return fmt.Errorf("id '%x' not found", id)
 	}
 	s.txs.Delete(id)
 	for _, op := range ops {
-		s.locks.Delete(op.Key())
+		s.lockStore.Unlock(convertTxOPTypeToLockType(op.Type()), op.Key())
 	}
 	return nil
 }
 
-func (s *Store) Discard(id []byte) error {
+func (s Store) Discard(id []byte) error {
 	b := s.txs.Get(id)
 	if b == nil {
 		return fmt.Errorf("id '%x' not found", id)
@@ -108,17 +114,17 @@ func (s *Store) Discard(id []byte) error {
 	return s.clean(id, ops)
 }
 
-func (s *Store) isAvailableKey(require uint8, key []byte) bool {
-	v := s.locks.Get(key)
-	if len(v) > 0 { // any locks exist
-		return false
+func (s Store) isAvailableKey(require uint8, key []byte) bool {
+	if tp, locked := s.lockStore.HasAnyLocked(key); locked {
+		return !IsConflictLock(require, tp)
+	} else {
+		return true
 	}
-	return true
 }
 
 // Implement KVStore
 
-func (s *Store) Get(key []byte) []byte {
+func (s Store) Get(key []byte) []byte {
 	if !s.isAvailableKey(OP_TYPE_READ, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
@@ -131,7 +137,7 @@ func (s *Store) Get(key []byte) []byte {
 	}
 }
 
-func (s *Store) Has(key []byte) bool {
+func (s Store) Has(key []byte) bool {
 	if !s.isAvailableKey(OP_TYPE_READ, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
@@ -144,16 +150,41 @@ func (s *Store) Has(key []byte) bool {
 	}
 }
 
-func (s *Store) Set(key, value []byte) {
+func (s Store) Set(key, value []byte) {
 	if !s.isAvailableKey(OP_TYPE_WRITE, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
 	s.opmgr.AddOP(Write{key, value})
 }
 
-func (s *Store) Delete(key []byte) {
+func (s Store) Delete(key []byte) {
 	if !s.isAvailableKey(OP_TYPE_WRITE, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
 	s.opmgr.AddOP(Write{key, nil})
+}
+
+func IsConflictLock(require, current uint8) bool {
+	if require == 0 || current == 0 {
+		panic("invalid op type")
+	}
+
+	switch current {
+	case LOCK_TYPE_READ:
+		return require != LOCK_TYPE_READ
+	case LOCK_TYPE_WRITE:
+		return true
+	}
+	panic("unreachable here")
+}
+
+func convertTxOPTypeToLockType(tp uint8) uint8 {
+	switch tp {
+	case OP_TYPE_READ:
+		return LOCK_TYPE_READ
+	case OP_TYPE_WRITE:
+		return LOCK_TYPE_WRITE
+	default:
+		panic("unexpected type")
+	}
 }

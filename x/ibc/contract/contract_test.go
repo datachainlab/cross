@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/bluele/crossccc/x/ibc/crossccc"
-	"github.com/bluele/crossccc/x/ibc/store/lock"
+	lock "github.com/bluele/crossccc/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
@@ -15,6 +15,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 	db "github.com/tendermint/tm-db"
 )
@@ -54,7 +55,7 @@ func TestContractHandler(t *testing.T) {
 		if err != nil {
 			assert.FailNow(err.Error())
 		}
-		tx0 := []byte("tx0")
+		tx0 := tmhash.Sum([]byte("tx0"))
 		// Do a Precommit phase
 		assert.NoError(state.Precommit(tx0))
 		cms.Commit()

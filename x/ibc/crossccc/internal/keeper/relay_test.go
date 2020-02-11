@@ -7,7 +7,7 @@ import (
 
 	"github.com/bluele/crossccc/x/ibc/contract"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
-	"github.com/bluele/crossccc/x/ibc/store/lock"
+	lock "github.com/bluele/crossccc/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -183,13 +183,13 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 			ch0to1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
-			[]crossccc.OP{lock.Read{K: signer1}, lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
+			[]crossccc.OP{lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 		),
 		crossccc.NewStateTransition(
 			ch0to2,
 			[]sdk.AccAddress{signer2},
 			ci2.Bytes(),
-			[]crossccc.OP{lock.Read{K: signer2}, lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
+			[]crossccc.OP{lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
 		),
 	}
 

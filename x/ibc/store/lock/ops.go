@@ -2,12 +2,14 @@ package lock
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
+	// This order equals a priority of operation
 	OP_TYPE_READ uint8 = iota + 1
 	OP_TYPE_WRITE
 )
@@ -55,6 +57,10 @@ func (r Read) Type() uint8 {
 
 func (r Read) ApplyTo(sdk.KVStore) {}
 
+func (r Read) String() string {
+	return fmt.Sprintf("Read{%X}", r.K)
+}
+
 type Write struct {
 	K []byte
 	V []byte
@@ -81,7 +87,15 @@ func (w Write) Equal(cop crossccc.OP) bool {
 }
 
 func (w Write) ApplyTo(kvs sdk.KVStore) {
-	kvs.Set(w.K, w.V)
+	if w.V == nil {
+		kvs.Delete(w.K)
+	} else {
+		kvs.Set(w.K, w.V)
+	}
+}
+
+func (w Write) String() string {
+	return fmt.Sprintf("Write{%X %X}", w.K, w.V)
 }
 
 type OPManager struct {
@@ -109,13 +123,42 @@ func (m *OPManager) GetLastChange(key []byte) (WriteOP, bool) {
 }
 
 func (m *OPManager) OPs() OPs {
-	return m.ops
+	return OptimizeOPs(m.ops)
 }
 
 func (m *OPManager) COPs() crossccc.OPs {
-	ops := make(crossccc.OPs, len(m.ops))
-	for i, op := range m.ops {
-		ops[i] = op
+	ops := m.OPs()
+	cops := make(crossccc.OPs, len(ops))
+	for i, op := range ops {
+		cops[i] = op
 	}
-	return ops
+	return cops
+}
+
+type item struct {
+	tp  uint8
+	idx uint32
+}
+
+func OptimizeOPs(ops OPs) OPs {
+	m := make(map[string]item)
+
+	for i, op := range ops {
+		v, ok := m[string(op.Key())]
+		if !ok {
+			m[string(op.Key())] = item{op.Type(), uint32(i)}
+		} else {
+			if op.Type() >= v.tp {
+				m[string(op.Key())] = item{op.Type(), uint32(i)}
+			}
+		}
+	}
+
+	optimized := make([]OP, 0, len(m))
+	for i, op := range ops {
+		if m[string(op.Key())].idx == uint32(i) {
+			optimized = append(optimized, op)
+		}
+	}
+	return optimized
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/bluele/crossccc/example/simapp"
 	"github.com/bluele/crossccc/x/ibc/contract"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
-	"github.com/bluele/crossccc/x/ibc/store/lock"
+	lock "github.com/bluele/crossccc/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
