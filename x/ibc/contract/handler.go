@@ -20,6 +20,7 @@ func NewHandler(contractHandler crossccc.ContractHandler) sdk.Handler {
 }
 
 func handleContractCall(ctx sdk.Context, msg MsgContractCall, contractHandler crossccc.ContractHandler) (*sdk.Result, error) {
+	ctx = crossccc.WithSigners(ctx, msg.GetSigners())
 	state, err := contractHandler.Handle(ctx, msg.Contract)
 	if err != nil {
 		return nil, err

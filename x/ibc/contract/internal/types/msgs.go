@@ -10,8 +10,12 @@ type MsgContractCall struct {
 	Contract []byte           `json:"contract" yaml:"contract"`
 }
 
-func NewMsgContractCall() MsgContractCall {
-	return MsgContractCall{}
+func NewMsgContractCall(sender sdk.AccAddress, signers []sdk.AccAddress, contract []byte) MsgContractCall {
+	return MsgContractCall{
+		Sender:   sender,
+		Signers:  signers,
+		Contract: contract,
+	}
 }
 
 func (MsgContractCall) Route() string {
