@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/bluele/crossccc/x/ibc/crossccc"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -40,7 +39,7 @@ type Contract interface {
 }
 
 type contractHandler struct {
-	stateStoreKey sdk.StoreKey
+	keeper        Keeper
 	routes        map[string]Contract
 	stateProvider StateProvider
 }
@@ -86,10 +85,7 @@ func (h *contractHandler) GetState(ctx sdk.Context, contract []byte) (crossccc.S
 	if err != nil {
 		return nil, err
 	}
-
-	k := ctx.KVStore(h.stateStoreKey)
-	kvs := prefix.NewStore(k, []byte(info.ID))
-	return h.stateProvider(kvs), nil
+	return h.stateProvider(h.keeper.GetContractStateStore(ctx, []byte(info.ID))), nil
 }
 
 type ContractInfo struct {
@@ -127,8 +123,8 @@ func DecodeContractSignature(bz []byte) (*ContractInfo, error) {
 	return &c, nil
 }
 
-func NewContractHandler(stateStoreKey sdk.StoreKey, stateProvider StateProvider) *contractHandler {
-	return &contractHandler{stateStoreKey: stateStoreKey, routes: make(map[string]Contract), stateProvider: stateProvider}
+func NewContractHandler(k Keeper, stateProvider StateProvider) *contractHandler {
+	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider}
 }
 
 func (h *contractHandler) AddRoute(id string, c Contract) {
@@ -143,19 +139,19 @@ type Context interface {
 	Args() [][]byte
 }
 
-type context struct {
+type ccontext struct {
 	signers []sdk.AccAddress
 	args    [][]byte
 }
 
 func NewContext(signers []sdk.AccAddress, args [][]byte) Context {
-	return &context{signers: signers, args: args}
+	return &ccontext{signers: signers, args: args}
 }
 
-func (c context) Signers() []sdk.AccAddress {
+func (c ccontext) Signers() []sdk.AccAddress {
 	return c.signers
 }
 
-func (c context) Args() [][]byte {
+func (c ccontext) Args() [][]byte {
 	return c.args
 }

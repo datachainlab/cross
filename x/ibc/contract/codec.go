@@ -6,6 +6,10 @@ var cdc *codec.Codec
 
 func init() {
 	cdc = codec.New()
+	RegisterCodec(cdc)
+}
 
-	cdc.RegisterConcrete(ContractInfo{}, "handler/ContractInfo", nil)
+// RegisterCodec registers concrete types on the Amino codec
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(ContractInfo{}, "contract/ContractInfo", nil)
 }

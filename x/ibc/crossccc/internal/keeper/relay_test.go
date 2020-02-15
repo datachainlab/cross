@@ -107,7 +107,7 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 }
 
 func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string) crossccc.ContractHandler {
-	contractHandler := contract.NewContractHandler(stk, func(kvs sdk.KVStore) crossccc.State {
+	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) crossccc.State {
 		return lock.NewStore(kvs)
 	})
 	c := contract.NewContract([]contract.Method{

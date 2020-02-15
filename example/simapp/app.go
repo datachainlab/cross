@@ -4,7 +4,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/bluele/crossccc/x/ibc/contract"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/crossccc/x/ibc/store/lock"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -68,6 +70,7 @@ var (
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 		crossccc.AppModuleBasic{},
+		contract.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -132,6 +135,7 @@ type SimApp struct {
 	EvidenceKeeper evidence.Keeper
 	TransferKeeper transfer.Keeper
 	CrosscccKeeper crossccc.Keeper
+	ContractKeeper contract.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -156,7 +160,7 @@ func NewSimApp(
 		bam.MainStoreKey, auth.StoreKey, bank.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, ibc.StoreKey, upgrade.StoreKey,
-		evidence.StoreKey, transfer.StoreKey, crossccc.StoreKey,
+		evidence.StoreKey, transfer.StoreKey, crossccc.StoreKey, contract.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
@@ -247,11 +251,17 @@ func NewSimApp(
 		app.IBCKeeper.ChannelKeeper, app.BankKeeper, app.SupplyKeeper,
 	)
 
+	app.ContractKeeper = contract.NewKeeper(keys[contract.StoreKey])
+
 	crosscccCapKey := app.IBCKeeper.PortKeeper.BindPort(crossccc.ModuleName)
 	app.CrosscccKeeper = crossccc.NewKeeper(
 		app.cdc, keys[crossccc.StoreKey], crosscccCapKey,
 		app.IBCKeeper.ChannelKeeper,
 	)
+
+	contractHandler := contract.NewContractHandler(app.ContractKeeper, func(store sdk.KVStore) crossccc.State {
+		return lock.NewStore(store)
+	})
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -270,7 +280,8 @@ func NewSimApp(
 		evidence.NewAppModule(app.EvidenceKeeper),
 		ibc.NewAppModule(app.IBCKeeper),
 		transfer.NewAppModule(app.TransferKeeper),
-		crossccc.NewAppModule(app.CrosscccKeeper, nil), // TODO set a contract handler
+		crossccc.NewAppModule(app.CrosscccKeeper, contractHandler),
+		contract.NewAppModule(app.ContractKeeper, contractHandler),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
