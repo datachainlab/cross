@@ -1,4 +1,4 @@
-package contract
+package keeper
 
 import (
 	"errors"
@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/bluele/crossccc/x/ibc/contract/internal/types"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	lock "github.com/bluele/crossccc/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
-	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -47,11 +47,11 @@ func TestContractHandler(t *testing.T) {
 	ctx = crossccc.WithSigners(ctx, []sdk.AccAddress{[]byte("user0")})
 
 	{
-		contractInfo := NewContractInfo(contractID, "issue", [][]byte{
+		contractInfo := types.NewContractInfo(contractID, "issue", [][]byte{
 			[]byte("mycoin"),
 			[]byte("100"),
 		})
-		bz, _ := EncodeContractSignature(contractInfo)
+		bz, _ := types.EncodeContractSignature(contractInfo)
 		state, err := h.Handle(ctx, bz)
 		if err != nil {
 			assert.FailNow(err.Error())
@@ -62,11 +62,11 @@ func TestContractHandler(t *testing.T) {
 		cms.Commit()
 
 		{
-			contractInfo := NewContractInfo(contractID, "test-balance", [][]byte{
+			contractInfo := types.NewContractInfo(contractID, "test-balance", [][]byte{
 				[]byte("mycoin"),
 				[]byte("100"),
 			})
-			bz, _ := EncodeContractSignature(contractInfo)
+			bz, _ := types.EncodeContractSignature(contractInfo)
 			_, err := h.Handle(ctx, bz)
 			if err == nil {
 				assert.FailNow("expected an error")
@@ -78,11 +78,11 @@ func TestContractHandler(t *testing.T) {
 		cms.Commit()
 
 		{
-			contractInfo := NewContractInfo(contractID, "test-balance", [][]byte{
+			contractInfo := types.NewContractInfo(contractID, "test-balance", [][]byte{
 				[]byte("mycoin"),
 				[]byte("100"),
 			})
-			bz, _ := EncodeContractSignature(contractInfo)
+			bz, _ := types.EncodeContractSignature(contractInfo)
 			_, err := h.Handle(ctx, bz)
 			if err != nil {
 				assert.FailNow(err.Error())
@@ -90,11 +90,11 @@ func TestContractHandler(t *testing.T) {
 		}
 
 		{
-			contractInfo := NewContractInfo(contractID, "issue", [][]byte{
+			contractInfo := types.NewContractInfo(contractID, "issue", [][]byte{
 				[]byte("mycoin2"),
 				[]byte("50"),
 			})
-			bz, _ := EncodeContractSignature(contractInfo)
+			bz, _ := types.EncodeContractSignature(contractInfo)
 			state, err := h.Handle(ctx, bz)
 			if err != nil {
 				assert.FailNow(err.Error())
@@ -105,11 +105,11 @@ func TestContractHandler(t *testing.T) {
 		}
 
 		{
-			contractInfo := NewContractInfo(contractID, "test-balance", [][]byte{
+			contractInfo := types.NewContractInfo(contractID, "test-balance", [][]byte{
 				[]byte("mycoin2"),
 				[]byte("50"),
 			})
-			bz, _ := EncodeContractSignature(contractInfo)
+			bz, _ := types.EncodeContractSignature(contractInfo)
 			_, err := h.Handle(ctx, bz)
 			if err != nil {
 				assert.FailNow(err.Error())
@@ -213,7 +213,7 @@ func makeContract() Contract {
 	return c
 }
 
-func makeCMStore(t *testing.T, key sdk.StoreKey) types.CommitMultiStore {
+func makeCMStore(t *testing.T, key sdk.StoreKey) sdk.CommitMultiStore {
 	assert := assert.New(t)
 	d := db.NewDB("test", db.MemDBBackend, "")
 

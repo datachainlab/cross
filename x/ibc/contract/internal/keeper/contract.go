@@ -1,8 +1,9 @@
-package contract
+package keeper
 
 import (
 	"fmt"
 
+	"github.com/bluele/crossccc/x/ibc/contract/internal/types"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -49,7 +50,7 @@ var _ crossccc.ContractHandler = (*contractHandler)(nil)
 type StateProvider = func(sdk.KVStore) crossccc.State
 
 func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state crossccc.State, err error) {
-	info, err := DecodeContractSignature(contract)
+	info, err := types.DecodeContractSignature(contract)
 	if err != nil {
 		return nil, err
 	}
@@ -81,46 +82,11 @@ func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state crossc
 }
 
 func (h *contractHandler) GetState(ctx sdk.Context, contract []byte) (crossccc.State, error) {
-	info, err := DecodeContractSignature(contract)
+	info, err := types.DecodeContractSignature(contract)
 	if err != nil {
 		return nil, err
 	}
 	return h.stateProvider(h.keeper.GetContractStateStore(ctx, []byte(info.ID))), nil
-}
-
-type ContractInfo struct {
-	ID     string
-	Method string
-	Args   [][]byte
-}
-
-func NewContractInfo(id, method string, args [][]byte) ContractInfo {
-	return ContractInfo{
-		ID:     id,
-		Method: method,
-		Args:   args,
-	}
-}
-
-func (ci ContractInfo) Bytes() []byte {
-	bz, err := EncodeContractSignature(ci)
-	if err != nil {
-		panic(err)
-	}
-	return bz
-}
-
-func EncodeContractSignature(c ContractInfo) ([]byte, error) {
-	return cdc.MarshalBinaryLengthPrefixed(c)
-}
-
-func DecodeContractSignature(bz []byte) (*ContractInfo, error) {
-	var c ContractInfo
-	err := cdc.UnmarshalBinaryLengthPrefixed(bz, &c)
-	if err != nil {
-		return nil, err
-	}
-	return &c, nil
 }
 
 func NewContractHandler(k Keeper, stateProvider StateProvider) *contractHandler {
