@@ -3,6 +3,7 @@ package contract
 import (
 	"encoding/json"
 
+	"github.com/bluele/crossccc/x/ibc/contract/client/cli"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -55,14 +56,12 @@ func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router
 
 // GetQueryCmd returns the root query command of this module
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	// return cli.GetQueryCmd(cdc)
-	panic("not implemented error")
+	return cli.GetQueryCmd(cdc)
 }
 
 // GetTxCmd returns the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	// return cli.GetTxCmd(cdc)
-	panic("not implemented error")
+	return cli.GetTxCmd(cdc)
 }
 
 // AppModule struct
