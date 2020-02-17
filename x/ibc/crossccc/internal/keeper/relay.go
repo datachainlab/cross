@@ -11,14 +11,12 @@ import (
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 )
 
-func (k Keeper) MulticastInitiatePacket(
+func (k Keeper) MulticastPreparePacket(
 	ctx sdk.Context,
 	sender sdk.AccAddress,
 	msg types.MsgInitiate,
 	transitions []types.StateTransition,
 ) error {
-	// Fetch each channel info and its next sequence
-	// So, Instantiator must be *HUB* with concerned networks
 	txID := msg.GetTxID()
 	if _, ok := k.GetTx(ctx, txID); ok {
 		return fmt.Errorf("txID '%x' already exists", txID)
@@ -49,10 +47,9 @@ func (k Keeper) MulticastInitiatePacket(
 	}
 
 	tss := make([]string, len(transitions))
-	// tsm := make(map[string][]int)
 	for id, c := range channels {
 		s := transitions[id].Source
-		p := k.CreateInitiatePacket(
+		p := k.CreatePreparePacket(
 			ctx,
 			sequences[id],
 			s.Port,
@@ -76,7 +73,7 @@ func (k Keeper) MulticastInitiatePacket(
 	return nil
 }
 
-func (k Keeper) CreateInitiatePacket( // PreparePacket?
+func (k Keeper) CreatePreparePacket(
 	ctx sdk.Context,
 	seq uint64,
 	sourcePort,
@@ -164,7 +161,6 @@ func (k Keeper) prepareTransaction(
 	if !store.OPs().Equal(data.StateTransition.OPs) {
 		return fmt.Errorf("unexpected ops")
 	}
-	// TODO set contract info
 	return nil
 }
 

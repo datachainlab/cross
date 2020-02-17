@@ -30,7 +30,7 @@ func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 }
 
 func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result, error) {
-	err := k.MulticastInitiatePacket(ctx, msg.Sender, msg, msg.StateTransitions)
+	err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.StateTransitions)
 	if err != nil {
 		return nil, err
 	}

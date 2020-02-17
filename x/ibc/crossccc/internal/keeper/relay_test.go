@@ -200,7 +200,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	)
 	txID := msg.GetTxID()
 
-	err = app0.app.CrosscccKeeper.MulticastInitiatePacket(
+	err = app0.app.CrosscccKeeper.MulticastPreparePacket(
 		app0.ctx,
 		initiator,
 		msg,
@@ -234,7 +234,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		app2,
 	)
 
-	err = app0.app.CrosscccKeeper.MulticastInitiatePacket(
+	err = app0.app.CrosscccKeeper.MulticastPreparePacket(
 		app0.ctx,
 		initiator,
 		msg,
