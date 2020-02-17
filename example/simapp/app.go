@@ -6,7 +6,6 @@ import (
 
 	"github.com/bluele/crossccc/x/ibc/contract"
 	"github.com/bluele/crossccc/x/ibc/crossccc"
-	"github.com/bluele/crossccc/x/ibc/store/lock"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -259,9 +258,7 @@ func NewSimApp(
 		app.IBCKeeper.ChannelKeeper,
 	)
 
-	contractHandler := contract.NewContractHandler(app.ContractKeeper, func(store sdk.KVStore) crossccc.State {
-		return lock.NewStore(store)
-	})
+	contractHandler := makeContractHandler(app.ContractKeeper)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
