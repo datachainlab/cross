@@ -24,20 +24,20 @@ const (
 
 // nolint
 var (
-	NewKeeper             = keeper.NewKeeper
-	NewQuerier            = keeper.NewQuerier
-	ModuleCdc             = types.ModuleCdc
-	RegisterCodec         = types.RegisterCodec
-	SignersFromContext    = types.SignersFromContext
-	WithSigners           = types.WithSigners
-	NewMsgInitiate        = types.NewMsgInitiate
-	NewMsgConfirm         = types.NewMsgConfirm
-	NewStateTransition    = types.NewStateTransition
-	NewChannelInfo        = types.NewChannelInfo
-	NewPacketDataInitiate = types.NewPacketDataInitiate
-	NewPacketDataPrepare  = types.NewPacketDataPrepare
-	NewPreparePacket      = types.NewPreparePacket
-	NewPacketDataCommit   = types.NewPacketDataCommit
+	NewKeeper                  = keeper.NewKeeper
+	NewQuerier                 = keeper.NewQuerier
+	ModuleCdc                  = types.ModuleCdc
+	RegisterCodec              = types.RegisterCodec
+	SignersFromContext         = types.SignersFromContext
+	WithSigners                = types.WithSigners
+	NewMsgInitiate             = types.NewMsgInitiate
+	NewMsgConfirm              = types.NewMsgConfirm
+	NewStateTransition         = types.NewStateTransition
+	NewChannelInfo             = types.NewChannelInfo
+	NewPacketDataInitiate      = types.NewPacketDataInitiate
+	NewPacketDataPrepareResult = types.NewPacketDataPrepareResult
+	NewPreparePacket           = types.NewPreparePacket
+	NewPacketDataCommit        = types.NewPacketDataCommit
 )
 
 // nolint

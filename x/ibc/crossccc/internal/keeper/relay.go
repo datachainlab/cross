@@ -126,7 +126,7 @@ func (k Keeper) PrepareTransaction(
 	}
 
 	// Send a Prepared Packet to coordinator (reply to source channel)
-	packet := k.CreatePreparePacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, data.TransitionID, status)
+	packet := k.CreatePrepareResultPacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, data.TransitionID, status)
 	if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (k Keeper) prepareTransaction(
 	return nil
 }
 
-func (k Keeper) CreatePreparePacket(
+func (k Keeper) CreatePrepareResultPacket(
 	seq uint64,
 	sourcePort,
 	sourceChannel,
@@ -179,7 +179,7 @@ func (k Keeper) CreatePreparePacket(
 	transitionID int,
 	status uint8,
 ) channel.Packet {
-	packetData := types.NewPacketDataPrepare(sender, txID, transitionID, status)
+	packetData := types.NewPacketDataPrepareResult(sender, txID, transitionID, status)
 	return channel.NewPacket(
 		packetData,
 		seq,
@@ -211,7 +211,7 @@ func (k Keeper) MulticastCommitPacket(
 	var channels []channel.Channel
 	var sequences []uint64
 	for _, p := range preparePackets {
-		data := p.Packet.GetData().(types.PacketDataPrepare)
+		data := p.Packet.GetData().(types.PacketDataPrepareResult)
 		if !bytes.Equal(txID, data.TxID) {
 			return fmt.Errorf("unexpected txID: %x", data.TxID)
 		}

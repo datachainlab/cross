@@ -155,7 +155,7 @@ func (m MsgConfirm) Packets() []channel.MsgPacket {
 
 func (m MsgConfirm) IsCommittable() bool {
 	for _, p := range m.PreparePackets {
-		data := p.Packet.GetData().(PacketDataPrepare)
+		data := p.Packet.GetData().(PacketDataPrepareResult)
 		if data.Status == PREPARE_STATUS_FAILED {
 			return false
 		}
@@ -180,7 +180,7 @@ func (msg MsgConfirm) ValidateBasic() error {
 		return errors.New("PrepareInfoList must not be empty")
 	} else {
 		for _, p := range msg.PreparePackets {
-			if _, ok := p.Packet.GetData().(PacketDataPrepare); !ok {
+			if _, ok := p.Packet.GetData().(PacketDataPrepareResult); !ok {
 				return errors.New("unexpected packet found")
 			}
 		}

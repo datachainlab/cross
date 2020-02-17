@@ -269,7 +269,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 
 	var makePrepareDataPacket = func(sender sdk.AccAddress, txID []byte, transID int, status uint8) channel.MsgPacket {
-		return channel.MsgPacket{Packet: channel.Packet{Data: crossccc.NewPacketDataPrepare(sender, txID, transID, status)}}
+		return channel.MsgPacket{Packet: channel.Packet{Data: crossccc.NewPacketDataPrepareResult(sender, txID, transID, status)}}
 	}
 
 	relayer := sdk.AccAddress("relayer1")
@@ -519,7 +519,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	suite.Equal(
 		packetCommitment,
 		channeltypes.CommitPacket(
-			actx.app.CrosscccKeeper.CreatePreparePacket(
+			actx.app.CrosscccKeeper.CreatePrepareResultPacket(
 				nextseq,
 				src.Port,
 				src.Channel,

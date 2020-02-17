@@ -1,9 +1,10 @@
 package types
 
 import (
+	"math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
-	"math"
 )
 
 type PacketDataInitiate struct {
@@ -46,34 +47,34 @@ const (
 	PREPARE_STATUS_FAILED
 )
 
-type PacketDataPrepare struct {
+type PacketDataPrepareResult struct {
 	Sender       sdk.AccAddress
 	TxID         []byte
 	TransitionID int
 	Status       uint8
 }
 
-func NewPacketDataPrepare(sender sdk.AccAddress, txID []byte, transitionID int, status uint8) PacketDataPrepare {
-	return PacketDataPrepare{Sender: sender, TxID: txID, TransitionID: transitionID, Status: status}
+func NewPacketDataPrepareResult(sender sdk.AccAddress, txID []byte, transitionID int, status uint8) PacketDataPrepareResult {
+	return PacketDataPrepareResult{Sender: sender, TxID: txID, TransitionID: transitionID, Status: status}
 }
 
-func (p PacketDataPrepare) ValidateBasic() error {
+func (p PacketDataPrepareResult) ValidateBasic() error {
 	return nil
 }
 
-func (p PacketDataPrepare) GetBytes() []byte {
+func (p PacketDataPrepareResult) GetBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
 }
 
-func (p PacketDataPrepare) GetTimeoutHeight() uint64 {
+func (p PacketDataPrepareResult) GetTimeoutHeight() uint64 {
 	return math.MaxUint64
 }
 
-func (p PacketDataPrepare) Type() string {
-	return "crossccc/prepare"
+func (p PacketDataPrepareResult) Type() string {
+	return "crossccc/prepareresult"
 }
 
-func (p PacketDataPrepare) IsOK() bool {
+func (p PacketDataPrepareResult) IsOK() bool {
 	return p.Status == PREPARE_STATUS_OK
 }
 
