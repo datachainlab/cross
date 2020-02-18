@@ -28,7 +28,7 @@ func (MsgInitiate) Route() string {
 
 // Type implements sdk.Msg
 func (MsgInitiate) Type() string {
-	return "crossccc_initiate"
+	return "cross_initiate"
 }
 
 // ValidateBasic implements sdk.Msg
@@ -168,7 +168,7 @@ func (MsgConfirm) Route() string {
 }
 
 func (MsgConfirm) Type() string {
-	return "crossccc_confirm"
+	return "cross_confirm"
 }
 
 func (msg MsgConfirm) ValidateBasic() error {

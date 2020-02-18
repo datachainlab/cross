@@ -1,7 +1,7 @@
 package ante
 
 import (
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/x/ibc/cross"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	client "github.com/cosmos/cosmos-sdk/x/ibc/02-client"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
@@ -37,7 +37,7 @@ func (pvr ProofVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		// 	_, err = pvr.channelKeeper.AcknowledgePacket(ctx, msg.Packet, msg.Acknowledgement, msg.Proof, msg.ProofHeight)
 		// case channel.MsgTimeout:
 		// 	_, err = pvr.channelKeeper.TimeoutPacket(ctx, msg.Packet, msg.Proof, msg.ProofHeight, msg.NextSequenceRecv)
-		case crossccc.MultiplePackets:
+		case cross.MultiplePackets:
 			for _, msg := range msg.Packets() {
 				_, err = pvr.channelKeeper.RecvPacket(ctx, msg.Packet, msg.Proof, msg.ProofHeight)
 				if err != nil {

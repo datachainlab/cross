@@ -39,7 +39,7 @@ func (p PacketDataPrepare) GetTimeoutHeight() uint64 {
 }
 
 func (p PacketDataPrepare) Type() string {
-	return "crossccc/prepare"
+	return "cross/prepare"
 }
 
 const (
@@ -71,7 +71,7 @@ func (p PacketDataPrepareResult) GetTimeoutHeight() uint64 {
 }
 
 func (p PacketDataPrepareResult) Type() string {
-	return "crossccc/prepareresult"
+	return "cross/prepareresult"
 }
 
 func (p PacketDataPrepareResult) IsOK() bool {
@@ -101,5 +101,5 @@ func (p PacketDataCommit) GetTimeoutHeight() uint64 {
 }
 
 func (p PacketDataCommit) Type() string {
-	return "crossccc/commit"
+	return "cross/commit"
 }

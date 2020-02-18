@@ -3,18 +3,18 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/bluele/crossccc/x/ibc/contract/internal/types"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/x/ibc/contract/internal/types"
+	"github.com/bluele/cross/x/ibc/cross"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var _ crossccc.ContractHandler = (*contractHandler)(nil)
+var _ cross.ContractHandler = (*contractHandler)(nil)
 
 type contract struct {
 	methods map[string]Method
 }
 
-func (c contract) CallMethod(ctx Context, store crossccc.Store, method string) error {
+func (c contract) CallMethod(ctx Context, store cross.Store, method string) error {
 	m, ok := c.methods[method]
 	if !ok {
 		return fmt.Errorf("method '%v' not found", method)
@@ -24,7 +24,7 @@ func (c contract) CallMethod(ctx Context, store crossccc.Store, method string) e
 
 type Method struct {
 	Name string
-	F    func(ctx Context, store crossccc.Store) error
+	F    func(ctx Context, store cross.Store) error
 }
 
 func NewContract(methods []Method) Contract {
@@ -36,7 +36,7 @@ func NewContract(methods []Method) Contract {
 }
 
 type Contract interface {
-	CallMethod(ctx Context, store crossccc.Store, method string) error
+	CallMethod(ctx Context, store cross.Store, method string) error
 }
 
 type contractHandler struct {
@@ -45,11 +45,11 @@ type contractHandler struct {
 	stateProvider StateProvider
 }
 
-var _ crossccc.ContractHandler = (*contractHandler)(nil)
+var _ cross.ContractHandler = (*contractHandler)(nil)
 
-type StateProvider = func(sdk.KVStore) crossccc.State
+type StateProvider = func(sdk.KVStore) cross.State
 
-func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state crossccc.State, err error) {
+func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state cross.State, err error) {
 	info, err := types.DecodeContractSignature(contract)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state crossc
 	if !ok {
 		return nil, fmt.Errorf("route for '%v' not found", info.ID)
 	}
-	signers, ok := crossccc.SignersFromContext(ctx)
+	signers, ok := cross.SignersFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("signer is not set")
 	}
@@ -81,7 +81,7 @@ func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state crossc
 	return st, nil
 }
 
-func (h *contractHandler) GetState(ctx sdk.Context, contract []byte) (crossccc.State, error) {
+func (h *contractHandler) GetState(ctx sdk.Context, contract []byte) (cross.State, error) {
 	info, err := types.DecodeContractSignature(contract)
 	if err != nil {
 		return nil, err

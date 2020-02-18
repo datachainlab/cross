@@ -1,7 +1,7 @@
 package keeper
 
 import (
-	"github.com/bluele/crossccc/x/ibc/crossccc/internal/types"
+	"github.com/bluele/cross/x/ibc/cross/internal/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 

@@ -4,8 +4,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/bluele/crossccc/x/ibc/contract"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/x/ibc/contract"
+	"github.com/bluele/cross/x/ibc/cross"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -68,7 +68,7 @@ var (
 		upgrade.AppModuleBasic{},
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
-		crossccc.AppModuleBasic{},
+		cross.AppModuleBasic{},
 		contract.AppModuleBasic{},
 	)
 
@@ -133,7 +133,7 @@ type SimApp struct {
 	IBCKeeper      ibc.Keeper
 	EvidenceKeeper evidence.Keeper
 	TransferKeeper transfer.Keeper
-	CrosscccKeeper crossccc.Keeper
+	CrossKeeper    cross.Keeper
 	ContractKeeper contract.Keeper
 
 	// the module manager
@@ -159,7 +159,7 @@ func NewSimApp(
 		bam.MainStoreKey, auth.StoreKey, bank.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, ibc.StoreKey, upgrade.StoreKey,
-		evidence.StoreKey, transfer.StoreKey, crossccc.StoreKey, contract.StoreKey,
+		evidence.StoreKey, transfer.StoreKey, cross.StoreKey, contract.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
@@ -252,9 +252,9 @@ func NewSimApp(
 
 	app.ContractKeeper = contract.NewKeeper(keys[contract.StoreKey])
 
-	crosscccCapKey := app.IBCKeeper.PortKeeper.BindPort(crossccc.ModuleName)
-	app.CrosscccKeeper = crossccc.NewKeeper(
-		app.cdc, keys[crossccc.StoreKey], crosscccCapKey,
+	crossCapKey := app.IBCKeeper.PortKeeper.BindPort(cross.ModuleName)
+	app.CrossKeeper = cross.NewKeeper(
+		app.cdc, keys[cross.StoreKey], crossCapKey,
 		app.IBCKeeper.ChannelKeeper,
 	)
 
@@ -277,7 +277,7 @@ func NewSimApp(
 		evidence.NewAppModule(app.EvidenceKeeper),
 		ibc.NewAppModule(app.IBCKeeper),
 		transfer.NewAppModule(app.TransferKeeper),
-		crossccc.NewAppModule(app.CrosscccKeeper, contractHandler),
+		cross.NewAppModule(app.CrossKeeper, contractHandler),
 		contract.NewAppModule(app.ContractKeeper, contractHandler),
 	)
 

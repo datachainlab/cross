@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/hex"
 
-	"github.com/bluele/crossccc/x/ibc/contract/internal/types"
+	"github.com/bluele/cross/x/ibc/contract/internal/types"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"

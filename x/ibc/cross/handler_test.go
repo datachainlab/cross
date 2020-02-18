@@ -1,14 +1,14 @@
 // This test suite is based on [ibc/transfer](https://github.com/cosmos/cosmos-sdk/blob/4d5c2d1f9e24f20f740d42c642f9fb5378e31f9e/x/ibc/20-transfer/handler_test.go)
-package crossccc_test
+package cross_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/bluele/crossccc/example/simapp"
-	"github.com/bluele/crossccc/x/ibc/contract"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
-	lock "github.com/bluele/crossccc/x/ibc/store/lock"
+	"github.com/bluele/cross/example/simapp"
+	"github.com/bluele/cross/x/ibc/contract"
+	"github.com/bluele/cross/x/ibc/cross"
+	lock "github.com/bluele/cross/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -46,7 +46,7 @@ type HandlerTestSuite struct {
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
-	lock.RegisterCodec(crossccc.ModuleCdc)
+	lock.RegisterCodec(cross.ModuleCdc)
 
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
@@ -141,41 +141,41 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitment.Proof, h
 	return
 }
 
-func (suite *HandlerTestSuite) TestHandleCrosscccc() {
+func (suite *HandlerTestSuite) TestHandleCrossc() {
 	stk := sdk.NewKVStoreKey("main")
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) crossccc.State {
+	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) cross.State {
 		return lock.NewStore(kvs)
 	})
-	handler := crossccc.NewHandler(suite.app.CrosscccKeeper, contractHandler)
+	handler := cross.NewHandler(suite.app.CrossKeeper, contractHandler)
 	coordinator := sdk.AccAddress("coordinator")
 
 	signer0 := sdk.AccAddress("signerzero")
-	src0 := crossccc.NewChannelInfo("testportzero", "testchannelzero")
+	src0 := cross.NewChannelInfo("testportzero", "testchannelzero")
 	ci0 := contract.NewContractInfo("c0", "issue", [][]byte{[]byte("100")})
-	dst0 := crossccc.NewChannelInfo("dstportzero", "dstchannelzero")
+	dst0 := cross.NewChannelInfo("dstportzero", "dstchannelzero")
 
 	signer1 := sdk.AccAddress("signerfirst")
-	src1 := crossccc.NewChannelInfo("testportone", "testchannelone")
+	src1 := cross.NewChannelInfo("testportone", "testchannelone")
 	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("100")})
-	dst1 := crossccc.NewChannelInfo("dstportone", "dstchannelone")
+	dst1 := cross.NewChannelInfo("dstportone", "dstchannelone")
 
 	var nonce uint64 = 1
-	var tss = []crossccc.StateTransition{
-		crossccc.NewStateTransition(
+	var tss = []cross.StateTransition{
+		cross.NewStateTransition(
 			src0,
 			[]sdk.AccAddress{signer0},
 			ci0.Bytes(),
-			[]crossccc.OP{lock.Read{}, lock.Write{}},
+			[]cross.OP{lock.Read{}, lock.Write{}},
 		),
-		crossccc.NewStateTransition(
+		cross.NewStateTransition(
 			src1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
-			[]crossccc.OP{lock.Read{}, lock.Write{}},
+			[]cross.OP{lock.Read{}, lock.Write{}},
 		),
 	}
 
-	msg := crossccc.NewMsgInitiate(coordinator, tss, nonce)
+	msg := cross.NewMsgInitiate(coordinator, tss, nonce)
 	res, err := handler(suite.ctx, msg)
 	suite.Require().Error(err)
 	suite.Require().Nil(res, "%+v", res) // channel does not exist

@@ -3,7 +3,7 @@ package lock
 import (
 	"testing"
 
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/x/ibc/cross"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -27,7 +27,7 @@ func TestStore(t *testing.T) {
 		{
 			st := NewStore(cms.GetKVStore(stk))
 			st.Set(k0, v0)
-			assert.Equal(st.OPs(), crossccc.OPs{
+			assert.Equal(st.OPs(), cross.OPs{
 				Write{k0, v0},
 			})
 			v := st.Get(k0)

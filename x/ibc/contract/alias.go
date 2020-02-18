@@ -1,8 +1,8 @@
 package contract
 
 import (
-	"github.com/bluele/crossccc/x/ibc/contract/internal/keeper"
-	"github.com/bluele/crossccc/x/ibc/contract/internal/types"
+	"github.com/bluele/cross/x/ibc/contract/internal/keeper"
+	"github.com/bluele/cross/x/ibc/contract/internal/types"
 )
 
 const (

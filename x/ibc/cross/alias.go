@@ -1,8 +1,8 @@
-package crossccc
+package cross
 
 import (
-	"github.com/bluele/crossccc/x/ibc/crossccc/internal/keeper"
-	"github.com/bluele/crossccc/x/ibc/crossccc/internal/types"
+	"github.com/bluele/cross/x/ibc/cross/internal/keeper"
+	"github.com/bluele/cross/x/ibc/cross/internal/types"
 )
 
 // nolint

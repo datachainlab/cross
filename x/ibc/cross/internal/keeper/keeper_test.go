@@ -3,8 +3,8 @@ package keeper_test
 import (
 	"testing"
 
-	"github.com/bluele/crossccc/example/simapp"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/example/simapp"
+	"github.com/bluele/cross/x/ibc/cross"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
@@ -28,7 +28,7 @@ type appContext struct {
 	valSet  *tmtypes.ValidatorSet
 
 	// src => dst
-	channels map[crossccc.ChannelInfo]crossccc.ChannelInfo
+	channels map[cross.ChannelInfo]cross.ChannelInfo
 }
 
 func (a appContext) Cache() (appContext, func()) {
@@ -61,8 +61,8 @@ func (suite *KeeperTestSuite) createConnections(
 }
 
 func (suite *KeeperTestSuite) createChannels(
-	srcConnectionID string, srcapp *appContext, srcc crossccc.ChannelInfo,
-	dstConnectionID string, dstapp *appContext, dstc crossccc.ChannelInfo,
+	srcConnectionID string, srcapp *appContext, srcc cross.ChannelInfo,
+	dstConnectionID string, dstapp *appContext, dstc cross.ChannelInfo,
 ) {
 	suite.createChannel(srcapp, srcc.Port, srcc.Channel, srcConnectionID, dstc.Port, dstc.Channel, channelexported.OPEN)
 	suite.createChannel(dstapp, dstc.Port, dstc.Channel, dstConnectionID, srcc.Port, srcc.Channel, channelexported.OPEN)
@@ -78,12 +78,12 @@ func (suite *KeeperTestSuite) createChannels(
 func (suite *KeeperTestSuite) openChannels(
 	srcClientID string, // clientID of dstapp
 	srcConnectionID string, // id of the connection with dstapp
-	srcc crossccc.ChannelInfo, // src's channel with dstapp
+	srcc cross.ChannelInfo, // src's channel with dstapp
 	srcapp *appContext,
 
 	dstClientID string, // clientID of srcapp
 	dstConnectionID string, // id of the connection with srcapp
-	dstc crossccc.ChannelInfo, // dst's channel with srcapp
+	dstc cross.ChannelInfo, // dst's channel with srcapp
 	dstapp *appContext,
 ) {
 	suite.createClients(srcClientID, srcapp, dstClientID, dstapp)
@@ -105,7 +105,7 @@ func (suite *KeeperTestSuite) createApp(chainID string) *appContext {
 		ctx:      ctx,
 		app:      app,
 		valSet:   valSet,
-		channels: make(map[crossccc.ChannelInfo]crossccc.ChannelInfo),
+		channels: make(map[cross.ChannelInfo]cross.ChannelInfo),
 	}
 	return actx
 }

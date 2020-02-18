@@ -3,7 +3,7 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/bluele/crossccc/x/ibc/crossccc/internal/types"
+	"github.com/bluele/cross/x/ibc/cross/internal/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	mapset "github.com/deckarep/golang-set"
@@ -18,7 +18,7 @@ type Keeper struct {
 	channelKeeper types.ChannelKeeper
 }
 
-// NewKeeper creates new instances of the crossccc Keeper
+// NewKeeper creates new instances of the cross Keeper
 func NewKeeper(
 	cdc *codec.Codec,
 	storeKey sdk.StoreKey,

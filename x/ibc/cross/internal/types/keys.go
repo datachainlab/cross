@@ -4,7 +4,7 @@ import "fmt"
 
 const (
 	// ModuleName is the name of the module
-	ModuleName = "crossccc"
+	ModuleName = "cross"
 
 	// StoreKey to be used when creating the KVStore
 	StoreKey = ModuleName

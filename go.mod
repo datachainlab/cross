@@ -1,4 +1,4 @@
-module github.com/bluele/crossccc
+module github.com/bluele/cross
 
 go 1.13
 

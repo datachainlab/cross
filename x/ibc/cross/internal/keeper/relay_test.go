@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bluele/crossccc/x/ibc/contract"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
-	lock "github.com/bluele/crossccc/x/ibc/store/lock"
+	"github.com/bluele/cross/x/ibc/contract"
+	"github.com/bluele/cross/x/ibc/cross"
+	lock "github.com/bluele/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -106,14 +106,14 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 	return
 }
 
-func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string) crossccc.ContractHandler {
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) crossccc.State {
+func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string) cross.ContractHandler {
+	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) cross.State {
 		return lock.NewStore(kvs)
 	})
 	c := contract.NewContract([]contract.Method{
 		{
 			Name: "issue",
-			F: func(ctx contract.Context, store crossccc.Store) error {
+			F: func(ctx contract.Context, store cross.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -126,7 +126,7 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 		},
 		{
 			Name: "test-balance",
-			F: func(ctx contract.Context, store crossccc.Store) error {
+			F: func(ctx contract.Context, store cross.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -140,7 +140,7 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 		},
 		{
 			Name: "test-not-issued",
-			F: func(ctx contract.Context, store crossccc.Store) error {
+			F: func(ctx contract.Context, store cross.Store) error {
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				if len(balance) == 0 {
 					return nil
@@ -155,7 +155,7 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 }
 
 func (suite *KeeperTestSuite) TestSendInitiate() {
-	lock.RegisterCodec(crossccc.ModuleCdc)
+	lock.RegisterCodec(cross.ModuleCdc)
 
 	initiator := sdk.AccAddress("initiator")
 
@@ -164,43 +164,43 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	app1 := suite.createApp("app1")
 	signer1 := sdk.AccAddress("signer1")
 	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
-	chd1 := suite.createContractHandler(app1.app.GetKey(crossccc.StoreKey), "c1")
+	chd1 := suite.createContractHandler(app1.app.GetKey(cross.StoreKey), "c1")
 
 	app2 := suite.createApp("app2")
 	signer2 := sdk.AccAddress("signer2")
 	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
-	chd2 := suite.createContractHandler(app2.app.GetKey(crossccc.StoreKey), "c2")
+	chd2 := suite.createContractHandler(app2.app.GetKey(cross.StoreKey), "c2")
 
-	ch0to1 := crossccc.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
-	ch1to0 := crossccc.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
-	ch0to2 := crossccc.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
-	ch2to0 := crossccc.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
+	ch0to1 := cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
+	ch1to0 := cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
+	ch0to2 := cross.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
+	ch2to0 := cross.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
 
 	var err error
 	var nonce uint64 = 1
-	var tss = []crossccc.StateTransition{
-		crossccc.NewStateTransition(
+	var tss = []cross.StateTransition{
+		cross.NewStateTransition(
 			ch0to1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
-			[]crossccc.OP{lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
+			[]cross.OP{lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 		),
-		crossccc.NewStateTransition(
+		cross.NewStateTransition(
 			ch0to2,
 			[]sdk.AccAddress{signer2},
 			ci2.Bytes(),
-			[]crossccc.OP{lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
+			[]cross.OP{lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
 		),
 	}
 
-	msg := crossccc.NewMsgInitiate(
+	msg := cross.NewMsgInitiate(
 		initiator,
 		tss,
 		nonce,
 	)
 	txID := msg.GetTxID()
 
-	err = app0.app.CrosscccKeeper.MulticastPreparePacket(
+	err = app0.app.CrossKeeper.MulticastPreparePacket(
 		app0.ctx,
 		initiator,
 		msg,
@@ -234,7 +234,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		app2,
 	)
 
-	err = app0.app.CrosscccKeeper.MulticastPreparePacket(
+	err = app0.app.CrossKeeper.MulticastPreparePacket(
 		app0.ctx,
 		initiator,
 		msg,
@@ -242,9 +242,9 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	)
 	suite.NoError(err) // successfully executed
 
-	ci, found := app0.app.CrosscccKeeper.GetCoordinator(app0.ctx, msg.GetTxID())
+	ci, found := app0.app.CrossKeeper.GetCoordinator(app0.ctx, msg.GetTxID())
 	if suite.True(found) {
-		suite.Equal(ci.Status, crossccc.CO_STATUS_INIT)
+		suite.Equal(ci.Status, cross.CO_STATUS_INIT)
 	}
 
 	nextSeqSend := uint64(1)
@@ -259,25 +259,25 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	// Tests for Confirm step
 
 	nextSeqSend += 1
-	srcs := [2]crossccc.ChannelInfo{
+	srcs := [2]cross.ChannelInfo{
 		ch0to1,
 		ch0to2,
 	}
-	dsts := [2]crossccc.ChannelInfo{
+	dsts := [2]cross.ChannelInfo{
 		ch1to0,
 		ch2to0,
 	}
 
 	var makePrepareDataPacket = func(sender sdk.AccAddress, txID []byte, transID int, status uint8) channel.MsgPacket {
-		return channel.MsgPacket{Packet: channel.Packet{Data: crossccc.NewPacketDataPrepareResult(sender, txID, transID, status)}}
+		return channel.MsgPacket{Packet: channel.Packet{Data: cross.NewPacketDataPrepareResult(sender, txID, transID, status)}}
 	}
 
 	relayer := sdk.AccAddress("relayer1")
 	// ensure that coordinator decides 'abort'
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
-		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_FAILED), ch0to2)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
+		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_FAILED), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
@@ -285,9 +285,9 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 	// ensure that coordinator decides 'abort'
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_FAILED), ch0to1)
-		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_FAILED), ch0to2)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_FAILED), ch0to1)
+		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_FAILED), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
@@ -295,9 +295,9 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 	// ensure that coordinator decides 'abort'
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_FAILED), ch0to1)
-		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_FAILED), ch0to1)
+		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_OK), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
@@ -305,8 +305,8 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 	// ensure that coordinator decides nothing
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
 		pps = append(pps, p1)
 
 		capp, _ := app0.Cache()
@@ -314,9 +314,9 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 	// ensure that transitionID conflict occurs
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
-		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
+		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
@@ -324,9 +324,9 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 	// invalid transitionID
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
-		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
+		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, cross.PREPARE_STATUS_OK), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, _ := app0.Cache()
@@ -334,10 +334,10 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 	// includes all expected packets, but also include invalid transitionID
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
-		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_OK), ch0to2)
-		p3 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
+		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_OK), ch0to2)
+		p3 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, cross.PREPARE_STATUS_OK), ch0to2)
 		pps = append(pps, p1, p2, p3)
 
 		capp, _ := app0.Cache()
@@ -345,16 +345,16 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 	}
 	// ensure that coordinator decides 'commit'
 	{
-		pps := []crossccc.PreparePacket{}
-		p1 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, crossccc.PREPARE_STATUS_OK), ch0to1)
-		p2 := crossccc.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, crossccc.PREPARE_STATUS_OK), ch0to2)
+		pps := []cross.PreparePacket{}
+		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
+		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_OK), ch0to2)
 		pps = append(pps, p1, p2)
 
 		capp, writer := app0.Cache()
 		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
-		ci, found := capp.app.CrosscccKeeper.GetCoordinator(capp.ctx, msg.GetTxID())
+		ci, found := capp.app.CrossKeeper.GetCoordinator(capp.ctx, msg.GetTxID())
 		if suite.True(found) {
-			suite.Equal(ci.Status, crossccc.CO_STATUS_COMMIT)
+			suite.Equal(ci.Status, cross.CO_STATUS_COMMIT)
 		}
 		writer()
 	}
@@ -365,39 +365,39 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		// In a1, execute to commit
 		{
 			capp, _ := app1.Cache()
-			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, crossccc.NewPacketDataCommit(relayer, txID, true), signer1)
+			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, true), signer1)
 		}
 
 		// In a2, execute to commit
 		{
 			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, crossccc.NewPacketDataCommit(relayer, txID, true), signer2)
+			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, true), signer2)
 		}
 
 		// In a1, execute to abort
 		{
 			capp, _ := app1.Cache()
-			suite.testAbortPacket(&capp, chd1, ch0to1, ch1to0, crossccc.NewPacketDataCommit(relayer, txID, false), signer1)
+			suite.testAbortPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, false), signer1)
 		}
 
 		// In a2, execute to abort
 		{
 			capp, _ := app2.Cache()
-			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, crossccc.NewPacketDataCommit(relayer, txID, false), signer2)
+			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, false), signer2)
 		}
 	}
 }
 
-func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler crossccc.ContractHandler, src, dst crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
-	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
+	err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
-	tx, found := actx.app.CrosscccKeeper.GetTx(actx.ctx, packet.TxID)
+	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID)
 	if !suite.True(found) {
 		return
 	}
-	suite.Equal(crossccc.TX_STATUS_COMMIT, tx.Status)
+	suite.Equal(cross.TX_STATUS_COMMIT, tx.Status)
 	// ensure that the state is expected
 	_, err = contractHandler.GetState(actx.ctx, tx.Contract)
 	if !suite.NoError(err) {
@@ -415,21 +415,21 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	if !suite.NoError(err) {
 		return
 	}
-	ctx := crossccc.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
+	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
 	_, err = contractHandler.Handle(ctx, bz)
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler crossccc.ContractHandler, src, dst crossccc.ChannelInfo, packet crossccc.PacketDataCommit, txSigner sdk.AccAddress) {
-	err := actx.app.CrosscccKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
+	err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
-	tx, found := actx.app.CrosscccKeeper.GetTx(actx.ctx, packet.TxID)
+	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID)
 	if !suite.True(found) {
 		return
 	}
-	suite.Equal(crossccc.TX_STATUS_ABORT, tx.Status)
+	suite.Equal(cross.TX_STATUS_ABORT, tx.Status)
 
 	ci, err := contract.DecodeContractSignature(tx.Contract)
 	if !suite.NoError(err) {
@@ -440,16 +440,16 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	if !suite.NoError(err) {
 		return
 	}
-	ctx := crossccc.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
+	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
 	_, err = contractHandler.Handle(ctx, bz)
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.PreparePacket, srcs, dsts [2]crossccc.ChannelInfo, txID []byte, nextseq uint64, hasMulticastError bool) {
+func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []cross.PreparePacket, srcs, dsts [2]cross.ChannelInfo, txID []byte, nextseq uint64, hasMulticastError bool) {
 	relayer := sdk.AccAddress("relayer2")
-	msgConfirm := crossccc.NewMsgConfirm(txID, pps, relayer)
+	msgConfirm := cross.NewMsgConfirm(txID, pps, relayer)
 	isCommit := msgConfirm.IsCommittable()
-	err := actx.app.CrosscccKeeper.MulticastCommitPacket(actx.ctx, txID, pps, relayer, isCommit)
+	err := actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, txID, pps, relayer, isCommit)
 	if hasMulticastError {
 		suite.Error(err, err)
 		return
@@ -467,7 +467,7 @@ func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.Pr
 		suite.NotNil(packetCommitment)
 
 		// ensure that commit packet exists in store
-		expectedPacket1 := actx.app.CrosscccKeeper.CreateCommitPacket(
+		expectedPacket1 := actx.app.CrossKeeper.CreateCommitPacket(
 			actx.ctx,
 			nextseq,
 			src.Port,
@@ -487,14 +487,14 @@ func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []crossccc.Pr
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst crossccc.ChannelInfo, txID []byte, tsID int, contractHandler crossccc.ContractHandler, ts crossccc.StateTransition, nextseq uint64) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID []byte, tsID int, contractHandler cross.ContractHandler, ts cross.StateTransition, nextseq uint64) {
 	var err error
 
 	relayer := sdk.AccAddress("relayer1")
-	packetData := crossccc.NewPacketDataPrepare(relayer, txID, tsID, ts)
+	packetData := cross.NewPacketDataPrepare(relayer, txID, tsID, ts)
 	ctx, writer := actx.ctx.CacheContext()
-	ctx = crossccc.WithSigners(ctx, ts.Signers)
-	err = actx.app.CrosscccKeeper.PrepareTransaction(
+	ctx = cross.WithSigners(ctx, ts.Signers)
+	err = actx.app.CrossKeeper.PrepareTransaction(
 		ctx,
 		contractHandler,
 		dst.Port,
@@ -505,9 +505,9 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 		relayer,
 	)
 	suite.NoError(err)
-	tx, ok := actx.app.CrosscccKeeper.GetTx(ctx, txID)
+	tx, ok := actx.app.CrossKeeper.GetTx(ctx, txID)
 	if suite.True(ok) {
-		suite.Equal(crossccc.TX_STATUS_PREPARE, tx.Status)
+		suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
 	}
 	newNextSeqSend, found := actx.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(ctx, src.Port, src.Channel)
 	suite.True(found)
@@ -519,7 +519,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	suite.Equal(
 		packetCommitment,
 		channeltypes.CommitPacket(
-			actx.app.CrosscccKeeper.CreatePrepareResultPacket(
+			actx.app.CrossKeeper.CreatePrepareResultPacket(
 				nextseq,
 				src.Port,
 				src.Channel,
@@ -528,7 +528,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 				relayer,
 				txID,
 				tsID,
-				crossccc.PREPARE_STATUS_OK,
+				cross.PREPARE_STATUS_OK,
 			).Data,
 		),
 	)
@@ -558,7 +558,7 @@ func unmarshalCoin(bz []byte) sdk.Coins {
 	return coins
 }
 
-func getBalanceOf(store crossccc.Store, address sdk.AccAddress) sdk.Coins {
+func getBalanceOf(store cross.Store, address sdk.AccAddress) sdk.Coins {
 	bz := store.Get(address)
 	if bz == nil {
 		return sdk.NewCoins()
@@ -566,7 +566,7 @@ func getBalanceOf(store crossccc.Store, address sdk.AccAddress) sdk.Coins {
 	return unmarshalCoin(bz)
 }
 
-func setBalance(store crossccc.Store, address sdk.AccAddress, balance sdk.Coins) {
+func setBalance(store cross.Store, address sdk.AccAddress, balance sdk.Coins) {
 	bz := marshalCoin(balance)
 	store.Set(address, bz)
 }

@@ -4,21 +4,21 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/bluele/crossccc/x/ibc/contract"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
-	"github.com/bluele/crossccc/x/ibc/store/lock"
+	"github.com/bluele/cross/x/ibc/contract"
+	"github.com/bluele/cross/x/ibc/cross"
+	"github.com/bluele/cross/x/ibc/store/lock"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func makeContractHandler(k contract.Keeper) crossccc.ContractHandler {
-	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore) crossccc.State {
+func makeContractHandler(k contract.Keeper) cross.ContractHandler {
+	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore) cross.State {
 		return lock.NewStore(store)
 	})
 
 	c := contract.NewContract([]contract.Method{
 		{
 			Name: "f0",
-			F: func(ctx contract.Context, store crossccc.Store) error {
+			F: func(ctx contract.Context, store cross.Store) error {
 				k := []byte("counter")
 				v := store.Get(k)
 				var counter uint32

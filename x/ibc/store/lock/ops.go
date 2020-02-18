@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/x/ibc/cross"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -19,7 +19,7 @@ const OP_NUM uint8 = 2
 type OPs []OP
 
 type OP interface {
-	crossccc.OP
+	cross.OP
 
 	Key() []byte
 	Type() uint8
@@ -43,7 +43,7 @@ func (r Read) Key() []byte {
 	return r.K
 }
 
-func (r Read) Equal(cop crossccc.OP) bool {
+func (r Read) Equal(cop cross.OP) bool {
 	op := cop.(OP)
 	if r.Type() != op.Type() {
 		return false
@@ -78,7 +78,7 @@ func (w Write) Type() uint8 {
 	return OP_TYPE_WRITE
 }
 
-func (w Write) Equal(cop crossccc.OP) bool {
+func (w Write) Equal(cop cross.OP) bool {
 	op := cop.(OP)
 	if w.Type() != op.Type() {
 		return false
@@ -126,9 +126,9 @@ func (m *OPManager) OPs() OPs {
 	return OptimizeOPs(m.ops)
 }
 
-func (m *OPManager) COPs() crossccc.OPs {
+func (m *OPManager) COPs() cross.OPs {
 	ops := m.OPs()
-	cops := make(crossccc.OPs, len(ops))
+	cops := make(cross.OPs, len(ops))
 	for i, op := range ops {
 		cops[i] = op
 	}

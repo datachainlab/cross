@@ -8,7 +8,7 @@ import (
 
 func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
-		Use:   "crossccc",
+		Use:   "cross",
 		Short: "Cross chain contract calls transaction subcommands",
 	}
 

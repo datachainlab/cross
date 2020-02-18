@@ -1,4 +1,4 @@
-package crossccc
+package cross
 
 import (
 	"encoding/json"
@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	"github.com/bluele/crossccc/x/ibc/crossccc/internal/client/cli"
-	"github.com/bluele/crossccc/x/ibc/crossccc/internal/client/rest"
+	"github.com/bluele/cross/x/ibc/cross/internal/client/cli"
+	"github.com/bluele/cross/x/ibc/cross/internal/client/rest"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"

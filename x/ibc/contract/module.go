@@ -3,8 +3,8 @@ package contract
 import (
 	"encoding/json"
 
-	"github.com/bluele/crossccc/x/ibc/contract/client/cli"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/x/ibc/contract/client/cli"
+	"github.com/bluele/cross/x/ibc/cross"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -68,11 +68,11 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 	keeper          Keeper
-	contractHandler crossccc.ContractHandler
+	contractHandler cross.ContractHandler
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(keeper Keeper, contractHandler crossccc.ContractHandler) AppModule {
+func NewAppModule(keeper Keeper, contractHandler cross.ContractHandler) AppModule {
 	return AppModule{
 		AppModuleBasic:  AppModuleBasic{},
 		keeper:          keeper,
@@ -129,6 +129,6 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 	return ModuleCdc.MustMarshalJSON(gs)
 }
 
-func (am AppModule) ContractHandler() crossccc.ContractHandler {
+func (am AppModule) ContractHandler() cross.ContractHandler {
 	return am.contractHandler
 }

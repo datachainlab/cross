@@ -8,7 +8,7 @@ import (
 
 func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	queryCmd := &cobra.Command{
-		Use:   "crossccc",
+		Use:   "cross",
 		Short: "Cross chain contract calls query subcommands",
 	}
 

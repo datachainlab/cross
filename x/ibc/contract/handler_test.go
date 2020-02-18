@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bluele/crossccc/example/simapp"
-	"github.com/bluele/crossccc/x/ibc/contract"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
-	lock "github.com/bluele/crossccc/x/ibc/store/lock"
+	"github.com/bluele/cross/example/simapp"
+	"github.com/bluele/cross/x/ibc/contract"
+	"github.com/bluele/cross/x/ibc/cross"
+	lock "github.com/bluele/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -32,7 +32,7 @@ type HandlerTestSuite struct {
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
-	lock.RegisterCodec(crossccc.ModuleCdc)
+	lock.RegisterCodec(cross.ModuleCdc)
 
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
@@ -48,20 +48,20 @@ func (suite *HandlerTestSuite) SetupTest() {
 }
 
 func (suite *HandlerTestSuite) TestHandleContractCall() {
-	contractHandler := contract.NewContractHandler(suite.app.ContractKeeper, func(kvs sdk.KVStore) crossccc.State {
+	contractHandler := contract.NewContractHandler(suite.app.ContractKeeper, func(kvs sdk.KVStore) cross.State {
 		return lock.NewStore(kvs)
 	})
 	var methods []contract.Method
 	methods = append(methods, []contract.Method{
 		{
 			Name: "f0",
-			F: func(ctx contract.Context, store crossccc.Store) error {
+			F: func(ctx contract.Context, store cross.Store) error {
 				return nil
 			},
 		},
 		{
 			Name: "issue",
-			F: func(ctx contract.Context, store crossccc.Store) error {
+			F: func(ctx contract.Context, store cross.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -74,7 +74,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 		},
 		{
 			Name: "test-balance",
-			F: func(ctx contract.Context, store crossccc.Store) error {
+			F: func(ctx contract.Context, store cross.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -199,7 +199,7 @@ func unmarshalCoin(bz []byte) sdk.Coins {
 	return coins
 }
 
-func getBalanceOf(store crossccc.Store, address sdk.AccAddress) sdk.Coins {
+func getBalanceOf(store cross.Store, address sdk.AccAddress) sdk.Coins {
 	bz := store.Get(address)
 	if bz == nil {
 		return sdk.NewCoins()
@@ -207,7 +207,7 @@ func getBalanceOf(store crossccc.Store, address sdk.AccAddress) sdk.Coins {
 	return unmarshalCoin(bz)
 }
 
-func setBalance(store crossccc.Store, address sdk.AccAddress, balance sdk.Coins) {
+func setBalance(store cross.Store, address sdk.AccAddress, balance sdk.Coins) {
 	bz := marshalCoin(balance)
 	store.Set(address, bz)
 }

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bluele/crossccc/x/ibc/contract/internal/types"
-	"github.com/bluele/crossccc/x/ibc/crossccc"
-	lock "github.com/bluele/crossccc/x/ibc/store/lock"
+	"github.com/bluele/cross/x/ibc/contract/internal/types"
+	"github.com/bluele/cross/x/ibc/cross"
+	lock "github.com/bluele/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
@@ -34,7 +34,7 @@ func TestContractHandler(t *testing.T) {
 
 	stk := sdk.NewKVStoreKey("main")
 	k := NewKeeper(stk)
-	h := NewContractHandler(k, func(kvs sdk.KVStore) crossccc.State {
+	h := NewContractHandler(k, func(kvs sdk.KVStore) cross.State {
 		return lock.NewStore(kvs)
 	})
 	c := makeContract()
@@ -44,7 +44,7 @@ func TestContractHandler(t *testing.T) {
 	cms := makeCMStore(t, stk)
 	header := abci.Header{}
 	ctx := sdk.NewContext(cms, header, false, log.NewNopLogger())
-	ctx = crossccc.WithSigners(ctx, []sdk.AccAddress{[]byte("user0")})
+	ctx = cross.WithSigners(ctx, []sdk.AccAddress{[]byte("user0")})
 
 	{
 		contractInfo := types.NewContractInfo(contractID, "issue", [][]byte{
@@ -129,7 +129,7 @@ func unmarshalCoin(bz []byte) sdk.Coins {
 	return coins
 }
 
-func getBalanceOf(store crossccc.Store, address sdk.AccAddress) sdk.Coins {
+func getBalanceOf(store cross.Store, address sdk.AccAddress) sdk.Coins {
 	bz := store.Get(address)
 	if bz == nil {
 		return sdk.NewCoins()
@@ -137,7 +137,7 @@ func getBalanceOf(store crossccc.Store, address sdk.AccAddress) sdk.Coins {
 	return unmarshalCoin(bz)
 }
 
-func setBalance(store crossccc.Store, address sdk.AccAddress, balance sdk.Coins) {
+func setBalance(store cross.Store, address sdk.AccAddress, balance sdk.Coins) {
 	bz := marshalCoin(balance)
 	store.Set(address, bz)
 }
@@ -159,7 +159,7 @@ func makeContract() Contract {
 	c := NewContract([]Method{
 		{
 			Name: "issue",
-			F: func(ctx Context, store crossccc.Store) error {
+			F: func(ctx Context, store cross.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -172,7 +172,7 @@ func makeContract() Contract {
 		},
 		{
 			Name: "transfer",
-			F: func(ctx Context, store crossccc.Store) error {
+			F: func(ctx Context, store cross.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err
@@ -197,7 +197,7 @@ func makeContract() Contract {
 		},
 		{
 			Name: "test-balance",
-			F: func(ctx Context, store crossccc.Store) error {
+			F: func(ctx Context, store cross.Store) error {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
 					return err

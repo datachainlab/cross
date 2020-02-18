@@ -3,7 +3,7 @@ package lock
 import (
 	"fmt"
 
-	"github.com/bluele/crossccc/x/ibc/crossccc"
+	"github.com/bluele/cross/x/ibc/cross"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -14,8 +14,8 @@ const (
 	LockStorePrefix
 )
 
-var _ crossccc.Store = (*Store)(nil)
-var _ crossccc.State = (*Store)(nil)
+var _ cross.Store = (*Store)(nil)
+var _ cross.State = (*Store)(nil)
 
 type Store struct {
 	main sdk.KVStore // committed store
@@ -37,7 +37,7 @@ func NewStore(kvs sdk.KVStore) Store {
 	return Store{main: main, txs: txs, lockStore: newLockStore(locks), opmgr: NewOPManager()}
 }
 
-func (s Store) OPs() crossccc.OPs {
+func (s Store) OPs() cross.OPs {
 	return s.opmgr.COPs()
 }
 
