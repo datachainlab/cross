@@ -7,39 +7,39 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
-type PacketDataInitiate struct {
+type PacketDataPrepare struct {
 	Sender          sdk.AccAddress
 	TxID            []byte
 	TransitionID    int
 	StateTransition StateTransition
 }
 
-func NewPacketDataInitiate(sender sdk.AccAddress, txID []byte, transitionID int, transition StateTransition) PacketDataInitiate {
-	return PacketDataInitiate{Sender: sender, TxID: txID, TransitionID: transitionID, StateTransition: transition}
+func NewPacketDataPrepare(sender sdk.AccAddress, txID []byte, transitionID int, transition StateTransition) PacketDataPrepare {
+	return PacketDataPrepare{Sender: sender, TxID: txID, TransitionID: transitionID, StateTransition: transition}
 }
 
-func (p PacketDataInitiate) Hash() []byte {
+func (p PacketDataPrepare) Hash() []byte {
 	b := ModuleCdc.MustMarshalBinaryBare(p)
 	return tmhash.Sum(b)
 }
 
-func (p PacketDataInitiate) ValidateBasic() error {
+func (p PacketDataPrepare) ValidateBasic() error {
 	if err := p.StateTransition.ValidateBasic(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p PacketDataInitiate) GetBytes() []byte {
+func (p PacketDataPrepare) GetBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
 }
 
-func (p PacketDataInitiate) GetTimeoutHeight() uint64 {
+func (p PacketDataPrepare) GetTimeoutHeight() uint64 {
 	return math.MaxUint64
 }
 
-func (p PacketDataInitiate) Type() string {
-	return "crossccc/initiate"
+func (p PacketDataPrepare) Type() string {
+	return "crossccc/prepare"
 }
 
 const (

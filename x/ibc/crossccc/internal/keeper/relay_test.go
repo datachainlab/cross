@@ -491,7 +491,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	var err error
 
 	relayer := sdk.AccAddress("relayer1")
-	packetData := crossccc.NewPacketDataInitiate(relayer, txID, tsID, ts)
+	packetData := crossccc.NewPacketDataPrepare(relayer, txID, tsID, ts)
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = crossccc.WithSigners(ctx, ts.Signers)
 	err = actx.app.CrosscccKeeper.PrepareTransaction(

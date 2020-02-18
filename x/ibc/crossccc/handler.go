@@ -16,12 +16,12 @@ func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 			return handleMsgConfirm(ctx, keeper, msg)
 		case channeltypes.MsgPacket:
 			switch data := msg.Data.(type) {
-			case PacketDataInitiate:
-				return handlePacketDataInitiate(ctx, keeper, contractHandler, msg, data)
+			case PacketDataPrepare:
+				return handlePacketDataPrepare(ctx, keeper, contractHandler, msg, data)
 			case PacketDataCommit:
 				return handlePacketDataCommit(ctx, keeper, contractHandler, msg, data)
 			default:
-				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ics20 packet data type: %T", data)
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized packet data type: %T", data)
 			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC message type: %T", msg)
@@ -29,6 +29,11 @@ func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 	}
 }
 
+/*
+Steps:
+- Ensure that all channels in StateTransitions are correct
+- Multicast a Prepare packet to each participants
+*/
 func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result, error) {
 	err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.StateTransitions)
 	if err != nil {
@@ -37,30 +42,31 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result,
 	return &sdk.Result{}, nil
 }
 
-func handlePacketDataInitiate(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataInitiate) (*sdk.Result, error) {
-	/*
-		1. ensure that verify a given proof -> verified at ante handler
-		2. try to apply given transision to our state
-		3. If success, precommit that changes and lock them
-		4. If failed, discard changes of precommit
-
-		QUESTION: Each participant node should verify transition and update its packet on block store before 1?
-	*/
-	// FIXME split this method to verify and create-packet method
+/*
+Precondition:
+- Given proof of packet is valid.
+Steps:
+- Try to apply given contract transaction to our state.
+- If it was success, precommit these changes and get locks for concerned keys. Furthermore, send a Prepacket with status 'OK' to coordinator.
+- If it was failed, discard theses changes. Furthermore, send a Prepacket with status 'Failed' to coordinator.
+*/
+func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataPrepare) (*sdk.Result, error) {
 	err := k.PrepareTransaction(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data, msg.Signer)
 	if err != nil {
-		panic(err)
-		// TODO: Source chain sent invalid packet, shutdown channel
+		return nil, err
 	}
 	return &sdk.Result{}, nil
 }
 
-// This method can be called by valid coordinator
-// Precondition:
-//   - msg.Statuses are verified by ante
-// Optional: We can specify any networks(more than 0) as coordinator via Initiate msg?
+/*
+Precondition:
+- All Given proof of packet are valid.
+Steps:
+- Verify all status of each PrepareResultPacket
+- If any packet with status 'Failed' exist, send a CommitPacket with status 'Abort' to all participants.
+- If all packet with status 'Ok' only exist, send a CommitPacket with status 'Commit' to all participants.
+*/
 func handleMsgConfirm(ctx sdk.Context, k Keeper, msg MsgConfirm) (*sdk.Result, error) {
-	// ensure that all prepare packet are successful
 	err := k.MulticastCommitPacket(ctx, msg.TxID, msg.PreparePackets, msg.Signer, msg.IsCommittable())
 	if err != nil {
 		return nil, err
@@ -68,6 +74,13 @@ func handleMsgConfirm(ctx sdk.Context, k Keeper, msg MsgConfirm) (*sdk.Result, e
 	return &sdk.Result{}, nil
 }
 
+/*
+Precondition:
+- Given proof of packet is valid.
+Steps:
+- If PacketDataCommit indicates committable, commit precommitted state and unlock locked keys.
+- If PacketDataCommit indicates not committable, rollback precommitted state and unlock locked keys.
+*/
 func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataCommit) (*sdk.Result, error) {
 	err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data)
 	if err != nil {

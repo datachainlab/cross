@@ -85,7 +85,7 @@ func (k Keeper) CreatePreparePacket(
 	transition types.StateTransition,
 	sender sdk.AccAddress,
 ) channel.Packet {
-	packetData := types.NewPacketDataInitiate(sender, txID, transitionID, transition)
+	packetData := types.NewPacketDataPrepare(sender, txID, transitionID, transition)
 	packet := channel.NewPacket(
 		packetData,
 		seq,
@@ -104,7 +104,7 @@ func (k Keeper) PrepareTransaction(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	data types.PacketDataInitiate,
+	data types.PacketDataPrepare,
 	sender sdk.AccAddress,
 ) error {
 	if _, ok := k.GetTx(ctx, data.TxID); ok {
@@ -148,7 +148,7 @@ func (k Keeper) prepareTransaction(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	data types.PacketDataInitiate,
+	data types.PacketDataPrepare,
 	sender sdk.AccAddress,
 ) error {
 	store, err := contractHandler.Handle(ctx, data.StateTransition.Contract)
@@ -202,7 +202,6 @@ func (k Keeper) MulticastCommitPacket(
 		return fmt.Errorf("expected status is %v, but got %v", CO_STATUS_INIT, co.Status)
 	}
 	tsSet := co.Set()
-	tsSet.Contains()
 
 	var channels []channel.Channel
 	var sequences []uint64
@@ -286,8 +285,6 @@ func (k Keeper) CreateCommitPacket(
 	)
 }
 
-// Precondition:
-// - PacketCommit is included at coordinator chain
 func (k Keeper) ReceiveCommitPacket(
 	ctx sdk.Context,
 	contractHandler ContractHandler,
@@ -334,7 +331,7 @@ func (k Keeper) ReceiveCommitPacket(
 		return err
 	}
 
-	// Send Ack packet?
+	// TODO Send an Ack packet to coordinator?
 
 	return nil
 }

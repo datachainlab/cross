@@ -34,7 +34,7 @@ var (
 	NewMsgConfirm              = types.NewMsgConfirm
 	NewStateTransition         = types.NewStateTransition
 	NewChannelInfo             = types.NewChannelInfo
-	NewPacketDataInitiate      = types.NewPacketDataInitiate
+	NewPacketDataPrepare       = types.NewPacketDataPrepare
 	NewPacketDataPrepareResult = types.NewPacketDataPrepareResult
 	NewPreparePacket           = types.NewPreparePacket
 	NewPacketDataCommit        = types.NewPacketDataCommit
@@ -42,20 +42,20 @@ var (
 
 // nolint
 type (
-	Keeper             = keeper.Keeper
-	ContractHandler    = keeper.ContractHandler
-	MsgInitiate        = types.MsgInitiate
-	MsgConfirm         = types.MsgConfirm
-	PreparePacket      = types.PreparePacket
-	PacketDataInitiate = types.PacketDataInitiate
-	PacketDataCommit   = types.PacketDataCommit
-	MultiplePackets    = types.MultiplePackets
-	OP                 = types.OP
-	OPs                = types.OPs
-	State              = types.State
-	Store              = types.Store
-	Committer          = types.Committer
-	ChannelInfo        = types.ChannelInfo
-	StateTransition    = types.StateTransition
-	StateTransitions   = types.StateTransitions
+	Keeper            = keeper.Keeper
+	ContractHandler   = keeper.ContractHandler
+	MsgInitiate       = types.MsgInitiate
+	MsgConfirm        = types.MsgConfirm
+	PreparePacket     = types.PreparePacket
+	PacketDataPrepare = types.PacketDataPrepare
+	PacketDataCommit  = types.PacketDataCommit
+	MultiplePackets   = types.MultiplePackets
+	OP                = types.OP
+	OPs               = types.OPs
+	State             = types.State
+	Store             = types.Store
+	Committer         = types.Committer
+	ChannelInfo       = types.ChannelInfo
+	StateTransition   = types.StateTransition
+	StateTransitions  = types.StateTransitions
 )
