@@ -4,8 +4,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/bluele/cross/x/ibc/contract"
-	"github.com/bluele/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/contract"
+	"github.com/datachainlab/cross/x/ibc/cross"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"

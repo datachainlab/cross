@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/bluele/cross/x/ibc/contract/internal/types"
+	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"

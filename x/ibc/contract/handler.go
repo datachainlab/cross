@@ -1,9 +1,9 @@
 package contract
 
 import (
-	"github.com/bluele/cross/x/ibc/cross"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/datachainlab/cross/x/ibc/cross"
 )
 
 // NewHandler returns a handler

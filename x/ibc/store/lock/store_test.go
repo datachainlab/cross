@@ -3,10 +3,10 @@ package lock
 import (
 	"testing"
 
-	"github.com/bluele/cross/x/ibc/cross"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/stretchr/testify/assert"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	db "github.com/tendermint/tm-db"

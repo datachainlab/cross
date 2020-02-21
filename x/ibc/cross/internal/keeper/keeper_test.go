@@ -3,12 +3,12 @@ package keeper_test
 import (
 	"testing"
 
-	"github.com/bluele/cross/example/simapp"
-	"github.com/bluele/cross/x/ibc/cross"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
+	"github.com/datachainlab/cross/example/simapp"
+	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"

@@ -1,4 +1,4 @@
-module github.com/bluele/cross
+module github.com/datachainlab/cross
 
 go 1.13
 

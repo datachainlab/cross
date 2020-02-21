@@ -1,8 +1,8 @@
 package keeper
 
 import (
-	"github.com/bluele/cross/x/ibc/cross/internal/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
 )
 
 /* TODO

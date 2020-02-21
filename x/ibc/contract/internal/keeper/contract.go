@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/bluele/cross/x/ibc/contract/internal/types"
-	"github.com/bluele/cross/x/ibc/cross"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
+	"github.com/datachainlab/cross/x/ibc/cross"
 )
 
 var _ cross.ContractHandler = (*contractHandler)(nil)

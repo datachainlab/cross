@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/bluele/cross/example/simapp"
-	"github.com/bluele/cross/x/ibc/contract"
-	"github.com/bluele/cross/x/ibc/cross"
-	lock "github.com/bluele/cross/x/ibc/store/lock"
+	"github.com/datachainlab/cross/example/simapp"
+	"github.com/datachainlab/cross/x/ibc/contract"
+	"github.com/datachainlab/cross/x/ibc/cross"
+	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"

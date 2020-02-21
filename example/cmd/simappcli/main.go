@@ -24,7 +24,7 @@ import (
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/bluele/cross/example/simapp"
+	"github.com/datachainlab/cross/example/simapp"
 )
 
 func main() {

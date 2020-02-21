@@ -4,10 +4,10 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/bluele/cross/x/ibc/contract"
-	"github.com/bluele/cross/x/ibc/cross"
-	"github.com/bluele/cross/x/ibc/store/lock"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/ibc/contract"
+	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/store/lock"
 )
 
 func makeContractHandler(k contract.Keeper) cross.ContractHandler {
