@@ -14,8 +14,8 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	txCmd.AddCommand(flags.PostCommands(
 		GetInitiateTxCmd(cdc),
-		GetCreateStateTransitionFileCmd(cdc),
-		GetMergeStateTransitionFilesCmd(cdc),
+		GetCreateContractTransactionFileCmd(cdc),
+		GetMergeContractTransactionFilesCmd(cdc),
 	)...)
 
 	return txCmd

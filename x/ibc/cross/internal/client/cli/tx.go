@@ -32,7 +32,7 @@ Assumption:
 */
 func GetInitiateTxCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "initiate [transitions-file] [nonce]",
+		Use:   "initiate [transactions-file] [nonce]",
 		Short: "Initiate a distributed transaction",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -40,7 +40,7 @@ func GetInitiateTxCmd(cdc *codec.Codec) *cobra.Command {
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContextWithInput(nil).WithCodec(cdc).WithBroadcastMode(flags.BroadcastBlock)
 			sender := cliCtx.GetFromAddress()
-			sts, err := readStateTransitionsFile(cdc, args[0])
+			sts, err := readContractTransactionsFile(cdc, args[0])
 			if err != nil {
 				return err
 			}
@@ -63,7 +63,7 @@ func GetInitiateTxCmd(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func GetCreateStateTransitionFileCmd(cdc *codec.Codec) *cobra.Command {
+func GetCreateContractTransactionFileCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "create-st [dest-file] [src-port] [src-channel] [contract] --signers [signers] --ops [ops]",
 		Args: cobra.ExactArgs(4),
@@ -85,7 +85,7 @@ func GetCreateStateTransitionFileCmd(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			st := types.NewStateTransition(srcc, signers, contract, ops)
+			st := types.NewContractTransaction(srcc, signers, contract, ops)
 			bz, err := cdc.MarshalBinaryLengthPrefixed(st)
 			if err != nil {
 				return err
@@ -102,7 +102,7 @@ func GetCreateStateTransitionFileCmd(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func GetMergeStateTransitionFilesCmd(cdc *codec.Codec) *cobra.Command {
+func GetMergeContractTransactionFilesCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "merge-st [dest-file] [[src-file]...]",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -124,10 +124,10 @@ func GetMergeStateTransitionFilesCmd(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func concatBytesFromFiles(cdc *codec.Codec, srcs ...string) (types.StateTransitions, error) {
-	var sts types.StateTransitions
+func concatBytesFromFiles(cdc *codec.Codec, srcs ...string) (types.ContractTransactions, error) {
+	var sts types.ContractTransactions
 	for _, src := range srcs {
-		st, err := readStateTransitionFromFile(cdc, src)
+		st, err := readContractTransactionFromFile(cdc, src)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func concatBytesFromFiles(cdc *codec.Codec, srcs ...string) (types.StateTransiti
 	return sts, nil
 }
 
-func readStateTransitionFromFile(cdc *codec.Codec, path string) (*types.StateTransition, error) {
+func readContractTransactionFromFile(cdc *codec.Codec, path string) (*types.ContractTransaction, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -148,12 +148,12 @@ func readStateTransitionFromFile(cdc *codec.Codec, path string) (*types.StateTra
 		return nil, err
 	}
 
-	var st types.StateTransition
+	var st types.ContractTransaction
 	err = cdc.UnmarshalBinaryLengthPrefixed(b, &st)
 	return &st, err
 }
 
-func readStateTransitionsFile(cdc *codec.Codec, path string) (types.StateTransitions, error) {
+func readContractTransactionsFile(cdc *codec.Codec, path string) (types.ContractTransactions, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func readStateTransitionsFile(cdc *codec.Codec, path string) (types.StateTransit
 		return nil, err
 	}
 
-	var sts types.StateTransitions
+	var sts types.ContractTransactions
 	err = cdc.UnmarshalBinaryLengthPrefixed(b, &sts)
 	return sts, err
 }

@@ -8,14 +8,14 @@ import (
 )
 
 type PacketDataPrepare struct {
-	Sender          sdk.AccAddress
-	TxID            []byte
-	TransitionID    int
-	StateTransition StateTransition
+	Sender              sdk.AccAddress
+	TxID                []byte
+	TransactionID       int
+	ContractTransaction ContractTransaction
 }
 
-func NewPacketDataPrepare(sender sdk.AccAddress, txID []byte, transitionID int, transition StateTransition) PacketDataPrepare {
-	return PacketDataPrepare{Sender: sender, TxID: txID, TransitionID: transitionID, StateTransition: transition}
+func NewPacketDataPrepare(sender sdk.AccAddress, txID []byte, transactionID int, transaction ContractTransaction) PacketDataPrepare {
+	return PacketDataPrepare{Sender: sender, TxID: txID, TransactionID: transactionID, ContractTransaction: transaction}
 }
 
 func (p PacketDataPrepare) Hash() []byte {
@@ -24,7 +24,7 @@ func (p PacketDataPrepare) Hash() []byte {
 }
 
 func (p PacketDataPrepare) ValidateBasic() error {
-	if err := p.StateTransition.ValidateBasic(); err != nil {
+	if err := p.ContractTransaction.ValidateBasic(); err != nil {
 		return err
 	}
 	return nil
@@ -48,14 +48,14 @@ const (
 )
 
 type PacketDataPrepareResult struct {
-	Sender       sdk.AccAddress
-	TxID         []byte
-	TransitionID int
-	Status       uint8
+	Sender        sdk.AccAddress
+	TxID          []byte
+	TransactionID int
+	Status        uint8
 }
 
-func NewPacketDataPrepareResult(sender sdk.AccAddress, txID []byte, transitionID int, status uint8) PacketDataPrepareResult {
-	return PacketDataPrepareResult{Sender: sender, TxID: txID, TransitionID: transitionID, Status: status}
+func NewPacketDataPrepareResult(sender sdk.AccAddress, txID []byte, transactionID int, status uint8) PacketDataPrepareResult {
+	return PacketDataPrepareResult{Sender: sender, TxID: txID, TransactionID: transactionID, Status: status}
 }
 
 func (p PacketDataPrepareResult) ValidateBasic() error {

@@ -97,25 +97,25 @@ const (
 )
 
 type CoordinatorInfo struct {
-	Status      uint8
-	Transitions []string // [ConnectionID]
+	Status       uint8
+	Transactions []string // [ConnectionID]
 }
 
-type ConnectionTransitionPair struct {
-	ConnectionID string
-	TransitionID int
+type ConnectionTransactionPair struct {
+	ConnectionID  string
+	TransactionID int
 }
 
 func (ci CoordinatorInfo) Set() mapset.Set {
 	set := mapset.NewSet()
-	for tsID, connID := range ci.Transitions {
-		set.Add(ConnectionTransitionPair{connID, tsID})
+	for tsID, connID := range ci.Transactions {
+		set.Add(ConnectionTransactionPair{connID, tsID})
 	}
 	return set
 }
 
 func NewCoordinatorInfo(status uint8, tss []string) CoordinatorInfo {
-	return CoordinatorInfo{Status: status, Transitions: tss}
+	return CoordinatorInfo{Status: status, Transactions: tss}
 }
 
 func (k Keeper) SetCoordinator(ctx sdk.Context, txID []byte, ci CoordinatorInfo) {

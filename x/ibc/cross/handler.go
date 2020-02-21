@@ -31,11 +31,11 @@ func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 
 /*
 Steps:
-- Ensure that all channels in StateTransitions are correct
+- Ensure that all channels in ContractTransactions are correct
 - Multicast a Prepare packet to each participants
 */
 func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result, error) {
-	err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.StateTransitions)
+	err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
 	if err != nil {
 		return nil, err
 	}

@@ -11,14 +11,14 @@ import (
 var _ sdk.Msg = (*MsgInitiate)(nil)
 
 type MsgInitiate struct {
-	Sender           sdk.AccAddress
-	StateTransitions []StateTransition // TODO: sorted by Source?
-	Nonce            uint64
+	Sender               sdk.AccAddress
+	ContractTransactions []ContractTransaction // TODO: sorted by Source?
+	Nonce                uint64
 	// Timeout          uint64 // Timeout for this msg
 }
 
-func NewMsgInitiate(sender sdk.AccAddress, transitions []StateTransition, Nonce uint64) MsgInitiate {
-	return MsgInitiate{Sender: sender, StateTransitions: transitions, Nonce: Nonce}
+func NewMsgInitiate(sender sdk.AccAddress, transactions []ContractTransaction, Nonce uint64) MsgInitiate {
+	return MsgInitiate{Sender: sender, ContractTransactions: transactions, Nonce: Nonce}
 }
 
 // Route implements sdk.Msg
@@ -33,10 +33,10 @@ func (MsgInitiate) Type() string {
 
 // ValidateBasic implements sdk.Msg
 func (msg MsgInitiate) ValidateBasic() error {
-	if len(msg.StateTransitions) == 0 {
+	if len(msg.ContractTransactions) == 0 {
 		return errors.New("this msg includes no transisions")
 	}
-	for _, st := range msg.StateTransitions {
+	for _, st := range msg.ContractTransactions {
 		if err := st.ValidateBasic(); err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ func (msg MsgInitiate) GetSignBytes() []byte {
 func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
 	seen := map[string]bool{}
 	signers := []sdk.AccAddress{msg.Sender}
-	for _, t := range msg.StateTransitions {
+	for _, t := range msg.ContractTransactions {
 		for _, addr := range t.Signers {
 			if !seen[addr.String()] {
 				signers = append(signers, addr)
@@ -87,7 +87,7 @@ func (c ChannelInfo) ValidateBasic() error {
 	return nil
 }
 
-type StateTransition struct {
+type ContractTransaction struct {
 	Source ChannelInfo `json:"source" yaml:"source"`
 
 	Signers  []sdk.AccAddress `json:"signers" yaml:"signers"`
@@ -95,10 +95,10 @@ type StateTransition struct {
 	OPs      []OP             `json:"ops" yaml:"ops"`
 }
 
-type StateTransitions = []StateTransition
+type ContractTransactions = []ContractTransaction
 
-func NewStateTransition(src ChannelInfo, signers []sdk.AccAddress, contract []byte, ops []OP) StateTransition {
-	return StateTransition{
+func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, contract []byte, ops []OP) ContractTransaction {
+	return ContractTransaction{
 		Source:   src,
 		Signers:  signers,
 		Contract: contract,
@@ -106,7 +106,7 @@ func NewStateTransition(src ChannelInfo, signers []sdk.AccAddress, contract []by
 	}
 }
 
-func (t StateTransition) ValidateBasic() error {
+func (t ContractTransaction) ValidateBasic() error {
 	if err := t.Source.ValidateBasic(); err != nil {
 		return err
 	}

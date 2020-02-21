@@ -178,14 +178,14 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 
 	var err error
 	var nonce uint64 = 1
-	var tss = []cross.StateTransition{
-		cross.NewStateTransition(
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
 			ch0to1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
 			[]cross.OP{lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 		),
-		cross.NewStateTransition(
+		cross.NewContractTransaction(
 			ch0to2,
 			[]sdk.AccAddress{signer2},
 			ci2.Bytes(),
@@ -204,7 +204,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		app0.ctx,
 		initiator,
 		msg,
-		msg.StateTransitions,
+		msg.ContractTransactions,
 	)
 	suite.Error(err) // channel does not exist
 
@@ -238,7 +238,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		app0.ctx,
 		initiator,
 		msg,
-		msg.StateTransitions,
+		msg.ContractTransactions,
 	)
 	suite.NoError(err) // successfully executed
 
@@ -312,7 +312,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		capp, _ := app0.Cache()
 		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
 	}
-	// ensure that transitionID conflict occurs
+	// ensure that transactionID conflict occurs
 	{
 		pps := []cross.PreparePacket{}
 		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
@@ -322,7 +322,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		capp, _ := app0.Cache()
 		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
 	}
-	// invalid transitionID
+	// invalid transactionID
 	{
 		pps := []cross.PreparePacket{}
 		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
@@ -332,7 +332,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 		capp, _ := app0.Cache()
 		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
 	}
-	// includes all expected packets, but also include invalid transitionID
+	// includes all expected packets, but also include invalid transactionID
 	{
 		pps := []cross.PreparePacket{}
 		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
@@ -487,7 +487,7 @@ func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []cross.Prepa
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID []byte, tsID int, contractHandler cross.ContractHandler, ts cross.StateTransition, nextseq uint64) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID []byte, tsID int, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64) {
 	var err error
 
 	relayer := sdk.AccAddress("relayer1")

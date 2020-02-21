@@ -160,14 +160,14 @@ func (suite *HandlerTestSuite) TestHandleCrossc() {
 	dst1 := cross.NewChannelInfo("dstportone", "dstchannelone")
 
 	var nonce uint64 = 1
-	var tss = []cross.StateTransition{
-		cross.NewStateTransition(
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
 			src0,
 			[]sdk.AccAddress{signer0},
 			ci0.Bytes(),
 			[]cross.OP{lock.Read{}, lock.Write{}},
 		),
-		cross.NewStateTransition(
+		cross.NewContractTransaction(
 			src1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
