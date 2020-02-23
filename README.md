@@ -1,12 +1,14 @@
 # Cross
 
+![](https://github.com/datachainlab/cross/workflows/Test/badge.svg)
+
 Cross is a framework for Cross-chain transaction. It is implemented as [Cosmos module](https://github.com/cosmos/cosmos-sdk).
 
 Cross provides several key features:
 
-- Cross-chain transaction support - Supports a transaction that atomically executes each contract functions on multiple blockchain networks(zones).
-- Smart contract support - Provides a contract system that can support general smart contracts. Such contracts gain Cross-chain transaction support. Contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
-- Compliant with [ics-004](https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics) - Supports above features on networks where membership changes dynamically
+- **Cross-chain transaction support** - Supports a transaction that atomically executes each contract functions on multiple blockchain networks(zones).
+- **Smart contract support** - Provides a contract system that can support general smart contracts. Such contracts gain Cross-chain transaction support. Contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
+- **Compliant with [ics-004](https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics)** - Supports above features on networks where membership changes dynamically
 
 **This project is currently under development and not production ready.**
 
