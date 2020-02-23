@@ -32,25 +32,32 @@ Assumption:
 */
 func GetInitiateTxCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "initiate [transactions-file] [nonce]",
+		Use:   "initiate [chain-id] [transactions-file] [timeout-height] [nonce]",
 		Short: "Initiate a distributed transaction",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContextWithInput(nil).WithCodec(cdc).WithBroadcastMode(flags.BroadcastBlock)
 			sender := cliCtx.GetFromAddress()
-			sts, err := readContractTransactionsFile(cdc, args[0])
+			chainID := args[0]
+			sts, err := readContractTransactionsFile(cdc, args[1])
 			if err != nil {
 				return err
 			}
-			nonce, err := strconv.ParseUint(args[1], 10, 64)
+			timeout, err := strconv.ParseInt(args[2], 10, 64)
+			if err != nil {
+				return err
+			}
+			nonce, err := strconv.ParseUint(args[3], 10, 64)
 			if err != nil {
 				return err
 			}
 			msg := types.NewMsgInitiate(
 				sender,
+				chainID,
 				sts,
+				timeout,
 				nonce,
 			)
 			if err := msg.ValidateBasic(); err != nil {

@@ -12,13 +12,14 @@ var _ sdk.Msg = (*MsgInitiate)(nil)
 
 type MsgInitiate struct {
 	Sender               sdk.AccAddress
+	ChainID              string                // chainID of Coordinator node
 	ContractTransactions []ContractTransaction // TODO: sorted by Source?
+	TimeoutHeight        int64                 // Timeout for this msg
 	Nonce                uint64
-	// Timeout          uint64 // Timeout for this msg
 }
 
-func NewMsgInitiate(sender sdk.AccAddress, transactions []ContractTransaction, Nonce uint64) MsgInitiate {
-	return MsgInitiate{Sender: sender, ContractTransactions: transactions, Nonce: Nonce}
+func NewMsgInitiate(sender sdk.AccAddress, chainID string, transactions []ContractTransaction, timeoutHeight int64, nonce uint64) MsgInitiate {
+	return MsgInitiate{Sender: sender, ChainID: chainID, ContractTransactions: transactions, TimeoutHeight: timeoutHeight, Nonce: nonce}
 }
 
 // Route implements sdk.Msg
