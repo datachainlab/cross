@@ -17,6 +17,12 @@ func (k Keeper) MulticastPreparePacket(
 	msg types.MsgInitiate,
 	transactions []types.ContractTransaction,
 ) error {
+	if ctx.ChainID() != msg.ChainID {
+		return fmt.Errorf("unexpected chainID: '%v' != '%v'", ctx.ChainID(), msg.ChainID)
+	} else if ctx.BlockHeight() >= msg.TimeoutHeight {
+		return fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
+	}
+
 	txID := msg.GetTxID()
 	if _, ok := k.GetTx(ctx, txID); ok {
 		return fmt.Errorf("txID '%x' already exists", txID)

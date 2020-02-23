@@ -195,7 +195,9 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 
 	msg := cross.NewMsgInitiate(
 		initiator,
+		"",
 		tss,
+		256,
 		nonce,
 	)
 	txID := msg.GetTxID()
