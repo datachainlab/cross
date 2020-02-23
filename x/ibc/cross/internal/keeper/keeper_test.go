@@ -9,6 +9,7 @@ import (
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/datachainlab/cross/example/simapp"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -19,6 +20,10 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {}
+
+func init() {
+	lock.RegisterCodec(cross.ModuleCdc)
+}
 
 type appContext struct {
 	chainID string
@@ -92,22 +97,37 @@ func (suite *KeeperTestSuite) openChannels(
 }
 
 func (suite *KeeperTestSuite) createApp(chainID string) *appContext {
+	return suite.createAppWithHeader(abci.Header{ChainID: chainID})
+}
+
+func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header) *appContext {
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
-	ctx := app.BaseApp.NewContext(isCheckTx, abci.Header{})
+	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	privVal := tmtypes.NewMockPV()
 	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
 	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
 
 	actx := &appContext{
-		chainID:  chainID,
+		chainID:  header.GetChainID(),
 		cdc:      app.Codec(),
 		ctx:      ctx,
 		app:      app,
 		valSet:   valSet,
 		channels: make(map[cross.ChannelInfo]cross.ChannelInfo),
 	}
+
+	updateApp(actx, int(header.Height))
+
 	return actx
+}
+
+func updateApp(actx *appContext, n int) {
+	for i := 0; i < n; i++ {
+		actx.app.Commit()
+		actx.app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: actx.ctx.ChainID(), Height: actx.app.LastBlockHeight() + 1}})
+		actx.ctx = actx.app.BaseApp.NewContext(false, abci.Header{ChainID: actx.ctx.ChainID()})
+	}
 }
 
 func TestKeeperTestSuite(t *testing.T) {

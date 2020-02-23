@@ -34,8 +34,9 @@ func (suite *KeeperTestSuite) createClient(actx *appContext, clientID string) {
 	actx.app.Commit()
 	commitID := actx.app.LastCommitID()
 
-	actx.app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: actx.app.LastBlockHeight() + 1}})
-	actx.ctx = actx.app.BaseApp.NewContext(false, abci.Header{})
+	h := abci.Header{ChainID: actx.ctx.ChainID(), Height: actx.app.LastBlockHeight() + 1}
+	actx.app.BeginBlock(abci.RequestBeginBlock{Header: h})
+	actx.ctx = actx.app.BaseApp.NewContext(false, h)
 
 	consensusState := tendermint.ConsensusState{
 		Root:             commitment.NewRoot(commitID.Hash),
@@ -51,8 +52,9 @@ func (suite *KeeperTestSuite) updateClient(actx *appContext, clientID string) {
 	actx.app.Commit()
 	commitID := actx.app.LastCommitID()
 
-	actx.app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: actx.app.LastBlockHeight() + 1}})
-	actx.ctx = actx.app.BaseApp.NewContext(false, abci.Header{})
+	h := abci.Header{ChainID: actx.ctx.ChainID(), Height: actx.app.LastBlockHeight() + 1}
+	actx.app.BeginBlock(abci.RequestBeginBlock{Header: h})
+	actx.ctx = actx.app.BaseApp.NewContext(false, h)
 
 	state := tendermint.ConsensusState{
 		Root: commitment.NewRoot(commitID.Hash),
@@ -154,9 +156,137 @@ func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string
 	return contractHandler
 }
 
-func (suite *KeeperTestSuite) TestSendInitiate() {
-	lock.RegisterCodec(cross.ModuleCdc)
+func (suite *KeeperTestSuite) TestInitiateMsg() {
+	initiator := sdk.AccAddress("initiator")
+	app0 := suite.createApp("app0") // coordinator node
+	app1 := suite.createApp("app1")
+	signer1 := sdk.AccAddress("signer1")
+	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
 
+	app2 := suite.createApp("app2")
+	signer2 := sdk.AccAddress("signer2")
+	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
+
+	ch0to1 := cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
+	ch1to0 := cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
+	ch0to2 := cross.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
+	ch2to0 := cross.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
+
+	var nonce uint64 = 1
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
+			ch0to1,
+			[]sdk.AccAddress{signer1},
+			ci1.Bytes(),
+			[]cross.OP{lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
+		),
+		cross.NewContractTransaction(
+			ch0to2,
+			[]sdk.AccAddress{signer2},
+			ci2.Bytes(),
+			[]cross.OP{lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
+		),
+	}
+
+	{
+		msg := cross.NewMsgInitiate(
+			initiator,
+			app0.chainID,
+			tss,
+			5,
+			nonce,
+		)
+		err := app0.app.CrossKeeper.MulticastPreparePacket(
+			app0.ctx,
+			initiator,
+			msg,
+			msg.ContractTransactions,
+		)
+		suite.Error(err) // channel does not exist
+	}
+
+	// Try to open a channel and connection between app0 and app1, app2
+
+	suite.openChannels(
+		app1.chainID,
+		app0.chainID+app1.chainID,
+		ch0to1,
+		app0,
+
+		app0.chainID,
+		app1.chainID+app0.chainID,
+		ch1to0,
+		app1,
+	)
+
+	suite.openChannels(
+		app2.chainID,
+		app0.chainID+app2.chainID,
+		ch0to2,
+		app0,
+
+		app0.chainID,
+		app2.chainID+app1.chainID,
+		ch2to0,
+		app2,
+	)
+
+	// ensure that current block height is correct
+	suite.EqualValues(3, app0.ctx.BlockHeight())
+
+	{
+		msg := cross.NewMsgInitiate(
+			initiator,
+			app0.chainID,
+			tss,
+			3,
+			nonce,
+		)
+		err := app0.app.CrossKeeper.MulticastPreparePacket(
+			app0.ctx,
+			initiator,
+			msg,
+			msg.ContractTransactions,
+		)
+		suite.Error(err) // timeout error
+	}
+
+	{
+		msg := cross.NewMsgInitiate(
+			initiator,
+			"dummy", // invalid chainID
+			tss,
+			4,
+			nonce,
+		)
+		err := app0.app.CrossKeeper.MulticastPreparePacket(
+			app0.ctx,
+			initiator,
+			msg,
+			msg.ContractTransactions,
+		)
+		suite.Error(err) // occur an error due to invalid chainID
+	}
+
+	{
+		msg := cross.NewMsgInitiate(
+			initiator,
+			app0.chainID,
+			tss,
+			4,
+			nonce,
+		)
+		err := app0.app.CrossKeeper.MulticastPreparePacket(
+			app0.ctx,
+			initiator,
+			msg,
+			msg.ContractTransactions,
+		)
+		suite.NoError(err) // successfully executed
+	}
+}
+
+func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	initiator := sdk.AccAddress("initiator")
 
 	app0 := suite.createApp("app0") // coordinator node
@@ -195,7 +325,7 @@ func (suite *KeeperTestSuite) TestSendInitiate() {
 
 	msg := cross.NewMsgInitiate(
 		initiator,
-		"",
+		app0.chainID,
 		tss,
 		256,
 		nonce,
