@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20200224190540-bb7e803cb929
+	github.com/cosmos/cosmos-sdk v0.34.4-0.20200226203349-68f6700b37e7
 	github.com/cpuguy83/go-md2man v1.0.10 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/gogo/protobuf v1.3.1
@@ -16,7 +16,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.33.1
-	github.com/tendermint/tm-db v0.4.0
+	github.com/tendermint/tm-db v0.4.1
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8 // indirect
 )
 
