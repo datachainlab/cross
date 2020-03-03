@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20200226203349-68f6700b37e7
+	github.com/cosmos/cosmos-sdk v0.34.4-0.20200227200316-69d089cbda0b
 	github.com/cpuguy83/go-md2man v1.0.10 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/gogo/protobuf v1.3.1

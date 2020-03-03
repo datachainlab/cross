@@ -19,7 +19,8 @@ import (
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
 	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint/types"
-	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment"
+	commitmentexported "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/exported"
+	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -72,7 +73,7 @@ func (suite *KeeperTestSuite) updateClient(actx *appContext, clientID string) {
 	actx.ctx = actx.app.BaseApp.NewContext(false, h)
 
 	state := tendermint.ConsensusState{
-		Root: commitment.NewRoot(commitID.Hash),
+		Root: commitment.NewMerkleRoot(commitID.Hash),
 	}
 
 	actx.app.IBCKeeper.ClientKeeper.SetClientConsensusState(actx.ctx, clientID, 1, state)
@@ -108,7 +109,7 @@ func (suite *KeeperTestSuite) createChannel(actx *appContext, portID string, cha
 	actx.app.IBCKeeper.ChannelKeeper.SetChannel(actx.ctx, portID, chanID, ch)
 }
 
-func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof commitment.Proof, height int64) {
+func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof commitmentexported.Proof, height int64) {
 	res := actx.app.Query(abci.RequestQuery{
 		Path:  fmt.Sprintf("store/%s/key", ibctypes.StoreKey),
 		Data:  key,
@@ -116,7 +117,7 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 	})
 
 	height = res.Height
-	proof = commitment.Proof{
+	proof = commitment.MerkleProof{
 		Proof: res.Proof,
 	}
 

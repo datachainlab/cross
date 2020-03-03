@@ -22,7 +22,8 @@ import (
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint/types"
-	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment"
+	commitmentexported "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/exported"
+	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 )
 
@@ -98,7 +99,7 @@ func (suite *HandlerTestSuite) updateClient() {
 	suite.ctx = suite.app.BaseApp.NewContext(false, abci.Header{})
 
 	state := tendermint.ConsensusState{
-		Root: commitment.NewRoot(commitID.Hash),
+		Root: commitment.NewMerkleRoot(commitID.Hash),
 	}
 
 	suite.app.IBCKeeper.ClientKeeper.SetClientConsensusState(suite.ctx, testClient, 1, state)
@@ -135,7 +136,7 @@ func (suite *HandlerTestSuite) createChannel(
 	suite.app.IBCKeeper.ChannelKeeper.SetChannel(suite.ctx, portID, channnelID, ch)
 }
 
-func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitment.Proof, height int64) {
+func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.Proof, height int64) {
 	res := suite.app.Query(abci.RequestQuery{
 		Path:  fmt.Sprintf("store/%s/key", ibctypes.StoreKey),
 		Data:  key,
@@ -143,7 +144,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitment.Proof, h
 	})
 
 	height = res.Height
-	proof = commitment.Proof{
+	proof = commitment.MerkleProof{
 		Proof: res.Proof,
 	}
 
