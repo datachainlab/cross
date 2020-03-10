@@ -14,8 +14,9 @@ const (
 type (
 	Keeper          = keeper.Keeper
 	Method          = keeper.Method
-	MsgContractCall = types.MsgContractCall
+	StateProvider   = keeper.StateProvider
 	Context         = keeper.Context
+	MsgContractCall = types.MsgContractCall
 )
 
 var (
