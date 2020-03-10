@@ -31,6 +31,7 @@ type appContext struct {
 	ctx     sdk.Context
 	app     *simapp.SimApp
 	valSet  *tmtypes.ValidatorSet
+	signers []tmtypes.PrivValidator
 
 	// src => dst
 	channels map[cross.ChannelInfo]cross.ChannelInfo
@@ -107,6 +108,7 @@ func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header) *appContex
 	privVal := tmtypes.NewMockPV()
 	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
 	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
+	signers := []tmtypes.PrivValidator{privVal}
 
 	actx := &appContext{
 		chainID:  header.GetChainID(),
@@ -114,6 +116,7 @@ func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header) *appContex
 		ctx:      ctx,
 		app:      app,
 		valSet:   valSet,
+		signers:  signers,
 		channels: make(map[cross.ChannelInfo]cross.ChannelInfo),
 	}
 

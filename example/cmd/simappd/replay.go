@@ -9,8 +9,10 @@ import (
 
 	cpm "github.com/otiai10/copy"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/cli"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	"github.com/tendermint/tendermint/proxy"
 	tmsm "github.com/tendermint/tendermint/state"
@@ -92,7 +94,7 @@ func replayTxs(rootDir string) error {
 	// Application
 	fmt.Fprintln(os.Stderr, "Creating application")
 	gapp := simapp.NewSimApp(
-		ctx.Logger, appDB, traceStoreWriter, true, map[int64]bool{}, uint(1),
+		ctx.Logger, appDB, traceStoreWriter, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1),
 		baseapp.SetPruning(store.PruneEverything), // nothing
 	)
 

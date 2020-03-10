@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
@@ -17,8 +18,9 @@ import (
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
-	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint"
-	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment"
+	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint/types"
+	commitmentexported "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/exported"
+	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -30,20 +32,34 @@ const (
 	testChannelVersion = "1.0"
 )
 
+const (
+	trustingPeriod time.Duration = time.Hour * 24 * 7 * 2
+	ubdPeriod      time.Duration = time.Hour * 24 * 7 * 3
+)
+
 func (suite *KeeperTestSuite) createClient(actx *appContext, clientID string) {
 	actx.app.Commit()
-	commitID := actx.app.LastCommitID()
+	// commitID := actx.app.LastCommitID()
 
 	h := abci.Header{ChainID: actx.ctx.ChainID(), Height: actx.app.LastBlockHeight() + 1}
 	actx.app.BeginBlock(abci.RequestBeginBlock{Header: h})
 	actx.ctx = actx.app.BaseApp.NewContext(false, h)
+	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
 
-	consensusState := tendermint.ConsensusState{
-		Root:             commitment.NewRoot(commitID.Hash),
-		ValidatorSetHash: actx.valSet.Hash(),
+	header := tendermint.CreateTestHeader(actx.chainID, 1, now, actx.valSet, actx.valSet, actx.signers)
+	consensusState := header.ConsensusState()
+
+	// consensusState := tendermint.ConsensusState{
+	// 	Root:         commitment.NewRoot(commitID.Hash),
+	// 	ValidatorSet: actx.valSet,
+	// }
+
+	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, header)
+	if err != nil {
+		panic(err)
 	}
 
-	_, err := actx.app.IBCKeeper.ClientKeeper.CreateClient(actx.ctx, clientID, testClientType, consensusState)
+	_, err = actx.app.IBCKeeper.ClientKeeper.CreateClient(actx.ctx, clientState, consensusState)
 	suite.NoError(err)
 }
 
@@ -57,7 +73,7 @@ func (suite *KeeperTestSuite) updateClient(actx *appContext, clientID string) {
 	actx.ctx = actx.app.BaseApp.NewContext(false, h)
 
 	state := tendermint.ConsensusState{
-		Root: commitment.NewRoot(commitID.Hash),
+		Root: commitment.NewMerkleRoot(commitID.Hash),
 	}
 
 	actx.app.IBCKeeper.ClientKeeper.SetClientConsensusState(actx.ctx, clientID, 1, state)
@@ -93,7 +109,7 @@ func (suite *KeeperTestSuite) createChannel(actx *appContext, portID string, cha
 	actx.app.IBCKeeper.ChannelKeeper.SetChannel(actx.ctx, portID, chanID, ch)
 }
 
-func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof commitment.Proof, height int64) {
+func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof commitmentexported.Proof, height int64) {
 	res := actx.app.Query(abci.RequestQuery{
 		Path:  fmt.Sprintf("store/%s/key", ibctypes.StoreKey),
 		Data:  key,
@@ -101,7 +117,7 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 	})
 
 	height = res.Height
-	proof = commitment.Proof{
+	proof = commitment.MerkleProof{
 		Proof: res.Proof,
 	}
 

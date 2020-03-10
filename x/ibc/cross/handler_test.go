@@ -4,6 +4,7 @@ package cross_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/datachainlab/cross/example/simapp"
 	"github.com/datachainlab/cross/x/ibc/contract"
@@ -20,8 +21,9 @@ import (
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
-	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint"
-	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment"
+	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint/types"
+	commitmentexported "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/exported"
+	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 )
 
@@ -39,10 +41,9 @@ const (
 type HandlerTestSuite struct {
 	suite.Suite
 
-	cdc    *codec.Codec
-	ctx    sdk.Context
-	app    *simapp.SimApp
-	valSet *tmtypes.ValidatorSet
+	cdc *codec.Codec
+	ctx sdk.Context
+	app *simapp.SimApp
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
@@ -55,28 +56,37 @@ func (suite *HandlerTestSuite) SetupTest() {
 	suite.ctx = app.BaseApp.NewContext(isCheckTx, abci.Header{})
 	suite.app = app
 
-	privVal := tmtypes.NewMockPV()
-
-	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
-	suite.valSet = tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
-
 	suite.createClient()
 	suite.createConnection(connectionexported.OPEN)
 }
 
+const (
+	trustingPeriod time.Duration = time.Hour * 24 * 7 * 2
+	ubdPeriod      time.Duration = time.Hour * 24 * 7 * 3
+)
+
 func (suite *HandlerTestSuite) createClient() {
 	suite.app.Commit()
-	commitID := suite.app.LastCommitID()
 
-	suite.app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: suite.app.LastBlockHeight() + 1}})
+	h := abci.Header{Height: suite.app.LastBlockHeight() + 1}
+	suite.app.BeginBlock(abci.RequestBeginBlock{Header: h})
 	suite.ctx = suite.app.BaseApp.NewContext(false, abci.Header{})
 
-	consensusState := tendermint.ConsensusState{
-		Root:             commitment.NewRoot(commitID.Hash),
-		ValidatorSetHash: suite.valSet.Hash(),
-	}
+	privVal := tmtypes.NewMockPV()
+	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
+	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
+	signers := []tmtypes.PrivValidator{privVal}
+	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
 
-	_, err := suite.app.IBCKeeper.ClientKeeper.CreateClient(suite.ctx, testClient, testClientType, consensusState)
+	header := tendermint.CreateTestHeader(testChainID, 1, now, valSet, valSet, signers)
+	consensusState := header.ConsensusState()
+
+	// create client
+	clientState, err := tendermint.Initialize(testClient, trustingPeriod, ubdPeriod, header)
+	if err != nil {
+		panic(err)
+	}
+	_, err = suite.app.IBCKeeper.ClientKeeper.CreateClient(suite.ctx, clientState, consensusState)
 	suite.NoError(err)
 }
 
@@ -89,7 +99,7 @@ func (suite *HandlerTestSuite) updateClient() {
 	suite.ctx = suite.app.BaseApp.NewContext(false, abci.Header{})
 
 	state := tendermint.ConsensusState{
-		Root: commitment.NewRoot(commitID.Hash),
+		Root: commitment.NewMerkleRoot(commitID.Hash),
 	}
 
 	suite.app.IBCKeeper.ClientKeeper.SetClientConsensusState(suite.ctx, testClient, 1, state)
@@ -126,7 +136,7 @@ func (suite *HandlerTestSuite) createChannel(
 	suite.app.IBCKeeper.ChannelKeeper.SetChannel(suite.ctx, portID, channnelID, ch)
 }
 
-func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitment.Proof, height int64) {
+func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.Proof, height int64) {
 	res := suite.app.Query(abci.RequestQuery{
 		Path:  fmt.Sprintf("store/%s/key", ibctypes.StoreKey),
 		Data:  key,
@@ -134,7 +144,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitment.Proof, h
 	})
 
 	height = res.Height
-	proof = commitment.Proof{
+	proof = commitment.MerkleProof{
 		Proof: res.Proof,
 	}
 
