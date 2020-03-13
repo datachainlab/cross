@@ -14,9 +14,9 @@ Cross provides several key features:
 
 ## Motivation
 
-It is difficult to atomically execute general smart contract on multiple networks like Train-Hotel problem. If we can convert Train and Hotel reservation rights into NFT that can be moved to any chain using Two-way peg method such as [ics-020](https://github.com/cosmos/ics/tree/master/spec/ics-020-fungible-token-transfer), it may be possible to solve this problem simply by doing atomicswap on a single chain. However, if each Token's metadata (e.g. a whitelist of owner) depends on other states of its origin chain and common state is referenced by other contract states, it is difficult to move between chains.
+It is difficult to atomically execute general smart contract on multiple networks. One such example is Train-Hotel problem. If we can convert Train and Hotel reservation rights into NFT that can be moved to any chain using Two-way peg method such as [ics-020](https://github.com/cosmos/ics/tree/master/spec/ics-020-fungible-token-transfer), it may be possible to solve this problem simply by doing atomicswap on a single chain. However, if each Token's metadata (e.g. a whitelist of owner) depends on other states of its origin chain and common state is referenced by other contract states, it is difficult to move between chains.
 
-To solve such a problem, we need to be able to execute BOTH or NEITHER reservation contracts that exist in two different chains, rather than pegging to single blockchain. This is similar to Atomic commit protocol for distributed systems. To achieve this, each contract state machine must be able to support "Lock" state. But it is not safe to enforce these requirements on contract developers. So we decided to create a framework that supports Atomic commit protocol and contract system that transparently satisfy required locking protocol.
+To solve such problem, we need to be able to execute BOTH or NEITHER reservation contracts that exist in two different chains, rather than pegging to single blockchain. This is similar to Atomic commit protocol for distributed systems. To achieve this, each contract state machine must be able to support "Lock" state. But it is not safe to enforce these requirements on contract developers. So we decided to create a framework that supports Atomic commit protocol and contract system that transparently satisfy required locking protocol.
 
 ## Protocol description
 
@@ -27,13 +27,29 @@ We defined requirements to achieve Cross-chain transaction between networks conn
 1. Safety for general blockchain transactions
 2. Liveness against malicious coordinators
 
-We use Two-phase locking protocol to achieve 1. Therefore, Contract state machine must have Lock and Unlock state.
+We use Two-phase locking protocol to achieve 1. Therefore, Contract state machine must have "Lock" and "Unlock" state.
 
 It is known that 2PC can be a blocking protocol when Coordinator fails. Therefore, in order to achieve 2, we use a blockchain network that executes BFT consensus as a coordinator.
 
 To achieve Cross-chain transaction, we implemented above requirements. 2PC execution flow of Cross-chain transaction is shown below. Note that the number of participants is 3(A,B,C) and Coordinator is not included in Participants.
 
 ![cross-flow](./docs/images/cross-flow.png "cross-flow")
+
+## Future work
+
+Currently, Contract layer supports only Golang, but there is plan to support EVM in future. This will bring not only scaling, but also interoperability to existing smart contract that is developed as Ethereum contracts.
+
+## Q&A
+
+- Q. Are there any blocking case during an execution of Atomic commit?
+- A. No. But our protocol requires some assumptions. They are here:
+    1. Many assumptions required by [IBC](https://github.com/cosmos/ics/tree/master/spec)
+    1. Any [relayers](https://github.com/cosmos/ics/tree/master/spec/ics-018-relayer-algorithms) work as expected.
+
+## TODO
+
+- [ ] Implement CLI commands
+- [ ] Create e2e tests using [relayer](https://github.com/cosmos/relayer)
 
 ## Maintainers
 
