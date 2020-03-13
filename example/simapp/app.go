@@ -133,10 +133,12 @@ type SimApp struct {
 	sm *module.SimulationManager
 }
 
+type ContractHandlerProvider = func(contract.Keeper) cross.ContractHandler
+
 // NewSimApp returns a reference to an initialized SimApp.
 func NewSimApp(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool, skipUpgradeHeights map[int64]bool,
-	homePath string, invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
+	homePath string, invCheckPeriod uint, contractHandlerProvider ContractHandlerProvider, baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
 
 	// TODO: Remove cdc in favor of appCodec once all modules are migrated.
@@ -251,7 +253,7 @@ func NewSimApp(
 		app.IBCKeeper.ChannelKeeper,
 	)
 
-	contractHandler := makeContractHandler(app.ContractKeeper)
+	contractHandler := contractHandlerProvider(app.ContractKeeper)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
