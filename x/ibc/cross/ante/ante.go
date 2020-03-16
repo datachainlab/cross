@@ -3,7 +3,6 @@ package ante
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	client "github.com/cosmos/cosmos-sdk/x/ibc/02-client"
-	clientexported "github.com/cosmos/cosmos-sdk/x/ibc/02-client/exported"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	"github.com/datachainlab/cross/x/ibc/cross"
 )
@@ -24,20 +23,12 @@ func NewProofVerificationDecorator(clientKeeper client.Keeper, channelKeeper cha
 	}
 }
 
-// AnteHandle executes MsgUpdateClient, MsgPacket, MsgAcknowledgement, MsgTimeout.
+// AnteHandle executes cross.MultiplePackets.
 // The packet execution messages are then passed to the respective application handlers.
 func (pvr ProofVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	for _, msg := range tx.GetMsgs() {
 		var err error
 		switch msg := msg.(type) {
-		case clientexported.MsgUpdateClient:
-			err = pvr.clientKeeper.UpdateClient(ctx, msg.GetClientID(), msg.GetHeader())
-		case channel.MsgPacket:
-			_, err = pvr.channelKeeper.RecvPacket(ctx, msg.Packet, msg.Proof, msg.ProofHeight)
-		// case channel.MsgAcknowledgement:
-		// 	_, err = pvr.channelKeeper.AcknowledgePacket(ctx, msg.Packet, msg.Acknowledgement, msg.Proof, msg.ProofHeight)
-		// case channel.MsgTimeout:
-		// 	_, err = pvr.channelKeeper.TimeoutPacket(ctx, msg.Packet, msg.Proof, msg.ProofHeight, msg.NextSequenceRecv)
 		case cross.MultiplePackets:
 			for _, msg := range msg.Packets() {
 				_, err = pvr.channelKeeper.RecvPacket(ctx, msg.Packet, msg.Proof, msg.ProofHeight)
