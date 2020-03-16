@@ -19,9 +19,7 @@ type KeeperTestSuite struct {
 	suite.Suite
 }
 
-func (suite *KeeperTestSuite) SetupTest() {}
-
-func init() {
+func (suite *KeeperTestSuite) SetupSuite() {
 	lock.RegisterCodec(cross.ModuleCdc)
 }
 
