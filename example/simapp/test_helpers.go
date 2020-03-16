@@ -23,8 +23,12 @@ import (
 
 // Setup initializes a new SimApp. A Nop logger is set in SimApp.
 func Setup(isCheckTx bool) *SimApp {
+	return SetupWithContractHandlerProvider(isCheckTx, DefaultContractHandlerProvider, DefaultAnteHandlerProvider)
+}
+
+func SetupWithContractHandlerProvider(isCheckTx bool, contractHandlerProvider ContractHandlerProvider, anteHandlerProvider AnteHandlerProvider) *SimApp {
 	db := dbm.NewMemDB()
-	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, DefaultContractHandlerProvider, bam.SetPruning(stypes.PruneNothing))
+	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, anteHandlerProvider, bam.SetPruning(stypes.PruneNothing))
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
 		genesisState := NewDefaultGenesisState()
@@ -47,9 +51,9 @@ func Setup(isCheckTx bool) *SimApp {
 
 // SetupWithGenesisAccounts initializes a new SimApp with the provided genesis
 // accounts and possible balances.
-func SetupWithGenesisAccounts(genAccs []authexported.GenesisAccount, balances ...bank.Balance) *SimApp {
+func SetupWithGenesisAccounts(chainID string, contractHandlerProvider ContractHandlerProvider, anteHandlerProvider AnteHandlerProvider, genAccs []authexported.GenesisAccount, balances ...bank.Balance) *SimApp {
 	db := dbm.NewMemDB()
-	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, DefaultContractHandlerProvider)
+	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, anteHandlerProvider)
 
 	// initialize the chain with the passed in genesis accounts
 	genesisState := NewDefaultGenesisState()
@@ -73,7 +77,7 @@ func SetupWithGenesisAccounts(genAccs []authexported.GenesisAccount, balances ..
 	)
 
 	app.Commit()
-	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: app.LastBlockHeight() + 1}})
+	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: chainID, Height: app.LastBlockHeight() + 1}})
 
 	return app
 }

@@ -96,6 +96,7 @@ func replayTxs(rootDir string) error {
 	gapp := simapp.NewSimApp(
 		ctx.Logger, appDB, traceStoreWriter, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1),
 		simapp.DefaultContractHandlerProvider,
+		simapp.DefaultAnteHandlerProvider,
 		baseapp.SetPruning(store.PruneEverything), // nothing
 	)
 

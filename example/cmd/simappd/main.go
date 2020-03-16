@@ -91,6 +91,7 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 	return app.NewSimApp(
 		logger, db, traceStore, true, skipUpgradeHeights, viper.GetString(cli.HomeFlag), invCheckPeriod,
 		simapp.DefaultContractHandlerProvider,
+		simapp.DefaultAnteHandlerProvider,
 		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(viper.GetUint64(server.FlagHaltHeight)),
@@ -104,7 +105,7 @@ func exportAppStateAndTMValidators(
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
 	if height != -1 {
-		gapp := app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider)
+		gapp := app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider, simapp.DefaultAnteHandlerProvider)
 		err := gapp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
@@ -112,6 +113,6 @@ func exportAppStateAndTMValidators(
 		return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
 
-	gapp := app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider)
+	gapp := app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider, simapp.DefaultAnteHandlerProvider)
 	return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }
