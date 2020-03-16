@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
+	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
 )
 
 // ModuleCdc is the codec for the module
@@ -13,8 +14,13 @@ func init() {
 
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {
+	// TODO This registration should be included on ibc/channel module.
+	cdc.RegisterConcrete(channeltypes.MsgPacket{}, "ibc/channel/MsgPacket", nil)
+
+	cdc.RegisterConcrete(MsgInitiate{}, "cross/MsgInitiate", nil)
 	cdc.RegisterConcrete(ContractTransaction{}, "cross/ContractTransaction", nil)
 	cdc.RegisterConcrete(ContractTransactions{}, "cross/ContractTransactions", nil)
 	cdc.RegisterConcrete(ChannelInfo{}, "cross/ChannelInfo", nil)
+	cdc.RegisterConcrete(PacketDataPrepare{}, "cross/PacketDataPrepare", nil)
 	cdc.RegisterInterface((*OP)(nil), nil)
 }
