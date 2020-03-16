@@ -143,7 +143,6 @@ func (k Keeper) PrepareTransaction(
 
 	txinfo := NewTxInfo(TX_STATUS_PREPARE, connID, data.ContractTransaction.Contract)
 	k.SetTx(ctx, data.TxID, txinfo)
-
 	return nil
 }
 
@@ -157,7 +156,10 @@ func (k Keeper) prepareTransaction(
 	data types.PacketDataPrepare,
 	sender sdk.AccAddress,
 ) error {
-	store, err := contractHandler.Handle(ctx, data.ContractTransaction.Contract)
+	store, err := contractHandler.Handle(
+		types.WithSigners(ctx, data.ContractTransaction.Signers),
+		data.ContractTransaction.Contract,
+	)
 	if err != nil {
 		return err
 	}
