@@ -5,6 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
+	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -126,10 +127,17 @@ func NewPreparePacket(msgPacket channel.MsgPacket, src ChannelInfo) PreparePacke
 	return PreparePacket{Packet: msgPacket, Source: src}
 }
 
-// AckDataCommit is a no-op packet
-type AckDataCommit struct{}
+var _ channelexported.PacketAcknowledgementI = AckDataCommit{}
+
+type AckDataCommit struct {
+	TransactionID int
+}
+
+func NewAckDataCommit(transactionID int) AckDataCommit {
+	return AckDataCommit{TransactionID: transactionID}
+}
 
 // GetBytes implements channelexported.PacketAcknowledgementI
 func (ack AckDataCommit) GetBytes() []byte {
-	return []byte("fungible token transfer ack")
+	return []byte("cross-chain transaction ack")
 }

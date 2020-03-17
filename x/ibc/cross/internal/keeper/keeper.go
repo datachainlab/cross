@@ -92,50 +92,6 @@ func (k Keeper) GetTx(ctx sdk.Context, txID []byte) (*TxInfo, bool) {
 	return &tx, true
 }
 
-const (
-	CO_STATUS_NONE uint8 = iota
-	CO_STATUS_INIT
-	CO_STATUS_DECIDED // abort or commit
-	CO_STATUS_COMMIT
-)
-
-const (
-	CO_DECISION_NONE uint8 = iota
-	CO_DECISION_COMMIT
-	CO_DECISION_ABORT
-)
-
-type CoordinatorInfo struct {
-	Transactions []string            // {TransactionID => ConnectionID}
-	Channels     []types.ChannelInfo // {TransactionID => Channel}
-
-	Status                uint8
-	Decision              uint8
-	ConfirmedTransactions []int // [TransactionID]
-}
-
-func (ci *CoordinatorInfo) Confirm(transactionID int, connectionID string) error {
-	for _, id := range ci.ConfirmedTransactions {
-		if id == transactionID {
-			return errors.New("this transaction is already confirmed")
-		}
-	}
-	if ci.Transactions[transactionID] != connectionID {
-		return errors.New("invalid pair")
-	}
-
-	ci.ConfirmedTransactions = append(ci.ConfirmedTransactions, transactionID)
-	return nil
-}
-
-func (ci *CoordinatorInfo) IsCompleted() bool {
-	return len(ci.ConfirmedTransactions) == len(ci.Channels)
-}
-
-func NewCoordinatorInfo(status uint8, tss []string, channels []types.ChannelInfo) CoordinatorInfo {
-	return CoordinatorInfo{Status: status, Transactions: tss, Channels: channels, Decision: CO_DECISION_NONE}
-}
-
 func (k Keeper) SetCoordinator(ctx sdk.Context, txID []byte, ci CoordinatorInfo) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(ci)
@@ -179,4 +135,75 @@ func (k Keeper) EnsureCoordinatorStatus(ctx sdk.Context, txID []byte, status uin
 // in order to expose it to Cross handler.
 func (k Keeper) PacketExecuted(ctx sdk.Context, packet channelexported.PacketI, acknowledgement channelexported.PacketAcknowledgementI) error {
 	return k.channelKeeper.PacketExecuted(ctx, packet, acknowledgement)
+}
+
+func (k Keeper) ReceiveAckPacket(ctx sdk.Context, ack types.AckDataCommit, txID []byte) error {
+	ci, err := k.EnsureCoordinatorStatus(ctx, txID, CO_STATUS_COMMIT)
+	if err != nil {
+		return err
+	}
+	if !ci.AddAck(ack.TransactionID) {
+		return fmt.Errorf("transactionID '%v' is already received", ack.TransactionID)
+	}
+	return nil
+}
+
+const (
+	CO_STATUS_NONE uint8 = iota
+	CO_STATUS_INIT
+	CO_STATUS_DECIDED // abort or commit
+	CO_STATUS_COMMIT
+
+	CO_DECISION_NONE uint8 = iota
+	CO_DECISION_COMMIT
+	CO_DECISION_ABORT
+)
+
+type CoordinatorInfo struct {
+	Transactions []string            // {TransactionID => ConnectionID}
+	Channels     []types.ChannelInfo // {TransactionID => Channel}
+
+	Status                uint8
+	Decision              uint8
+	ConfirmedTransactions []int // [TransactionID]
+	Acks                  []int // [TransactionID]
+}
+
+func NewCoordinatorInfo(status uint8, tss []string, channels []types.ChannelInfo) CoordinatorInfo {
+	if len(tss) != len(channels) {
+		panic("fatal error")
+	}
+	return CoordinatorInfo{Status: status, Transactions: tss, Channels: channels, Decision: CO_DECISION_NONE}
+}
+
+func (ci *CoordinatorInfo) Confirm(transactionID int, connectionID string) error {
+	for _, id := range ci.ConfirmedTransactions {
+		if id == transactionID {
+			return errors.New("this transaction is already confirmed")
+		}
+	}
+	if ci.Transactions[transactionID] != connectionID {
+		return errors.New("invalid pair")
+	}
+
+	ci.ConfirmedTransactions = append(ci.ConfirmedTransactions, transactionID)
+	return nil
+}
+
+func (ci *CoordinatorInfo) IsCompleted() bool {
+	return len(ci.Transactions) == len(ci.ConfirmedTransactions)
+}
+
+func (ci *CoordinatorInfo) AddAck(transactionID int) bool {
+	for _, id := range ci.Acks {
+		if transactionID == id {
+			return false
+		}
+	}
+	ci.Acks = append(ci.Acks, transactionID)
+	return true
+}
+
+func (ci *CoordinatorInfo) IsReceivedALLAcks() bool {
+	return len(ci.Transactions) == len(ci.Acks)
 }

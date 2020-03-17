@@ -23,6 +23,18 @@ func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 			default:
 				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized packet data type: %T", data)
 			}
+		case channeltypes.MsgAcknowledgement:
+			switch ack := msg.Acknowledgement.(type) {
+			case AckDataCommit:
+				switch data := msg.Data.(type) {
+				case PacketDataCommit:
+					return handleAcknowledgePacket(ctx, keeper, msg, ack, data)
+				default:
+					return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ack packet data type: %T", data)
+				}
+			default:
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ack packet type: %T", ack)
+			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC message type: %T", msg)
 		}
@@ -85,7 +97,7 @@ Precondition:
 - Given proof of packet is valid.
 Steps:
 - If PacketDataCommit indicates committable, commit precommitted state and unlock locked keys.
-- If PacketDataCommit indicates not committable, rollback precommitted state and unlock locked keys.
+- If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
 */
 func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataCommit) (*sdk.Result, error) {
 	err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data)
@@ -98,5 +110,12 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 		return nil, err
 	}
 
+	return &sdk.Result{}, nil
+}
+
+func handleAcknowledgePacket(ctx sdk.Context, k Keeper, msg channeltypes.MsgAcknowledgement, ack AckDataCommit, data PacketDataCommit) (*sdk.Result, error) {
+	if err := k.ReceiveAckPacket(ctx, ack, data.TxID); err != nil {
+		return nil, err
+	}
 	return &sdk.Result{}, nil
 }
