@@ -35,13 +35,16 @@ import (
 
 type ExampleTestSuite struct {
 	suite.Suite
+	accountSeqs map[string]uint64 // chainID/AccAddress => seq
 }
 
 func TestExampleTestSuite(t *testing.T) {
 	suite.Run(t, new(ExampleTestSuite))
 }
 
-func (suite *ExampleTestSuite) SetupSuite() {}
+func (suite *ExampleTestSuite) SetupSuite() {
+	suite.accountSeqs = make(map[string]uint64)
+}
 
 func createMnemonics(kb crkeys.Keybase, names ...string) ([]crkeys.Info, error) {
 	var infos []crkeys.Info
@@ -211,7 +214,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				tss[0],
 			),
 			1, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
-		suite.relay(packet, app0, app1, txID, tss[0], relayer0Info, txBuilder)
+		suite.relay(packet, app0, app1, txID, relayer0Info, txBuilder, 1)
 	}
 
 	{ // execute Hotel contract on app2
@@ -223,16 +226,42 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				tss[1],
 			),
 			1, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
-		suite.relay(packet, app0, app2, txID, tss[1], relayer0Info, txBuilder)
+		suite.relay(packet, app0, app2, txID, relayer0Info, txBuilder, 1)
+	}
+
+	// doConfirm
+
+	{ // app0 receives PacketPrepareResult from app1
+		packet := channeltypes.NewPacket(
+			cross.NewPacketDataPrepareResult(
+				relayer0Info.GetAddress(),
+				txID,
+				0,
+				cross.PREPARE_STATUS_OK,
+			),
+			1, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel)
+		suite.relay(packet, app1, app0, txID, relayer0Info, txBuilder, 1)
+	}
+
+	{ // app0 receives PacketPrepareResult from app2
+		packet := channeltypes.NewPacket(
+			cross.NewPacketDataPrepareResult(
+				relayer0Info.GetAddress(),
+				txID,
+				1,
+				cross.PREPARE_STATUS_OK,
+			),
+			1, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel)
+		suite.relay(packet, app2, app0, txID, relayer0Info, txBuilder, 1)
 	}
 }
 
-func (suite *ExampleTestSuite) relay(packet channeltypes.Packet, coordinator, participant *appContext, txID []byte, tx cross.ContractTransaction, relayer crkeys.Info, txBuilder authtypes.TxBuilder) {
+func (suite *ExampleTestSuite) relay(packet channeltypes.Packet, coordinator, participant *appContext, txID []byte, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
 	state, ok := participant.app.IBCKeeper.ClientKeeper.GetClientState(participant.ctx, coordinator.chainID)
 	suite.True(ok)
 	res := coordinator.app.Query(abci.RequestQuery{
 		Path:   "store/ibc/key",
-		Data:   ibctypes.KeyPacketCommitment(tx.Source.Port, tx.Source.Channel, 1),
+		Data:   ibctypes.KeyPacketCommitment(packet.GetSourcePort(), packet.GetSourceChannel(), seq),
 		Height: int64(state.GetLatestHeight()),
 		Prove:  true,
 	})
@@ -243,7 +272,10 @@ func (suite *ExampleTestSuite) relay(packet channeltypes.Packet, coordinator, pa
 
 	var err error
 	stdTx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, nil, "")
-	stdTx, err = txBuilder.WithChainID(participant.chainID).WithAccountNumber(3).SignStdTx(relayer.GetName(), clientkeys.DefaultKeyPass, stdTx, true)
+	stdTx, err = txBuilder.WithChainID(participant.chainID).
+		WithAccountNumber(3). // TODO should make it configurable?
+		WithSequence(suite.getAndIncrAccountSeq(participant.chainID, relayer.GetAddress())).
+		SignStdTx(relayer.GetName(), clientkeys.DefaultKeyPass, stdTx, true)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
@@ -258,6 +290,20 @@ func (suite *ExampleTestSuite) relay(packet channeltypes.Packet, coordinator, pa
 	}
 	suite.nextBlock(participant)
 	suite.updateClient(coordinator, participant.chainID, participant)
+}
+
+func (suite *ExampleTestSuite) getAccountSeq(chainID string, address sdk.AccAddress) uint64 {
+	return suite.accountSeqs[chainID+"/"+address.String()]
+}
+
+func (suite *ExampleTestSuite) incrAccountSeq(chainID string, address sdk.AccAddress) {
+	suite.accountSeqs[chainID+"/"+address.String()]++
+}
+
+func (suite *ExampleTestSuite) getAndIncrAccountSeq(chainID string, address sdk.AccAddress) uint64 {
+	seq := suite.getAccountSeq(chainID, address)
+	suite.incrAccountSeq(chainID, address)
+	return seq
 }
 
 const (
