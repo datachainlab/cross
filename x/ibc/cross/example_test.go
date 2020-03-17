@@ -215,8 +215,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				0,
 				tss[0],
 			),
-			1, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
-		suite.relay(packet, app0, app1, txID, relayer0Info, txBuilder, 1)
+			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
+		suite.relay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // execute Hotel contract on app2
