@@ -176,12 +176,12 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 
 		stdTx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, nil, "")
 		for i, signer := range []string{signer0, signer1, signer2} {
-			stdTx, err = txBuilder.WithChainID("app0").WithAccountNumber(uint64(i)).SignStdTx(signer, clientkeys.DefaultKeyPass, stdTx, true)
+			stdTx, err = txBuilder.WithChainID(app0.chainID).WithAccountNumber(uint64(i)).SignStdTx(signer, clientkeys.DefaultKeyPass, stdTx, true)
 			if err != nil {
 				suite.FailNow(err.Error())
 			}
 		}
-		txBytes, err := txBuilder.WithChainID("app0").TxEncoder()(stdTx)
+		txBytes, err := txBuilder.WithChainID(app0.chainID).TxEncoder()(stdTx)
 		if err != nil {
 			suite.FailNow(err.Error())
 		}
@@ -192,7 +192,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			return
 		}
 
-		suite.Equal(int64(7), suite.nextBlock(app0))
+		suite.nextBlock(app0)
 	}
 
 	{ // update client
@@ -202,6 +202,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			suite.updateClient(app, app0.chainID, app0)
 		}
 	}
+
+	var packetSeq uint64 = 1
 
 	// doPrepare
 
@@ -225,8 +227,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				1,
 				tss[1],
 			),
-			1, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
-		suite.relay(packet, app0, app2, txID, relayer0Info, txBuilder, 1)
+			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
+		suite.relay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	// doConfirm
@@ -239,8 +241,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				0,
 				cross.PREPARE_STATUS_OK,
 			),
-			1, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel)
-		suite.relay(packet, app1, app0, txID, relayer0Info, txBuilder, 1)
+			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel)
+		suite.relay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
@@ -251,8 +253,39 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				1,
 				cross.PREPARE_STATUS_OK,
 			),
-			1, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel)
-		suite.relay(packet, app2, app0, txID, relayer0Info, txBuilder, 1)
+			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel)
+		suite.relay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
+
+		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
+		suite.True(ok)
+		suite.Equal(cross.CO_DECISION_COMMIT, ci.Decision)
+
+		suite.updateClient(app1, app0.chainID, app0)
+	}
+
+	packetSeq++
+
+	// doCommit
+
+	{ // execute to commit on app1
+		packet := channeltypes.NewPacket(
+			cross.NewPacketDataCommit(
+				relayer0Info.GetAddress(),
+				txID,
+				true,
+			),
+			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
+		suite.relay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
+	}
+	{ // execute to commit on app2
+		packet := channeltypes.NewPacket(
+			cross.NewPacketDataCommit(
+				relayer0Info.GetAddress(),
+				txID,
+				true,
+			),
+			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
+		suite.relay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
 }
 
