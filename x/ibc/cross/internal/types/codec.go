@@ -24,5 +24,6 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(PacketDataPrepare{}, "cross/PacketDataPrepare", nil)
 	cdc.RegisterConcrete(PacketDataPrepareResult{}, "cross/PacketDataPrepareResult", nil)
 	cdc.RegisterConcrete(PacketDataCommit{}, "cross/PacketDataCommit", nil)
+	cdc.RegisterConcrete(AckDataCommit{}, "cross/AckDataCommit", nil)
 	cdc.RegisterInterface((*OP)(nil), nil)
 }
