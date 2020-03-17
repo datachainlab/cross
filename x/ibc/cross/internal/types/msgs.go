@@ -4,8 +4,6 @@ import (
 	"errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
-	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -116,28 +114,4 @@ func (t ContractTransaction) ValidateBasic() error {
 		return errors.New("Signers must not be empty")
 	}
 	return nil
-}
-
-type PreparePacket struct {
-	Packet channel.MsgPacket
-	Source ChannelInfo `json:"source" yaml:"source"`
-}
-
-func NewPreparePacket(msgPacket channel.MsgPacket, src ChannelInfo) PreparePacket {
-	return PreparePacket{Packet: msgPacket, Source: src}
-}
-
-var _ channelexported.PacketAcknowledgementI = AckDataCommit{}
-
-type AckDataCommit struct {
-	TransactionID int
-}
-
-func NewAckDataCommit(transactionID int) AckDataCommit {
-	return AckDataCommit{TransactionID: transactionID}
-}
-
-// GetBytes implements channelexported.PacketAcknowledgementI
-func (ack AckDataCommit) GetBytes() []byte {
-	return []byte("cross-chain transaction ack")
 }

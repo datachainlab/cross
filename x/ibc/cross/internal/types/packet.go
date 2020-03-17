@@ -4,6 +4,7 @@ import (
 	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -102,4 +103,19 @@ func (p PacketDataCommit) GetTimeoutHeight() uint64 {
 
 func (p PacketDataCommit) Type() string {
 	return "cross/commit"
+}
+
+var _ channelexported.PacketAcknowledgementI = AckDataCommit{}
+
+type AckDataCommit struct {
+	TransactionID int
+}
+
+func NewAckDataCommit(transactionID int) AckDataCommit {
+	return AckDataCommit{TransactionID: transactionID}
+}
+
+// GetBytes implements channelexported.PacketAcknowledgementI
+func (ack AckDataCommit) GetBytes() []byte {
+	return []byte("cross-chain transaction ack")
 }

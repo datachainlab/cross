@@ -41,7 +41,6 @@ var (
 	NewChannelInfo             = types.NewChannelInfo
 	NewPacketDataPrepare       = types.NewPacketDataPrepare
 	NewPacketDataPrepareResult = types.NewPacketDataPrepareResult
-	NewPreparePacket           = types.NewPreparePacket
 	NewPacketDataCommit        = types.NewPacketDataCommit
 )
 
@@ -50,7 +49,6 @@ type (
 	Keeper                  = keeper.Keeper
 	ContractHandler         = keeper.ContractHandler
 	MsgInitiate             = types.MsgInitiate
-	PreparePacket           = types.PreparePacket
 	PacketDataPrepare       = types.PacketDataPrepare
 	PacketDataPrepareResult = types.PacketDataPrepareResult
 	PacketDataCommit        = types.PacketDataCommit
