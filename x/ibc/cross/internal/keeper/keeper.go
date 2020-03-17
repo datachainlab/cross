@@ -138,7 +138,7 @@ func (k Keeper) PacketExecuted(ctx sdk.Context, packet channelexported.PacketI, 
 }
 
 func (k Keeper) ReceiveAckPacket(ctx sdk.Context, ack types.AckDataCommit, txID []byte) error {
-	ci, err := k.EnsureCoordinatorStatus(ctx, txID, CO_STATUS_COMMIT)
+	ci, err := k.EnsureCoordinatorStatus(ctx, txID, CO_STATUS_DECIDED)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,6 @@ const (
 	CO_STATUS_NONE uint8 = iota
 	CO_STATUS_INIT
 	CO_STATUS_DECIDED // abort or commit
-	CO_STATUS_COMMIT
 
 	CO_DECISION_NONE uint8 = iota
 	CO_DECISION_COMMIT

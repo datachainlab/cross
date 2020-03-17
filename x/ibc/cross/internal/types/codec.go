@@ -14,8 +14,9 @@ func init() {
 
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {
-	// TODO This registration should be included on ibc/channel module.
+	// TODO These registrations should be included on ibc/channel module.
 	cdc.RegisterConcrete(channeltypes.MsgPacket{}, "ibc/channel/MsgPacket", nil)
+	cdc.RegisterConcrete(channeltypes.MsgAcknowledgement{}, "ibc/channel/MsgAcknowledgement", nil)
 
 	cdc.RegisterConcrete(MsgInitiate{}, "cross/MsgInitiate", nil)
 	cdc.RegisterConcrete(ContractTransaction{}, "cross/ContractTransaction", nil)

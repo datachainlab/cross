@@ -105,7 +105,8 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 		return nil, err
 	}
 
-	acknowledgement := AckDataCommit{}
+	// FIXME set transactionID that is taken from packet or state
+	acknowledgement := NewAckDataCommit(0)
 	if err := k.PacketExecuted(ctx, msg.Packet, acknowledgement); err != nil {
 		return nil, err
 	}

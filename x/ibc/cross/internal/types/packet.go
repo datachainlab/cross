@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/binary"
 	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -117,5 +118,7 @@ func NewAckDataCommit(transactionID int) AckDataCommit {
 
 // GetBytes implements channelexported.PacketAcknowledgementI
 func (ack AckDataCommit) GetBytes() []byte {
-	return []byte("cross-chain transaction ack")
+	var bz [8]byte
+	binary.BigEndian.PutUint64(bz[:], uint64(ack.TransactionID))
+	return bz[:]
 }

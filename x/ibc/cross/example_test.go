@@ -216,7 +216,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				tss[0],
 			),
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
-		suite.relay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // execute Hotel contract on app2
@@ -228,7 +228,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				tss[1],
 			),
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
-		suite.relay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	// doConfirm
@@ -242,7 +242,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				cross.PREPARE_STATUS_OK,
 			),
 			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel)
-		suite.relay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
@@ -254,7 +254,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 				cross.PREPARE_STATUS_OK,
 			),
 			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel)
-		suite.relay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 		suite.True(ok)
@@ -266,33 +266,51 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	packetSeq++
 
 	// doCommit
+	var (
+		commitPacketTx0 channeltypes.Packet
+		commitPacketTx1 channeltypes.Packet
+	)
 
 	{ // execute to commit on app1
-		packet := channeltypes.NewPacket(
+		commitPacketTx0 = channeltypes.NewPacket(
 			cross.NewPacketDataCommit(
 				relayer0Info.GetAddress(),
 				txID,
 				true,
 			),
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
-		suite.relay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(commitPacketTx0, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
 	{ // execute to commit on app2
-		packet := channeltypes.NewPacket(
+		commitPacketTx1 = channeltypes.NewPacket(
 			cross.NewPacketDataCommit(
 				relayer0Info.GetAddress(),
 				txID,
 				true,
 			),
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
-		suite.relay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(commitPacketTx1, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
+
+	// // Confirm ack packet
+
+	// { // app1
+	// 	suite.updateClient(app0, app1.chainID, app1)
+	// 	suite.updateClient(app1, app0.chainID, app0)
+
+	// 	suite.buildAckMsgAndDoRelay(cross.NewAckDataCommit(0), commitPacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
+	// }
+	// { // app2
+	// 	suite.updateClient(app0, app2.chainID, app2)
+	// 	suite.updateClient(app2, app0.chainID, app0)
+	// 	suite.buildAckMsgAndDoRelay(cross.NewAckDataCommit(1), commitPacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
+	// }
 }
 
-func (suite *ExampleTestSuite) relay(packet channeltypes.Packet, coordinator, participant *appContext, txID []byte, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
-	state, ok := participant.app.IBCKeeper.ClientKeeper.GetClientState(participant.ctx, coordinator.chainID)
+func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, sender, receiver *appContext, txID []byte, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
+	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
 	suite.True(ok)
-	res := coordinator.app.Query(abci.RequestQuery{
+	res := sender.app.Query(abci.RequestQuery{
 		Path:   "store/ibc/key",
 		Data:   ibctypes.KeyPacketCommitment(packet.GetSourcePort(), packet.GetSourceChannel(), seq),
 		Height: int64(state.GetLatestHeight()),
@@ -302,27 +320,52 @@ func (suite *ExampleTestSuite) relay(packet channeltypes.Packet, coordinator, pa
 	proof := commitment.MerkleProof{Proof: res.Proof}
 
 	msg := channeltypes.NewMsgPacket(packet, proof, uint64(state.GetLatestHeight()), relayer.GetAddress())
+	if err := suite.doRelay(msg, sender, receiver, relayer, txBuilder); err != nil {
+		suite.FailNow(err.Error())
+	}
+}
 
+func (suite *ExampleTestSuite) buildAckMsgAndDoRelay(ackData cross.AckDataCommit, packet channeltypes.Packet, sender, receiver *appContext, txID []byte, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
+	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
+	suite.True(ok)
+	res := sender.app.Query(abci.RequestQuery{
+		Path:   "store/ibc/key",
+		Data:   ibctypes.KeyPacketAcknowledgement(packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence()),
+		Height: int64(state.GetLatestHeight()),
+		Prove:  true,
+	})
+	suite.True(res.IsOK())
+	proof := commitment.MerkleProof{Proof: res.Proof}
+
+	msg := channeltypes.NewMsgAcknowledgement(packet, ackData, proof, uint64(state.GetLatestHeight()), relayer.GetAddress())
+	if err := suite.doRelay(msg, sender, receiver, relayer, txBuilder); err != nil {
+		suite.FailNow(err.Error())
+	}
+}
+
+func (suite *ExampleTestSuite) doRelay(msg sdk.Msg, sender, receiver *appContext, relayer crkeys.Info, txBuilder authtypes.TxBuilder) error {
 	var err error
 	stdTx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, nil, "")
-	stdTx, err = txBuilder.WithChainID(participant.chainID).
+	stdTx, err = txBuilder.WithChainID(receiver.chainID).
 		WithAccountNumber(3). // TODO should make it configurable?
-		WithSequence(suite.getAndIncrAccountSeq(participant.chainID, relayer.GetAddress())).
+		WithSequence(suite.getAndIncrAccountSeq(receiver.chainID, relayer.GetAddress())).
 		SignStdTx(relayer.GetName(), clientkeys.DefaultKeyPass, stdTx, true)
 	if err != nil {
-		suite.FailNow(err.Error())
+		return err
 	}
-	txBytes, err := txBuilder.WithChainID(participant.chainID).TxEncoder()(stdTx)
+	txBytes, err := txBuilder.WithChainID(receiver.chainID).TxEncoder()(stdTx)
 	if err != nil {
-		suite.FailNow(err.Error())
+		return err
 	}
 
-	if res := participant.app.DeliverTx(abci.RequestDeliverTx{Tx: txBytes}); !suite.True(res.IsOK()) {
-		suite.FailNow(res.String())
-		return
+	if res := receiver.app.DeliverTx(abci.RequestDeliverTx{Tx: txBytes}); !res.IsOK() {
+		return fmt.Errorf("failed to deliverTx: %v", res.String())
 	}
-	suite.nextBlock(participant)
-	suite.updateClient(coordinator, participant.chainID, participant)
+
+	suite.nextBlock(receiver)
+	suite.updateClient(sender, receiver.chainID, receiver)
+
+	return nil
 }
 
 func (suite *ExampleTestSuite) getAccountSeq(chainID string, address sdk.AccAddress) uint64 {

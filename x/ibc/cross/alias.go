@@ -14,7 +14,6 @@ const (
 	CO_STATUS_NONE    = keeper.CO_STATUS_NONE
 	CO_STATUS_INIT    = keeper.CO_STATUS_INIT
 	CO_STATUS_DECIDED = keeper.CO_STATUS_DECIDED
-	CO_STATUS_COMMIT  = keeper.CO_STATUS_COMMIT
 
 	CO_DECISION_NONE   = keeper.CO_DECISION_NONE
 	CO_DECISION_COMMIT = keeper.CO_DECISION_COMMIT
@@ -42,6 +41,7 @@ var (
 	NewPacketDataPrepare       = types.NewPacketDataPrepare
 	NewPacketDataPrepareResult = types.NewPacketDataPrepareResult
 	NewPacketDataCommit        = types.NewPacketDataCommit
+	NewAckDataCommit           = types.NewAckDataCommit
 )
 
 // nolint
