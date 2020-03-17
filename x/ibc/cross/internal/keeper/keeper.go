@@ -1,12 +1,12 @@
 package keeper
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
-	mapset "github.com/deckarep/golang-set"
 )
 
 // Keeper maintains the link to storage and exposes getter/setter methods for the various parts of the state machine
@@ -92,30 +92,47 @@ func (k Keeper) GetTx(ctx sdk.Context, txID []byte) (*TxInfo, bool) {
 }
 
 const (
-	CO_STATUS_INIT uint8 = iota + 1
+	CO_STATUS_NONE uint8 = iota
+	CO_STATUS_INIT
+	CO_STATUS_DECIDED // abort or commit
 	CO_STATUS_COMMIT
 )
 
+const (
+	CO_DECISION_NONE uint8 = iota
+	CO_DECISION_COMMIT
+	CO_DECISION_ABORT
+)
+
 type CoordinatorInfo struct {
-	Status       uint8
-	Transactions []string // [ConnectionID]
+	Transactions []string            // {TransactionID => ConnectionID}
+	Channels     []types.ChannelInfo // {TransactionID => Channel}
+
+	Status                uint8
+	Decision              uint8
+	ConfirmedTransactions []int // [TransactionID]
 }
 
-type ConnectionTransactionPair struct {
-	ConnectionID  string
-	TransactionID int
-}
-
-func (ci CoordinatorInfo) Set() mapset.Set {
-	set := mapset.NewSet()
-	for tsID, connID := range ci.Transactions {
-		set.Add(ConnectionTransactionPair{connID, tsID})
+func (ci *CoordinatorInfo) Confirm(transactionID int, connectionID string) error {
+	for _, id := range ci.ConfirmedTransactions {
+		if id == transactionID {
+			return errors.New("this transaction is already confirmed")
+		}
 	}
-	return set
+	if ci.Transactions[transactionID] != connectionID {
+		return errors.New("invalid pair")
+	}
+
+	ci.ConfirmedTransactions = append(ci.ConfirmedTransactions, transactionID)
+	return nil
 }
 
-func NewCoordinatorInfo(status uint8, tss []string) CoordinatorInfo {
-	return CoordinatorInfo{Status: status, Transactions: tss}
+func (ci *CoordinatorInfo) IsCompleted() bool {
+	return len(ci.ConfirmedTransactions) == len(ci.Channels)
+}
+
+func NewCoordinatorInfo(status uint8, tss []string, channels []types.ChannelInfo) CoordinatorInfo {
+	return CoordinatorInfo{Status: status, Transactions: tss, Channels: channels, Decision: CO_DECISION_NONE}
 }
 
 func (k Keeper) SetCoordinator(ctx sdk.Context, txID []byte, ci CoordinatorInfo) {

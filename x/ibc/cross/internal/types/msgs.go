@@ -117,20 +117,6 @@ func (t ContractTransaction) ValidateBasic() error {
 	return nil
 }
 
-var _ sdk.Msg = (*MsgConfirm)(nil)
-
-type MsgConfirm struct {
-	TxID           []byte
-	PreparePackets []PreparePacket
-	Signer         sdk.AccAddress
-}
-
-type MultiplePackets interface {
-	Packets() []channel.MsgPacket
-}
-
-var _ MultiplePackets = (*MsgConfirm)(nil)
-
 type PreparePacket struct {
 	Packet channel.MsgPacket
 	Source ChannelInfo `json:"source" yaml:"source"`
@@ -138,61 +124,4 @@ type PreparePacket struct {
 
 func NewPreparePacket(msgPacket channel.MsgPacket, src ChannelInfo) PreparePacket {
 	return PreparePacket{Packet: msgPacket, Source: src}
-}
-
-type Statuses []uint8
-
-func NewMsgConfirm(txID []byte, prepares []PreparePacket, signer sdk.AccAddress) MsgConfirm {
-	return MsgConfirm{TxID: txID, PreparePackets: prepares, Signer: signer}
-}
-
-func (m MsgConfirm) Packets() []channel.MsgPacket {
-	packets := make([]channel.MsgPacket, len(m.PreparePackets))
-	for i, p := range m.PreparePackets {
-		packets[i] = p.Packet
-	}
-	return packets
-}
-
-func (m MsgConfirm) IsCommittable() bool {
-	for _, p := range m.PreparePackets {
-		data := p.Packet.GetData().(PacketDataPrepareResult)
-		if data.Status == PREPARE_STATUS_FAILED {
-			return false
-		}
-	}
-	return true
-}
-
-func (MsgConfirm) Route() string {
-	return RouterKey
-}
-
-func (MsgConfirm) Type() string {
-	return "cross_confirm"
-}
-
-func (msg MsgConfirm) ValidateBasic() error {
-	if len(msg.TxID) == 0 {
-		return errors.New("TxID is required")
-	} else if len(msg.Signer) == 0 {
-		return errors.New("Signer is required")
-	} else if len(msg.PreparePackets) == 0 {
-		return errors.New("PrepareInfoList must not be empty")
-	} else {
-		for _, p := range msg.PreparePackets {
-			if _, ok := p.Packet.GetData().(PacketDataPrepareResult); !ok {
-				return errors.New("unexpected packet found")
-			}
-		}
-		return nil
-	}
-}
-
-func (msg MsgConfirm) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
-}
-
-func (msg MsgConfirm) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Signer}
 }

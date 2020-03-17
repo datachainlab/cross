@@ -31,7 +31,6 @@ var (
 	SignersFromContext         = types.SignersFromContext
 	WithSigners                = types.WithSigners
 	NewMsgInitiate             = types.NewMsgInitiate
-	NewMsgConfirm              = types.NewMsgConfirm
 	NewContractTransaction     = types.NewContractTransaction
 	NewChannelInfo             = types.NewChannelInfo
 	NewPacketDataPrepare       = types.NewPacketDataPrepare
@@ -42,20 +41,19 @@ var (
 
 // nolint
 type (
-	Keeper               = keeper.Keeper
-	ContractHandler      = keeper.ContractHandler
-	MsgInitiate          = types.MsgInitiate
-	MsgConfirm           = types.MsgConfirm
-	PreparePacket        = types.PreparePacket
-	PacketDataPrepare    = types.PacketDataPrepare
-	PacketDataCommit     = types.PacketDataCommit
-	MultiplePackets      = types.MultiplePackets
-	OP                   = types.OP
-	OPs                  = types.OPs
-	State                = types.State
-	Store                = types.Store
-	Committer            = types.Committer
-	ChannelInfo          = types.ChannelInfo
-	ContractTransaction  = types.ContractTransaction
-	ContractTransactions = types.ContractTransactions
+	Keeper                  = keeper.Keeper
+	ContractHandler         = keeper.ContractHandler
+	MsgInitiate             = types.MsgInitiate
+	PreparePacket           = types.PreparePacket
+	PacketDataPrepare       = types.PacketDataPrepare
+	PacketDataPrepareResult = types.PacketDataPrepareResult
+	PacketDataCommit        = types.PacketDataCommit
+	OP                      = types.OP
+	OPs                     = types.OPs
+	State                   = types.State
+	Store                   = types.Store
+	Committer               = types.Committer
+	ChannelInfo             = types.ChannelInfo
+	ContractTransaction     = types.ContractTransaction
+	ContractTransactions    = types.ContractTransactions
 )

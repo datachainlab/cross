@@ -23,6 +23,7 @@ import (
 	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
 // define constants used for testing
@@ -407,103 +408,60 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// Tests for Confirm step
 
 	nextSeqSend += 1
-	srcs := [2]cross.ChannelInfo{
-		ch0to1,
-		ch0to2,
-	}
-	dsts := [2]cross.ChannelInfo{
-		ch1to0,
-		ch2to0,
-	}
 
-	var makePrepareDataPacket = func(sender sdk.AccAddress, txID []byte, transID int, status uint8) channel.MsgPacket {
-		return channel.MsgPacket{Packet: channel.Packet{Data: cross.NewPacketDataPrepareResult(sender, txID, transID, status)}}
-	}
+	relayer1 := sdk.AccAddress("relayer1")
+	relayer2 := sdk.AccAddress("relayer2")
 
-	relayer := sdk.AccAddress("relayer1")
 	// ensure that coordinator decides 'abort'
 	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
-		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_FAILED), ch0to2)
-		pps = append(pps, p1, p2)
-
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
+		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_FAILED), ch1to0, ch0to1, nextSeqSend)
+		suite.NoError(err)
+		suite.True(canDecide)
+		suite.False(isCommitable)
 	}
 	// ensure that coordinator decides 'abort'
 	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_FAILED), ch0to1)
-		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_FAILED), ch0to2)
-		pps = append(pps, p1, p2)
-
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
+		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 1, cross.PREPARE_STATUS_FAILED), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.True(canDecide)
+		suite.False(isCommitable)
 	}
-	// ensure that coordinator decides 'abort'
+	// ensure that contractTransaction ID conflict occurs
 	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_FAILED), ch0to1)
-		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_OK), ch0to2)
-		pps = append(pps, p1, p2)
-
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
-	}
-	// ensure that coordinator decides nothing
-	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
-		pps = append(pps, p1)
-
-		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
-	}
-	// ensure that transactionID conflict occurs
-	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
-		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to2)
-		pps = append(pps, p1, p2)
-
-		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
+		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		suite.Error(err)
 	}
 	// invalid transactionID
 	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
-		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, cross.PREPARE_STATUS_OK), ch0to2)
-		pps = append(pps, p1, p2)
-
 		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
-	}
-	// includes all expected packets, but also include invalid transactionID
-	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
-		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_OK), ch0to2)
-		p3 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 2, cross.PREPARE_STATUS_OK), ch0to2)
-		pps = append(pps, p1, p2, p3)
-
-		capp, _ := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, true)
+		invalidTxID := tmhash.Sum(txID)
+		_, _, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, invalidTxID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		suite.Error(err)
 	}
 	// ensure that coordinator decides 'commit'
 	{
-		pps := []cross.PreparePacket{}
-		p1 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 0, cross.PREPARE_STATUS_OK), ch0to1)
-		p2 := cross.NewPreparePacket(makePrepareDataPacket(relayer, txID, 1, cross.PREPARE_STATUS_OK), ch0to2)
-		pps = append(pps, p1, p2)
-
 		capp, writer := app0.Cache()
-		suite.testConfirmMsg(&capp, pps, srcs, dsts, txID, nextSeqSend, false)
-		ci, found := capp.app.CrossKeeper.GetCoordinator(capp.ctx, msg.GetTxID())
-		if suite.True(found) {
-			suite.Equal(ci.Status, cross.CO_STATUS_COMMIT)
-		}
+		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 1, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.True(canDecide)
+		suite.True(isCommitable)
+
 		writer()
 	}
 
@@ -593,45 +551,16 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) testConfirmMsg(actx *appContext, pps []cross.PreparePacket, srcs, dsts [2]cross.ChannelInfo, txID []byte, nextseq uint64, hasMulticastError bool) {
-	relayer := sdk.AccAddress("relayer2")
-	msgConfirm := cross.NewMsgConfirm(txID, pps, relayer)
-	isCommit := msgConfirm.IsCommittable()
-	err := actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, txID, pps, relayer, isCommit)
-	if hasMulticastError {
-		suite.Error(err, err)
-		return
-	} else {
-		suite.NoError(err, err)
+func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, sender sdk.AccAddress, data cross.PacketDataPrepareResult, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
+	packet := channeltypes.NewPacket(data, nextseq, src.Port, src.Channel, dst.Port, dst.Channel)
+	canDecide, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareResultPacket(actx.ctx, packet, data)
+	if err != nil {
+		return false, false, err
 	}
-	for i, src := range srcs {
-		dst := dsts[i]
-
-		newNextSeqSend, found := actx.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(actx.ctx, src.Port, src.Channel)
-		suite.True(found)
-		suite.Equal(nextseq+1, newNextSeqSend)
-
-		packetCommitment := actx.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(actx.ctx, src.Port, src.Channel, nextseq)
-		suite.NotNil(packetCommitment)
-
-		// ensure that commit packet exists in store
-		expectedPacket1 := actx.app.CrossKeeper.CreateCommitPacket(
-			actx.ctx,
-			nextseq,
-			src.Port,
-			src.Channel,
-			dst.Port,
-			dst.Channel,
-			relayer,
-			txID,
-			isCommit,
-		)
-		suite.Equal(
-			packetCommitment,
-			channeltypes.CommitPacket(
-				expectedPacket1.Data,
-			),
-		)
+	if canDecide {
+		return canDecide, isCommitable, actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, data.TxID, sender, isCommitable)
+	} else {
+		return canDecide, isCommitable, nil
 	}
 }
 
