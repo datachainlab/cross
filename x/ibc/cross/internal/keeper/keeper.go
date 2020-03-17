@@ -6,6 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
 )
 
@@ -172,4 +173,10 @@ func (k Keeper) EnsureCoordinatorStatus(ctx sdk.Context, txID []byte, status uin
 	} else {
 		return nil, fmt.Errorf("expected status is %v, but got %v", status, ci.Status)
 	}
+}
+
+// PacketExecuted defines a wrapper function for the channel Keeper's function
+// in order to expose it to Cross handler.
+func (k Keeper) PacketExecuted(ctx sdk.Context, packet channelexported.PacketI, acknowledgement channelexported.PacketAcknowledgementI) error {
+	return k.channelKeeper.PacketExecuted(ctx, packet, acknowledgement)
 }

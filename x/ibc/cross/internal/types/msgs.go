@@ -125,3 +125,11 @@ type PreparePacket struct {
 func NewPreparePacket(msgPacket channel.MsgPacket, src ChannelInfo) PreparePacket {
 	return PreparePacket{Packet: msgPacket, Source: src}
 }
+
+// AckDataCommit is a no-op packet
+type AckDataCommit struct{}
+
+// GetBytes implements channelexported.PacketAcknowledgementI
+func (ack AckDataCommit) GetBytes() []byte {
+	return []byte("fungible token transfer ack")
+}

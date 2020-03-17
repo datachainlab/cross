@@ -344,7 +344,5 @@ func (k Keeper) ReceiveCommitPacket(
 		return err
 	}
 
-	// TODO Send an Ack packet to coordinator?
-
 	return nil
 }

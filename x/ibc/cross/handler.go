@@ -92,5 +92,11 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 	if err != nil {
 		return nil, err
 	}
+
+	acknowledgement := AckDataCommit{}
+	if err := k.PacketExecuted(ctx, msg.Packet, acknowledgement); err != nil {
+		return nil, err
+	}
+
 	return &sdk.Result{}, nil
 }

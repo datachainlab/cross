@@ -54,6 +54,7 @@ type (
 	PacketDataPrepare       = types.PacketDataPrepare
 	PacketDataPrepareResult = types.PacketDataPrepareResult
 	PacketDataCommit        = types.PacketDataCommit
+	AckDataCommit           = types.AckDataCommit
 	OP                      = types.OP
 	OPs                     = types.OPs
 	State                   = types.State
