@@ -315,7 +315,10 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 
 	app2 := suite.createApp("app2")
 	signer2 := sdk.AccAddress("signer2")
+	signer3 := sdk.AccAddress("signer3")
+	// app2 has multiple contract calls
 	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
+	ci3 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("tthree"), []byte("40")})
 	chd2 := suite.createContractHandler(app2.app.GetKey(cross.StoreKey), "c2")
 
 	ch0to1 := cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
@@ -337,6 +340,12 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 			[]sdk.AccAddress{signer2},
 			ci2.Bytes(),
 			[]cross.OP{lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
+		),
+		cross.NewContractTransaction(
+			ch0to2,
+			[]sdk.AccAddress{signer3},
+			ci3.Bytes(),
+			[]cross.OP{lock.Write{K: signer3, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tthree", 40)})}},
 		),
 	}
 
@@ -404,6 +413,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 
 	suite.testPreparePacket(app1, ch1to0, ch0to1, txID, 0, chd1, tss[0], nextSeqSend)
 	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 1, chd2, tss[1], nextSeqSend)
+	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 2, chd2, tss[2], nextSeqSend)
 
 	// Tests for Confirm step
 
@@ -458,6 +468,11 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		suite.False(isCommitable)
 
 		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 1, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 2, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canDecide)
 		suite.True(isCommitable)
