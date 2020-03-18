@@ -1,20 +1,20 @@
 package types
 
-type ContractInfo struct {
+type ContractCallInfo struct {
 	ID     string
 	Method string
 	Args   [][]byte
 }
 
-func NewContractInfo(id, method string, args [][]byte) ContractInfo {
-	return ContractInfo{
+func NewContractCallInfo(id, method string, args [][]byte) ContractCallInfo {
+	return ContractCallInfo{
 		ID:     id,
 		Method: method,
 		Args:   args,
 	}
 }
 
-func (ci ContractInfo) Bytes() []byte {
+func (ci ContractCallInfo) Bytes() []byte {
 	bz, err := EncodeContractSignature(ci)
 	if err != nil {
 		panic(err)
@@ -22,12 +22,12 @@ func (ci ContractInfo) Bytes() []byte {
 	return bz
 }
 
-func EncodeContractSignature(c ContractInfo) ([]byte, error) {
+func EncodeContractSignature(c ContractCallInfo) ([]byte, error) {
 	return ModuleCdc.MarshalBinaryLengthPrefixed(c)
 }
 
-func DecodeContractSignature(bz []byte) (*ContractInfo, error) {
-	var c ContractInfo
+func DecodeContractSignature(bz []byte) (*ContractCallInfo, error) {
+	var c ContractCallInfo
 	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(bz, &c)
 	if err != nil {
 		return nil, err

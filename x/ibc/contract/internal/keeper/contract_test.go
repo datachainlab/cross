@@ -47,7 +47,7 @@ func TestContractHandler(t *testing.T) {
 	ctx = cross.WithSigners(ctx, []sdk.AccAddress{[]byte("user0")})
 
 	{
-		contractInfo := types.NewContractInfo(contractID, "issue", [][]byte{
+		contractInfo := types.NewContractCallInfo(contractID, "issue", [][]byte{
 			[]byte("mycoin"),
 			[]byte("100"),
 		})
@@ -62,7 +62,7 @@ func TestContractHandler(t *testing.T) {
 		cms.Commit()
 
 		{
-			contractInfo := types.NewContractInfo(contractID, "test-balance", [][]byte{
+			contractInfo := types.NewContractCallInfo(contractID, "test-balance", [][]byte{
 				[]byte("mycoin"),
 				[]byte("100"),
 			})
@@ -78,7 +78,7 @@ func TestContractHandler(t *testing.T) {
 		cms.Commit()
 
 		{
-			contractInfo := types.NewContractInfo(contractID, "test-balance", [][]byte{
+			contractInfo := types.NewContractCallInfo(contractID, "test-balance", [][]byte{
 				[]byte("mycoin"),
 				[]byte("100"),
 			})
@@ -90,7 +90,7 @@ func TestContractHandler(t *testing.T) {
 		}
 
 		{
-			contractInfo := types.NewContractInfo(contractID, "issue", [][]byte{
+			contractInfo := types.NewContractCallInfo(contractID, "issue", [][]byte{
 				[]byte("mycoin2"),
 				[]byte("50"),
 			})
@@ -105,7 +105,7 @@ func TestContractHandler(t *testing.T) {
 		}
 
 		{
-			contractInfo := types.NewContractInfo(contractID, "test-balance", [][]byte{
+			contractInfo := types.NewContractCallInfo(contractID, "test-balance", [][]byte{
 				[]byte("mycoin2"),
 				[]byte("50"),
 			})

@@ -103,7 +103,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 		}
 
 		{
-			c := contract.NewContractInfo("first", "f0", nil)
+			c := contract.NewContractCallInfo("first", "f0", nil)
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
@@ -113,7 +113,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 		}
 
 		{
-			c := contract.NewContractInfo("dummy", "f0", nil)
+			c := contract.NewContractCallInfo("dummy", "f0", nil)
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
@@ -122,7 +122,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 		}
 
 		{
-			c := contract.NewContractInfo("first", "dummy", nil)
+			c := contract.NewContractCallInfo("first", "dummy", nil)
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
@@ -141,7 +141,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 	// Ensure that commit store state successfully
 	{
 		{
-			c := contract.NewContractInfo("first", "issue", [][]byte{[]byte("tone"), []byte("80")})
+			c := contract.NewContractCallInfo("first", "issue", [][]byte{[]byte("tone"), []byte("80")})
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
@@ -154,7 +154,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 		}
 
 		{
-			c := contract.NewContractInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
+			c := contract.NewContractCallInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
@@ -165,7 +165,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 		}
 
 		{
-			c := contract.NewContractInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
+			c := contract.NewContractCallInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc1, []sdk.AccAddress{acc0}, bz)

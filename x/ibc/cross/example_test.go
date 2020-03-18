@@ -144,8 +144,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		app2,
 	)
 
-	trainCall := contract.NewContractInfo(trainContractID, reserveFnName, [][]byte{contract.ToBytes(int32(1))})
-	hotelCall := contract.NewContractInfo(hotelContractID, reserveFnName, [][]byte{contract.ToBytes(int32(8))})
+	trainCall := contract.NewContractCallInfo(trainContractID, reserveFnName, [][]byte{contract.ToBytes(int32(1))})
+	hotelCall := contract.NewContractCallInfo(hotelContractID, reserveFnName, [][]byte{contract.ToBytes(int32(8))})
 
 	var tss = []cross.ContractTransaction{
 		cross.NewContractTransaction(

@@ -49,7 +49,7 @@ func CallTxCmd(cdc *codec.Codec) *cobra.Command {
 				}
 				cargs = append(cargs, b)
 			}
-			ci := types.NewContractInfo(
+			ci := types.NewContractCallInfo(
 				args[1],
 				args[2],
 				cargs,

@@ -179,11 +179,11 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 	app0 := suite.createApp("app0") // coordinator node
 	app1 := suite.createApp("app1")
 	signer1 := sdk.AccAddress("signer1")
-	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
+	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
 
 	app2 := suite.createApp("app2")
 	signer2 := sdk.AccAddress("signer2")
-	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
+	ci2 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
 
 	ch0to1 := cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
 	ch1to0 := cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
@@ -311,15 +311,15 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 
 	app1 := suite.createApp("app1")
 	signer1 := sdk.AccAddress("signer1")
-	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
+	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
 	chd1 := suite.createContractHandler(app1.app.GetKey(cross.StoreKey), "c1")
 
 	app2 := suite.createApp("app2")
 	signer2 := sdk.AccAddress("signer2")
 	signer3 := sdk.AccAddress("signer3")
 	// app2 has multiple contract calls
-	ci2 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
-	ci3 := contract.NewContractInfo("c2", "issue", [][]byte{[]byte("tthree"), []byte("40")})
+	ci2 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
+	ci3 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("tthree"), []byte("40")})
 	chd2 := suite.createContractHandler(app2.app.GetKey(cross.StoreKey), "c2")
 
 	ch0to1 := cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
@@ -594,7 +594,7 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	if !suite.NoError(err) {
 		return
 	}
-	contractInfo := contract.NewContractInfo(ci.ID, "test-balance", [][]byte{
+	contractInfo := contract.NewContractCallInfo(ci.ID, "test-balance", [][]byte{
 		ci.Args[0],
 		ci.Args[1],
 	})
@@ -622,7 +622,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	if !suite.NoError(err) {
 		return
 	}
-	contractInfo := contract.NewContractInfo(ci.ID, "test-not-issued", [][]byte{})
+	contractInfo := contract.NewContractCallInfo(ci.ID, "test-not-issued", [][]byte{})
 	bz, err := contract.EncodeContractSignature(contractInfo)
 	if !suite.NoError(err) {
 		return
