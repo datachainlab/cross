@@ -80,11 +80,11 @@ Steps:
 - If packet status is 'OK' and we haven't confirmed all packets yet, we wait for next packet receiving.
 */
 func handlePacketDataPrepareResult(ctx sdk.Context, k Keeper, msg channeltypes.MsgPacket, data PacketDataPrepareResult) (*sdk.Result, error) {
-	canDecide, isCommitable, err := k.ReceivePrepareResultPacket(ctx, msg.Packet, data)
+	canMulticast, isCommitable, err := k.ReceivePrepareResultPacket(ctx, msg.Packet, data)
 	if err != nil {
 		return nil, err
 	}
-	if canDecide {
+	if canMulticast {
 		err := k.MulticastCommitPacket(ctx, data.TxID, msg.Signer, isCommitable)
 		return &sdk.Result{}, err
 	} else {

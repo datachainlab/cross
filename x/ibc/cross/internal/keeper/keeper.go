@@ -181,8 +181,11 @@ func (ci *CoordinatorInfo) Confirm(txIndex types.TxIndex, connectionID string) e
 			return errors.New("this transaction is already confirmed")
 		}
 	}
-	if ci.Transactions[txIndex] != connectionID {
-		return errors.New("invalid pair")
+
+	if int(txIndex) >= len(ci.Transactions) {
+		return fmt.Errorf("txIndex '%v' not found", txIndex)
+	} else if cid := ci.Transactions[txIndex]; cid != connectionID {
+		return fmt.Errorf("expected connectionID is '%v', but got '%v'", cid, connectionID)
 	}
 
 	ci.ConfirmedTransactions = append(ci.ConfirmedTransactions, txIndex)

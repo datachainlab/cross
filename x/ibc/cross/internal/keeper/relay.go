@@ -189,7 +189,7 @@ func (k Keeper) ReceivePrepareResultPacket(
 	ctx sdk.Context,
 	packet channel.Packet,
 	data types.PacketDataPrepareResult,
-) (canDecide bool, isCommittable bool, err error) {
+) (canMulticast bool, isCommittable bool, err error) {
 	co, ok := k.GetCoordinator(ctx, data.TxID)
 	if !ok {
 		return false, false, fmt.Errorf("coordinator '%x' not found", data.TxID)
@@ -208,20 +208,27 @@ func (k Keeper) ReceivePrepareResultPacket(
 		return false, false, err
 	}
 
-	if data.Status == types.PREPARE_STATUS_FAILED {
-		co.Status = CO_STATUS_DECIDED
-		co.Decision = CO_DECISION_ABORT
-	} else if data.Status == types.PREPARE_STATUS_OK {
-		if co.IsCompleted() {
+	if co.Status == CO_STATUS_INIT {
+		if data.Status == types.PREPARE_STATUS_FAILED {
 			co.Status = CO_STATUS_DECIDED
-			co.Decision = CO_DECISION_COMMIT
+			co.Decision = CO_DECISION_ABORT
+		} else if data.Status == types.PREPARE_STATUS_OK {
+			if co.IsCompleted() {
+				co.Status = CO_STATUS_DECIDED
+				co.Decision = CO_DECISION_COMMIT
+			}
+		} else {
+			panic("unreachable")
 		}
+		canMulticast = co.Status == CO_STATUS_DECIDED
+	} else if co.Status == CO_STATUS_DECIDED {
+		canMulticast = false
 	} else {
 		panic("unreachable")
 	}
 
 	k.SetCoordinator(ctx, data.TxID, *co)
-	return co.Status == CO_STATUS_DECIDED, co.Decision == CO_DECISION_COMMIT, nil
+	return canMulticast, co.Decision == CO_DECISION_COMMIT, nil
 }
 
 func (k Keeper) MulticastCommitPacket(
