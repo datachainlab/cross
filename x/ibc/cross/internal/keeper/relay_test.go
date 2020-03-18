@@ -465,7 +465,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		writer()
 	}
 
-	// ensure that each corhorts commit or abort
+	// ensure that each participants execute to commit or abort
 	{
 		relayer := sdk.AccAddress("relayer2")
 		// In a1, execute to commit
