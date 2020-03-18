@@ -30,9 +30,9 @@ func (k Keeper) MulticastPreparePacket(
 		return fmt.Errorf("coordinator '%x' already exists", txID)
 	}
 
-	var channels []channel.Channel
-	var sequences []uint64
-	for _, t := range transactions {
+	channelInfos := make([]types.ChannelInfo, len(transactions))
+	tss := make([]string, len(transactions))
+	for id, t := range transactions {
 		c, found := k.channelKeeper.GetChannel(ctx, t.Source.Port, t.Source.Channel)
 		if !found {
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
@@ -44,20 +44,10 @@ func (k Keeper) MulticastPreparePacket(
 			return channel.ErrSequenceSendNotFound
 		}
 
-		channels = append(channels, c)
-		sequences = append(sequences, seq)
-	}
-	if len(transactions) != len(channels) || len(channels) != len(sequences) {
-		panic("unreachable")
-	}
-
-	channelInfos := make([]types.ChannelInfo, len(transactions))
-	tss := make([]string, len(transactions))
-	for id, c := range channels {
 		s := transactions[id].Source
 		p := k.CreatePreparePacket(
 			ctx,
-			sequences[id],
+			seq,
 			s.Port,
 			s.Channel,
 			c.Counterparty.PortID,
