@@ -133,10 +133,14 @@ type SimApp struct {
 	sm *module.SimulationManager
 }
 
+type ContractHandlerProvider = func(contract.Keeper) cross.ContractHandler
+
+type AnteHandlerProvider = func(*SimApp) sdk.AnteHandler
+
 // NewSimApp returns a reference to an initialized SimApp.
 func NewSimApp(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool, skipUpgradeHeights map[int64]bool,
-	homePath string, invCheckPeriod uint, baseAppOptions ...func(*bam.BaseApp),
+	homePath string, invCheckPeriod uint, contractHandlerProvider ContractHandlerProvider, anteHandlerProvider AnteHandlerProvider, baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
 
 	// TODO: Remove cdc in favor of appCodec once all modules are migrated.
@@ -251,7 +255,7 @@ func NewSimApp(
 		app.IBCKeeper.ChannelKeeper,
 	)
 
-	contractHandler := makeContractHandler(app.ContractKeeper)
+	contractHandler := contractHandlerProvider(app.ContractKeeper)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -316,12 +320,7 @@ func NewSimApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(
-		ante.NewAnteHandler(
-			app.AccountKeeper, app.SupplyKeeper, app.IBCKeeper,
-			ante.DefaultSigVerificationGasConsumer,
-		),
-	)
+	app.SetAnteHandler(anteHandlerProvider(app))
 	app.SetEndBlocker(app.EndBlocker)
 
 	if loadLatest {
@@ -420,4 +419,11 @@ func GetMaccPerms() map[string][]string {
 		dupMaccPerms[k] = v
 	}
 	return dupMaccPerms
+}
+
+func DefaultAnteHandlerProvider(app *SimApp) sdk.AnteHandler {
+	return ante.NewAnteHandler(
+		app.AccountKeeper, app.SupplyKeeper, app.IBCKeeper,
+		ante.DefaultSigVerificationGasConsumer,
+	)
 }

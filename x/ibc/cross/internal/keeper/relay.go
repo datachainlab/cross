@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -9,6 +8,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
 func (k Keeper) MulticastPreparePacket(
@@ -23,17 +23,14 @@ func (k Keeper) MulticastPreparePacket(
 		return fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
 	}
 
-	txID := msg.GetTxID()
-	if _, ok := k.GetTx(ctx, txID); ok {
-		return fmt.Errorf("txID '%x' already exists", txID)
-	}
+	txID := MakeTxID(ctx, msg)
 	if _, ok := k.GetCoordinator(ctx, txID); ok {
 		return fmt.Errorf("coordinator '%x' already exists", txID)
 	}
 
-	var channels []channel.Channel
-	var sequences []uint64
-	for _, t := range transactions {
+	channelInfos := make([]types.ChannelInfo, len(transactions))
+	tss := make([]string, len(transactions))
+	for id, t := range transactions {
 		c, found := k.channelKeeper.GetChannel(ctx, t.Source.Port, t.Source.Channel)
 		if !found {
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
@@ -45,25 +42,16 @@ func (k Keeper) MulticastPreparePacket(
 			return channel.ErrSequenceSendNotFound
 		}
 
-		channels = append(channels, c)
-		sequences = append(sequences, seq)
-	}
-	if len(transactions) != len(channels) || len(channels) != len(sequences) {
-		panic("unreachable")
-	}
-
-	tss := make([]string, len(transactions))
-	for id, c := range channels {
 		s := transactions[id].Source
 		p := k.CreatePreparePacket(
 			ctx,
-			sequences[id],
+			seq,
 			s.Port,
 			s.Channel,
 			c.Counterparty.PortID,
 			c.Counterparty.ChannelID,
 			txID,
-			id,
+			types.TxIndex(id),
 			transactions[id],
 			sender,
 		)
@@ -72,9 +60,10 @@ func (k Keeper) MulticastPreparePacket(
 		}
 		hops := c.GetConnectionHops()
 		tss[id] = hops[len(hops)-1]
+		channelInfos[id] = types.NewChannelInfo(s.Port, s.Channel)
 	}
 
-	k.SetCoordinator(ctx, txID, NewCoordinatorInfo(CO_STATUS_INIT, tss))
+	k.SetCoordinator(ctx, txID, NewCoordinatorInfo(CO_STATUS_INIT, tss, channelInfos))
 
 	return nil
 }
@@ -86,12 +75,12 @@ func (k Keeper) CreatePreparePacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	txID []byte,
-	transactionID int,
+	txID types.TxID,
+	txIndex types.TxIndex,
 	transaction types.ContractTransaction,
 	sender sdk.AccAddress,
 ) channel.Packet {
-	packetData := types.NewPacketDataPrepare(sender, txID, transactionID, transaction)
+	packetData := types.NewPacketDataPrepare(sender, txID, txIndex, transaction)
 	packet := channel.NewPacket(
 		packetData,
 		seq,
@@ -113,7 +102,7 @@ func (k Keeper) PrepareTransaction(
 	data types.PacketDataPrepare,
 	sender sdk.AccAddress,
 ) error {
-	if _, ok := k.GetTx(ctx, data.TxID); ok {
+	if _, ok := k.GetTx(ctx, data.TxID, data.TxIndex); ok {
 		return fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
@@ -129,7 +118,7 @@ func (k Keeper) PrepareTransaction(
 	}
 
 	// Send a Prepared Packet to coordinator (reply to source channel)
-	packet := k.CreatePrepareResultPacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, data.TransactionID, status)
+	packet := k.CreatePrepareResultPacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, data.TxIndex, status)
 	if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
 		return err
 	}
@@ -142,8 +131,7 @@ func (k Keeper) PrepareTransaction(
 	connID := hops[len(hops)-1]
 
 	txinfo := NewTxInfo(TX_STATUS_PREPARE, connID, data.ContractTransaction.Contract)
-	k.SetTx(ctx, data.TxID, txinfo)
-
+	k.SetTx(ctx, data.TxID, data.TxIndex, txinfo)
 	return nil
 }
 
@@ -157,11 +145,16 @@ func (k Keeper) prepareTransaction(
 	data types.PacketDataPrepare,
 	sender sdk.AccAddress,
 ) error {
-	store, err := contractHandler.Handle(ctx, data.ContractTransaction.Contract)
+	store, err := contractHandler.Handle(
+		types.WithSigners(ctx, data.ContractTransaction.Signers),
+		data.ContractTransaction.Contract,
+	)
 	if err != nil {
 		return err
 	}
-	if err := store.Precommit(data.TxID); err != nil {
+
+	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
+	if err := store.Precommit(id); err != nil {
 		return err
 	}
 	if !store.OPs().Equal(data.ContractTransaction.OPs) {
@@ -177,11 +170,11 @@ func (k Keeper) CreatePrepareResultPacket(
 	destinationPort,
 	destinationChannel string,
 	sender sdk.AccAddress,
-	txID []byte,
-	transactionID int,
+	txID types.TxID,
+	txIndex types.TxIndex,
 	status uint8,
 ) channel.Packet {
-	packetData := types.NewPacketDataPrepareResult(sender, txID, transactionID, status)
+	packetData := types.NewPacketDataPrepareResult(sender, txID, txIndex, status)
 	return channel.NewPacket(
 		packetData,
 		seq,
@@ -192,80 +185,92 @@ func (k Keeper) CreatePrepareResultPacket(
 	)
 }
 
+func (k Keeper) ReceivePrepareResultPacket(
+	ctx sdk.Context,
+	packet channel.Packet,
+	data types.PacketDataPrepareResult,
+) (canMulticast bool, isCommittable bool, err error) {
+	co, ok := k.GetCoordinator(ctx, data.TxID)
+	if !ok {
+		return false, false, fmt.Errorf("coordinator '%x' not found", data.TxID)
+	} else if co.Status == CO_STATUS_NONE {
+		return false, false, errors.New("coordinator status must not be CO_STATUS_NONE")
+	} else if co.IsCompleted() {
+		return false, false, errors.New("all transactions are already confirmed")
+	}
+
+	c, found := k.channelKeeper.GetChannel(ctx, packet.DestinationPort, packet.DestinationChannel)
+	if !found {
+		return false, false, sdkerrors.Wrap(channel.ErrChannelNotFound, packet.DestinationChannel)
+	}
+	hops := c.GetConnectionHops()
+	if err := co.Confirm(data.TxIndex, hops[len(hops)-1]); err != nil {
+		return false, false, err
+	}
+
+	if co.Status == CO_STATUS_INIT {
+		if data.Status == types.PREPARE_STATUS_FAILED {
+			co.Status = CO_STATUS_DECIDED
+			co.Decision = CO_DECISION_ABORT
+		} else if data.Status == types.PREPARE_STATUS_OK {
+			if co.IsCompleted() {
+				co.Status = CO_STATUS_DECIDED
+				co.Decision = CO_DECISION_COMMIT
+			}
+		} else {
+			panic("unreachable")
+		}
+		canMulticast = co.Status == CO_STATUS_DECIDED
+	} else if co.Status == CO_STATUS_DECIDED {
+		canMulticast = false
+	} else {
+		panic("unreachable")
+	}
+
+	k.SetCoordinator(ctx, data.TxID, *co)
+	return canMulticast, co.Decision == CO_DECISION_COMMIT, nil
+}
+
 func (k Keeper) MulticastCommitPacket(
 	ctx sdk.Context,
-	txID []byte,
-	preparePackets []types.PreparePacket,
+	txID types.TxID,
 	sender sdk.AccAddress,
 	isCommittable bool,
 ) error {
-
 	co, ok := k.GetCoordinator(ctx, txID)
 	if !ok {
 		return fmt.Errorf("coordinator '%x' not found", txID)
+	} else if co.Status != CO_STATUS_DECIDED {
+		return errors.New("coordinator status must be CO_STATUS_DECIDED")
 	}
-	if co.Status != CO_STATUS_INIT {
-		return fmt.Errorf("expected status is %v, but got %v", CO_STATUS_INIT, co.Status)
-	}
-	tsSet := co.Set()
 
-	var channels []channel.Channel
-	var sequences []uint64
-	for _, p := range preparePackets {
-		data := p.Packet.GetData().(types.PacketDataPrepareResult)
-		if !bytes.Equal(txID, data.TxID) {
-			return fmt.Errorf("unexpected txID: %x", data.TxID)
-		}
-
-		c, found := k.channelKeeper.GetChannel(ctx, p.Source.Port, p.Source.Channel)
+	for id, c := range co.Channels {
+		ch, found := k.channelKeeper.GetChannel(ctx, c.Port, c.Channel)
 		if !found {
-			return sdkerrors.Wrap(channel.ErrChannelNotFound, p.Source.Channel)
+			return sdkerrors.Wrap(channel.ErrChannelNotFound, c.Channel)
 		}
-
 		// get the next sequence
-		seq, found := k.channelKeeper.GetNextSequenceSend(ctx, p.Source.Port, p.Source.Channel)
+		seq, found := k.channelKeeper.GetNextSequenceSend(ctx, c.Port, c.Channel)
 		if !found {
 			return channel.ErrSequenceSendNotFound
 		}
-
-		hops := c.GetConnectionHops()
-		connID := hops[len(hops)-1]
-		pair := ConnectionTransactionPair{connID, data.TransactionID}
-		if !tsSet.Contains(pair) {
-			return errors.New("unknown packet")
-		}
-		tsSet.Remove(pair)
-
-		channels = append(channels, c)
-		sequences = append(sequences, seq)
-	}
-	if len(preparePackets) != len(channels) || len(channels) != len(sequences) {
-		panic("unreachable")
-	} else if size := tsSet.Cardinality(); size != 0 {
-		return fmt.Errorf("tsset still have some elements: %v", size)
-	}
-
-	for i, c := range channels {
-		s := preparePackets[i].Source
-		p := k.CreateCommitPacket(
+		packet := k.CreateCommitPacket(
 			ctx,
-			sequences[i],
-			s.Port,
-			s.Channel,
-			c.Counterparty.PortID,
-			c.Counterparty.ChannelID,
+			seq,
+			c.Port,
+			c.Channel,
+			ch.GetCounterparty().GetPortID(),
+			ch.GetCounterparty().GetChannelID(),
 			sender,
 			txID,
+			types.TxIndex(id),
 			isCommittable,
 		)
-		if err := k.channelKeeper.SendPacket(ctx, p); err != nil {
+		if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
 			return err
 		}
 	}
 
-	if err := k.UpdateCoordinatorStatus(ctx, txID, CO_STATUS_COMMIT); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -277,10 +282,11 @@ func (k Keeper) CreateCommitPacket(
 	destinationPort,
 	destinationChannel string,
 	sender sdk.AccAddress,
-	txID []byte,
+	txID types.TxID,
+	txIndex types.TxIndex,
 	isCommitable bool,
 ) channel.Packet {
-	packetData := types.NewPacketDataCommit(sender, txID, isCommitable)
+	packetData := types.NewPacketDataCommit(sender, txID, txIndex, isCommitable)
 	return channel.NewPacket(
 		packetData,
 		seq,
@@ -300,7 +306,7 @@ func (k Keeper) ReceiveCommitPacket(
 	destinationChannel string,
 	data types.PacketDataCommit,
 ) error {
-	tx, err := k.EnsureTxStatus(ctx, data.TxID, TX_STATUS_PREPARE)
+	tx, err := k.EnsureTxStatus(ctx, data.TxID, data.TxIndex, TX_STATUS_PREPARE)
 	if err != nil {
 		return err
 	}
@@ -321,23 +327,43 @@ func (k Keeper) ReceiveCommitPacket(
 	}
 
 	var status uint8
+	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if data.IsCommittable {
-		if err := state.Commit(data.TxID); err != nil {
+		if err := state.Commit(id); err != nil {
 			return err
 		}
 		status = TX_STATUS_COMMIT
 	} else {
-		if err := state.Discard(data.TxID); err != nil {
+		if err := state.Discard(id); err != nil {
 			return err
 		}
 		status = TX_STATUS_ABORT
 	}
 
-	if err := k.UpdateTxStatus(ctx, data.TxID, status); err != nil {
+	if err := k.UpdateTxStatus(ctx, data.TxID, data.TxIndex, status); err != nil {
 		return err
 	}
 
-	// TODO Send an Ack packet to coordinator?
-
 	return nil
+}
+
+func MakeTxID(ctx sdk.Context, msg types.MsgInitiate) types.TxID {
+	var txID [32]byte
+
+	a := tmhash.Sum(msg.GetSignBytes())
+	b := tmhash.Sum(types.MakeHashFromABCIHeader(ctx.BlockHeader()).Hash())
+
+	h := tmhash.New()
+	h.Write(a)
+	h.Write(b)
+	copy(txID[:], h.Sum(nil))
+	return txID
+}
+
+func MakeStoreTransactionID(txID types.TxID, txIndex uint8) []byte {
+	size := len(txID)
+	bz := make([]byte, size+1)
+	copy(bz[:size], txID[:])
+	bz[size] = txIndex
+	return bz
 }

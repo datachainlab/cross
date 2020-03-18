@@ -12,16 +12,28 @@ func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 		switch msg := msg.(type) {
 		case MsgInitiate:
 			return handleMsgInitiate(ctx, keeper, msg)
-		case MsgConfirm:
-			return handleMsgConfirm(ctx, keeper, msg)
 		case channeltypes.MsgPacket:
 			switch data := msg.Data.(type) {
 			case PacketDataPrepare:
 				return handlePacketDataPrepare(ctx, keeper, contractHandler, msg, data)
+			case PacketDataPrepareResult:
+				return handlePacketDataPrepareResult(ctx, keeper, msg, data)
 			case PacketDataCommit:
 				return handlePacketDataCommit(ctx, keeper, contractHandler, msg, data)
 			default:
 				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized packet data type: %T", data)
+			}
+		case channeltypes.MsgAcknowledgement:
+			switch ack := msg.Acknowledgement.(type) {
+			case AckDataCommit:
+				switch data := msg.Data.(type) {
+				case PacketDataCommit:
+					return handleAcknowledgePacket(ctx, keeper, msg, ack, data)
+				default:
+					return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ack packet data type: %T", data)
+				}
+			default:
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ack packet type: %T", ack)
 			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC message type: %T", msg)
@@ -60,18 +72,24 @@ func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler Contract
 
 /*
 Precondition:
-- All Given proof of packet are valid.
+- Given proof of packet is valid.
 Steps:
-- Verify all status of each PrepareResultPacket
-- If any packet with status 'Failed' exist, send a CommitPacket with status 'Abort' to all participants.
-- If all packet with status 'Ok' only exist, send a CommitPacket with status 'Commit' to all participants.
+- Verify PrepareResultPacket
+- If packet status is 'Failed', we send a CommitPacket with status 'Abort' to all participants.
+- If packet status is 'OK' and all packets are confirmed, we send a CommitPacket with status 'Commit' to all participants.
+- If packet status is 'OK' and we haven't confirmed all packets yet, we wait for next packet receiving.
 */
-func handleMsgConfirm(ctx sdk.Context, k Keeper, msg MsgConfirm) (*sdk.Result, error) {
-	err := k.MulticastCommitPacket(ctx, msg.TxID, msg.PreparePackets, msg.Signer, msg.IsCommittable())
+func handlePacketDataPrepareResult(ctx sdk.Context, k Keeper, msg channeltypes.MsgPacket, data PacketDataPrepareResult) (*sdk.Result, error) {
+	canMulticast, isCommitable, err := k.ReceivePrepareResultPacket(ctx, msg.Packet, data)
 	if err != nil {
 		return nil, err
 	}
-	return &sdk.Result{}, nil
+	if canMulticast {
+		err := k.MulticastCommitPacket(ctx, data.TxID, msg.Signer, isCommitable)
+		return &sdk.Result{}, err
+	} else {
+		return &sdk.Result{}, nil
+	}
 }
 
 /*
@@ -79,11 +97,25 @@ Precondition:
 - Given proof of packet is valid.
 Steps:
 - If PacketDataCommit indicates committable, commit precommitted state and unlock locked keys.
-- If PacketDataCommit indicates not committable, rollback precommitted state and unlock locked keys.
+- If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
 */
 func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataCommit) (*sdk.Result, error) {
 	err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data)
 	if err != nil {
+		return nil, err
+	}
+
+	// FIXME set transactionID that is taken from packet or state
+	acknowledgement := NewAckDataCommit(0)
+	if err := k.PacketExecuted(ctx, msg.Packet, acknowledgement); err != nil {
+		return nil, err
+	}
+
+	return &sdk.Result{}, nil
+}
+
+func handleAcknowledgePacket(ctx sdk.Context, k Keeper, msg channeltypes.MsgAcknowledgement, ack AckDataCommit, data PacketDataCommit) (*sdk.Result, error) {
+	if err := k.ReceiveAckPacket(ctx, ack, data.TxID); err != nil {
 		return nil, err
 	}
 	return &sdk.Result{}, nil

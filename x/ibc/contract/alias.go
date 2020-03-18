@@ -25,7 +25,7 @@ var (
 	NewContractHandler      = keeper.NewContractHandler
 	EncodeContractSignature = types.EncodeContractSignature
 	DecodeContractSignature = types.DecodeContractSignature
-	NewContractInfo         = types.NewContractInfo
+	NewContractCallInfo     = types.NewContractCallInfo
 	NewMsgContractCall      = types.NewMsgContractCall
 	NewContract             = keeper.NewContract
 

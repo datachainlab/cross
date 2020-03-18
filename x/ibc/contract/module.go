@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/datachainlab/cross/x/ibc/contract/client/cli"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -31,6 +32,8 @@ func (AppModuleBasic) Name() string {
 // RegisterCodec returns RegisterCodec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	RegisterCodec(cdc)
+	// TODO move this to another module?
+	lock.RegisterCodec(cdc)
 }
 
 // DefaultGenesis returns default genesis state

@@ -10,7 +10,7 @@ import (
 	"github.com/datachainlab/cross/x/ibc/store/lock"
 )
 
-func makeContractHandler(k contract.Keeper) cross.ContractHandler {
+func DefaultContractHandlerProvider(k contract.Keeper) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore) cross.State {
 		return lock.NewStore(store)
 	})

@@ -14,6 +14,7 @@ import (
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
+	"github.com/datachainlab/cross/example/simapp"
 	app "github.com/datachainlab/cross/example/simapp"
 	appcodec "github.com/datachainlab/cross/example/simapp/codec"
 	"github.com/spf13/cobra"
@@ -89,6 +90,8 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 
 	return app.NewSimApp(
 		logger, db, traceStore, true, skipUpgradeHeights, viper.GetString(cli.HomeFlag), invCheckPeriod,
+		simapp.DefaultContractHandlerProvider,
+		simapp.DefaultAnteHandlerProvider,
 		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(viper.GetUint64(server.FlagHaltHeight)),
@@ -102,7 +105,7 @@ func exportAppStateAndTMValidators(
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
 	if height != -1 {
-		gapp := app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1))
+		gapp := app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider, simapp.DefaultAnteHandlerProvider)
 		err := gapp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
@@ -110,6 +113,6 @@ func exportAppStateAndTMValidators(
 		return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
 
-	gapp := app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1))
+	gapp := app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider, simapp.DefaultAnteHandlerProvider)
 	return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }

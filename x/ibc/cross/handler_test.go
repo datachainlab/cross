@@ -46,9 +46,11 @@ type HandlerTestSuite struct {
 	app *simapp.SimApp
 }
 
-func (suite *HandlerTestSuite) SetupTest() {
+func init() {
 	lock.RegisterCodec(cross.ModuleCdc)
+}
 
+func (suite *HandlerTestSuite) SetupTest() {
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
 
@@ -161,12 +163,12 @@ func (suite *HandlerTestSuite) TestHandleCrossc() {
 
 	signer0 := sdk.AccAddress("signerzero")
 	src0 := cross.NewChannelInfo("testportzero", "testchannelzero")
-	ci0 := contract.NewContractInfo("c0", "issue", [][]byte{[]byte("100")})
+	ci0 := contract.NewContractCallInfo("c0", "issue", [][]byte{[]byte("100")})
 	dst0 := cross.NewChannelInfo("dstportzero", "dstchannelzero")
 
 	signer1 := sdk.AccAddress("signerfirst")
 	src1 := cross.NewChannelInfo("testportone", "testchannelone")
-	ci1 := contract.NewContractInfo("c1", "issue", [][]byte{[]byte("100")})
+	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("100")})
 	dst1 := cross.NewChannelInfo("dstportone", "dstchannelone")
 
 	var nonce uint64 = 1
