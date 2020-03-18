@@ -67,8 +67,10 @@ func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-func (msg MsgInitiate) GetTxID() []byte {
-	return tmhash.Sum(msg.GetSignBytes())
+func (msg MsgInitiate) GetTxID() TxID {
+	var txID [32]byte
+	copy(txID[:], tmhash.Sum(msg.GetSignBytes()))
+	return txID
 }
 
 type ChannelInfo struct {

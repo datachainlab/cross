@@ -61,4 +61,5 @@ type (
 	ChannelInfo             = types.ChannelInfo
 	ContractTransaction     = types.ContractTransaction
 	ContractTransactions    = types.ContractTransactions
+	TxID                    = types.TxID
 )

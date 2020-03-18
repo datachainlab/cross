@@ -50,13 +50,13 @@ func NewTxInfo(status uint8, coordinatorConnectionID string, contract []byte) Tx
 	return TxInfo{Status: status, CoordinatorConnectionID: coordinatorConnectionID, Contract: contract}
 }
 
-func (k Keeper) SetTx(ctx sdk.Context, txID []byte, tx TxInfo) {
+func (k Keeper) SetTx(ctx sdk.Context, txID types.TxID, tx TxInfo) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(tx)
 	store.Set(types.KeyTx(txID), bz)
 }
 
-func (k Keeper) EnsureTxStatus(ctx sdk.Context, txID []byte, status uint8) (*TxInfo, error) {
+func (k Keeper) EnsureTxStatus(ctx sdk.Context, txID types.TxID, status uint8) (*TxInfo, error) {
 	tx, found := k.GetTx(ctx, txID)
 	if !found {
 		return nil, fmt.Errorf("txID '%x' not found", txID)
@@ -68,7 +68,7 @@ func (k Keeper) EnsureTxStatus(ctx sdk.Context, txID []byte, status uint8) (*TxI
 	}
 }
 
-func (k Keeper) UpdateTxStatus(ctx sdk.Context, txID []byte, status uint8) error {
+func (k Keeper) UpdateTxStatus(ctx sdk.Context, txID types.TxID, status uint8) error {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.KeyTx(txID))
 	if bz == nil {
@@ -81,7 +81,7 @@ func (k Keeper) UpdateTxStatus(ctx sdk.Context, txID []byte, status uint8) error
 	return nil
 }
 
-func (k Keeper) GetTx(ctx sdk.Context, txID []byte) (*TxInfo, bool) {
+func (k Keeper) GetTx(ctx sdk.Context, txID [32]byte) (*TxInfo, bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.KeyTx(txID))
 	if bz == nil {
@@ -92,13 +92,13 @@ func (k Keeper) GetTx(ctx sdk.Context, txID []byte) (*TxInfo, bool) {
 	return &tx, true
 }
 
-func (k Keeper) SetCoordinator(ctx sdk.Context, txID []byte, ci CoordinatorInfo) {
+func (k Keeper) SetCoordinator(ctx sdk.Context, txID types.TxID, ci CoordinatorInfo) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(ci)
 	store.Set(types.KeyCoordinator(txID), bz)
 }
 
-func (k Keeper) GetCoordinator(ctx sdk.Context, txID []byte) (*CoordinatorInfo, bool) {
+func (k Keeper) GetCoordinator(ctx sdk.Context, txID types.TxID) (*CoordinatorInfo, bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.KeyCoordinator(txID))
 	if bz == nil {
@@ -109,7 +109,7 @@ func (k Keeper) GetCoordinator(ctx sdk.Context, txID []byte) (*CoordinatorInfo, 
 	return &ci, true
 }
 
-func (k Keeper) UpdateCoordinatorStatus(ctx sdk.Context, txID []byte, status uint8) error {
+func (k Keeper) UpdateCoordinatorStatus(ctx sdk.Context, txID types.TxID, status uint8) error {
 	ci, found := k.GetCoordinator(ctx, txID)
 	if !found {
 		return fmt.Errorf("txID '%x' not found", txID)
@@ -119,7 +119,7 @@ func (k Keeper) UpdateCoordinatorStatus(ctx sdk.Context, txID []byte, status uin
 	return nil
 }
 
-func (k Keeper) EnsureCoordinatorStatus(ctx sdk.Context, txID []byte, status uint8) (*CoordinatorInfo, error) {
+func (k Keeper) EnsureCoordinatorStatus(ctx sdk.Context, txID types.TxID, status uint8) (*CoordinatorInfo, error) {
 	ci, found := k.GetCoordinator(ctx, txID)
 	if !found {
 		return nil, fmt.Errorf("txID '%x' not found", txID)
@@ -137,7 +137,7 @@ func (k Keeper) PacketExecuted(ctx sdk.Context, packet channelexported.PacketI, 
 	return k.channelKeeper.PacketExecuted(ctx, packet, acknowledgement)
 }
 
-func (k Keeper) ReceiveAckPacket(ctx sdk.Context, ack types.AckDataCommit, txID []byte) error {
+func (k Keeper) ReceiveAckPacket(ctx sdk.Context, ack types.AckDataCommit, txID types.TxID) error {
 	ci, err := k.EnsureCoordinatorStatus(ctx, txID, CO_STATUS_DECIDED)
 	if err != nil {
 		return err

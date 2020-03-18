@@ -8,6 +8,7 @@ import (
 
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
 	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -455,7 +456,8 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// invalid transactionID
 	{
 		capp, _ := app0.Cache()
-		invalidTxID := tmhash.Sum(txID)
+		var invalidTxID types.TxID
+		copy(invalidTxID[:], tmhash.Sum(txID[:]))
 		_, _, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, invalidTxID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
@@ -579,7 +581,7 @@ func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, sender 
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID []byte, tsID int, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, tsID int, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64) {
 	var err error
 
 	relayer := sdk.AccAddress("relayer1")

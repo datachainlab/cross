@@ -161,7 +161,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			[]cross.OP{lock.Write{K: makeRoomKey(8), V: signer2Info.GetAddress()}},
 		),
 	}
-	var txID []byte
+	var txID cross.TxID
 	{
 		var nonce uint64 = 1
 		msg := cross.NewMsgInitiate(
@@ -307,7 +307,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	// }
 }
 
-func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, sender, receiver *appContext, txID []byte, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
+func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
 	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
 	suite.True(ok)
 	res := sender.app.Query(abci.RequestQuery{

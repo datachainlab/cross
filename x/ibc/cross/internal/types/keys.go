@@ -23,16 +23,16 @@ func KeyPrefixBytes(prefix int) []byte {
 	return []byte(fmt.Sprintf("%d/", prefix))
 }
 
-func KeyTx(txID []byte) []byte {
+func KeyTx(txID TxID) []byte {
 	return append(
 		KeyPrefixBytes(KeyTxPrefix),
-		txID...,
+		txID[:]...,
 	)
 }
 
-func KeyCoordinator(txID []byte) []byte {
+func KeyCoordinator(txID TxID) []byte {
 	return append(
 		KeyPrefixBytes(KeyCoordinatorPrefix),
-		txID...,
+		txID[:]...,
 	)
 }

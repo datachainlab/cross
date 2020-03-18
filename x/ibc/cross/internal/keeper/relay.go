@@ -77,7 +77,7 @@ func (k Keeper) CreatePreparePacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	txID []byte,
+	txID types.TxID,
 	transactionID int,
 	transaction types.ContractTransaction,
 	sender sdk.AccAddress,
@@ -154,7 +154,7 @@ func (k Keeper) prepareTransaction(
 	if err != nil {
 		return err
 	}
-	if err := store.Precommit(data.TxID); err != nil {
+	if err := store.Precommit(data.TxID[:]); err != nil {
 		return err
 	}
 	if !store.OPs().Equal(data.ContractTransaction.OPs) {
@@ -170,7 +170,7 @@ func (k Keeper) CreatePrepareResultPacket(
 	destinationPort,
 	destinationChannel string,
 	sender sdk.AccAddress,
-	txID []byte,
+	txID types.TxID,
 	transactionID int,
 	status uint8,
 ) channel.Packet {
@@ -226,7 +226,7 @@ func (k Keeper) ReceivePrepareResultPacket(
 
 func (k Keeper) MulticastCommitPacket(
 	ctx sdk.Context,
-	txID []byte,
+	txID types.TxID,
 	sender sdk.AccAddress,
 	isCommittable bool,
 ) error {
@@ -274,7 +274,7 @@ func (k Keeper) CreateCommitPacket(
 	destinationPort,
 	destinationChannel string,
 	sender sdk.AccAddress,
-	txID []byte,
+	txID types.TxID,
 	isCommitable bool,
 ) channel.Packet {
 	packetData := types.NewPacketDataCommit(sender, txID, isCommitable)
@@ -319,12 +319,12 @@ func (k Keeper) ReceiveCommitPacket(
 
 	var status uint8
 	if data.IsCommittable {
-		if err := state.Commit(data.TxID); err != nil {
+		if err := state.Commit(data.TxID[:]); err != nil {
 			return err
 		}
 		status = TX_STATUS_COMMIT
 	} else {
-		if err := state.Discard(data.TxID); err != nil {
+		if err := state.Discard(data.TxID[:]); err != nil {
 			return err
 		}
 		status = TX_STATUS_ABORT

@@ -6,23 +6,17 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
-	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
 type PacketDataPrepare struct {
 	Sender              sdk.AccAddress
-	TxID                []byte
+	TxID                TxID
 	TransactionID       int
 	ContractTransaction ContractTransaction
 }
 
-func NewPacketDataPrepare(sender sdk.AccAddress, txID []byte, transactionID int, transaction ContractTransaction) PacketDataPrepare {
+func NewPacketDataPrepare(sender sdk.AccAddress, txID TxID, transactionID int, transaction ContractTransaction) PacketDataPrepare {
 	return PacketDataPrepare{Sender: sender, TxID: txID, TransactionID: transactionID, ContractTransaction: transaction}
-}
-
-func (p PacketDataPrepare) Hash() []byte {
-	b := ModuleCdc.MustMarshalBinaryBare(p)
-	return tmhash.Sum(b)
 }
 
 func (p PacketDataPrepare) ValidateBasic() error {
@@ -51,12 +45,12 @@ const (
 
 type PacketDataPrepareResult struct {
 	Sender        sdk.AccAddress
-	TxID          []byte
+	TxID          TxID
 	TransactionID int
 	Status        uint8
 }
 
-func NewPacketDataPrepareResult(sender sdk.AccAddress, txID []byte, transactionID int, status uint8) PacketDataPrepareResult {
+func NewPacketDataPrepareResult(sender sdk.AccAddress, txID TxID, transactionID int, status uint8) PacketDataPrepareResult {
 	return PacketDataPrepareResult{Sender: sender, TxID: txID, TransactionID: transactionID, Status: status}
 }
 
@@ -82,11 +76,11 @@ func (p PacketDataPrepareResult) IsOK() bool {
 
 type PacketDataCommit struct {
 	Sender        sdk.AccAddress
-	TxID          []byte
+	TxID          TxID
 	IsCommittable bool
 }
 
-func NewPacketDataCommit(sender sdk.AccAddress, txID []byte, isCommittable bool) PacketDataCommit {
+func NewPacketDataCommit(sender sdk.AccAddress, txID TxID, isCommittable bool) PacketDataCommit {
 	return PacketDataCommit{Sender: sender, TxID: txID, IsCommittable: isCommittable}
 }
 
