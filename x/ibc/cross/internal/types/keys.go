@@ -14,19 +14,22 @@ const (
 )
 
 const (
-	KeyTxPrefix int = iota + 1
-	KeyCoordinatorPrefix
+	KeyCoordinatorPrefix uint8 = iota + 1
+	KeyTxPrefix
 )
 
 // KeyPrefixBytes return the key prefix bytes from a URL string format
-func KeyPrefixBytes(prefix int) []byte {
+func KeyPrefixBytes(prefix uint8) []byte {
 	return []byte(fmt.Sprintf("%d/", prefix))
 }
 
-func KeyTx(txID TxID) []byte {
+func KeyTx(txID TxID, txIndex TxIndex) []byte {
 	return append(
-		KeyPrefixBytes(KeyTxPrefix),
-		txID[:]...,
+		append(
+			KeyPrefixBytes(KeyTxPrefix),
+			txID[:]...,
+		),
+		txIndex,
 	)
 }
 

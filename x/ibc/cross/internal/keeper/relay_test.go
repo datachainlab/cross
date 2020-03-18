@@ -357,7 +357,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		256,
 		nonce,
 	)
-	txID := msg.GetTxID()
+	txID := cross.MakeTxID(app0.ctx, msg)
 
 	err = app0.app.CrossKeeper.MulticastPreparePacket(
 		app0.ctx,
@@ -401,7 +401,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	)
 	suite.NoError(err) // successfully executed
 
-	ci, found := app0.app.CrossKeeper.GetCoordinator(app0.ctx, msg.GetTxID())
+	ci, found := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 	if suite.True(found) {
 		suite.Equal(ci.Status, cross.CO_STATUS_INIT)
 	}
@@ -411,10 +411,12 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	suite.NotNil(packetCommitment)
 	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
+	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend+1)
+	suite.NotNil(packetCommitment)
 
 	suite.testPreparePacket(app1, ch1to0, ch0to1, txID, 0, chd1, tss[0], nextSeqSend)
 	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 1, chd2, tss[1], nextSeqSend)
-	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 2, chd2, tss[2], nextSeqSend)
+	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 2, chd2, tss[2], nextSeqSend+1)
 
 	// Tests for Confirm step
 
@@ -443,6 +445,38 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		suite.True(canDecide)
 		suite.False(isCommitable)
 	}
+	// ensure that coordinator decides 'abort' (ordered sequence number)
+	{
+		capp, _ := app0.Cache()
+		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 1, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 2, cross.PREPARE_STATUS_FAILED), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.True(canDecide)
+		suite.False(isCommitable)
+	}
+	// ensure that coordinator decides 'abort' (unordered sequence number)
+	{
+		capp, _ := app0.Cache()
+		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 2, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 1, cross.PREPARE_STATUS_FAILED), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.True(canDecide)
+		suite.False(isCommitable)
+	}
 	// ensure that contractTransaction ID conflict occurs
 	{
 		capp, _ := app0.Cache()
@@ -461,7 +495,25 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		_, _, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, invalidTxID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
-	// ensure that coordinator decides 'commit'
+	// ensure that coordinator decides 'commit' (unordered sequence number)
+	{
+		capp, _ := app0.Cache()
+		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 2, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.False(canDecide)
+		suite.False(isCommitable)
+
+		canDecide, isCommitable, err = suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 1, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		suite.NoError(err)
+		suite.True(canDecide)
+		suite.True(isCommitable)
+	}
+	// ensure that coordinator decides 'commit' (ordered sequence number)
 	{
 		capp, writer := app0.Cache()
 		canDecide, isCommitable, err := suite.testConfirmPrepareResult(&capp, relayer2, cross.NewPacketDataPrepareResult(relayer1, txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
@@ -488,25 +540,37 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		// In a1, execute to commit
 		{
 			capp, _ := app1.Cache()
-			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, true), signer1)
+			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, 0, true), signer1)
 		}
 
-		// In a2, execute to commit
+		// In a2-0, execute to commit
 		{
 			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, true), signer2)
+			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 1, true), signer2)
+		}
+
+		// In a2-1, execute to commit
+		{
+			capp, _ := app2.Cache()
+			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 2, true), signer3)
 		}
 
 		// In a1, execute to abort
 		{
 			capp, _ := app1.Cache()
-			suite.testAbortPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, false), signer1)
+			suite.testAbortPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, 0, false), signer1)
 		}
 
-		// In a2, execute to abort
+		// In a2-0, execute to abort
 		{
 			capp, _ := app2.Cache()
-			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, false), signer2)
+			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 1, false), signer2)
+		}
+
+		// In a2-1, execute to abort
+		{
+			capp, _ := app2.Cache()
+			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 2, false), signer3)
 		}
 	}
 }
@@ -516,7 +580,7 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	if !suite.NoError(err) {
 		return
 	}
-	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID)
+	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID, packet.TxIndex)
 	if !suite.True(found) {
 		return
 	}
@@ -548,7 +612,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	if !suite.NoError(err) {
 		return
 	}
-	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID)
+	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID, packet.TxIndex)
 	if !suite.True(found) {
 		return
 	}
@@ -581,11 +645,11 @@ func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, sender 
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, tsID int, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64) {
 	var err error
 
 	relayer := sdk.AccAddress("relayer1")
-	packetData := cross.NewPacketDataPrepare(relayer, txID, tsID, ts)
+	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, ts)
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = cross.WithSigners(ctx, ts.Signers)
 	err = actx.app.CrossKeeper.PrepareTransaction(
@@ -599,7 +663,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 		relayer,
 	)
 	suite.NoError(err)
-	tx, ok := actx.app.CrossKeeper.GetTx(ctx, txID)
+	tx, ok := actx.app.CrossKeeper.GetTx(ctx, txID, txIndex)
 	if suite.True(ok) {
 		suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
 	}
@@ -621,7 +685,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 				dst.Channel,
 				relayer,
 				txID,
-				tsID,
+				txIndex,
 				cross.PREPARE_STATUS_OK,
 			).Data,
 		),

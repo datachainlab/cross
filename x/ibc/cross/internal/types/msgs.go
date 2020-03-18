@@ -2,9 +2,9 @@ package types
 
 import (
 	"errors"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
 var _ sdk.Msg = (*MsgInitiate)(nil)
@@ -33,8 +33,10 @@ func (MsgInitiate) Type() string {
 
 // ValidateBasic implements sdk.Msg
 func (msg MsgInitiate) ValidateBasic() error {
-	if len(msg.ContractTransactions) == 0 {
+	if l := len(msg.ContractTransactions); l == 0 {
 		return errors.New("this msg includes no transisions")
+	} else if l > MaxContractTransactoinNum {
+		return fmt.Errorf("The number of ContractTransactions exceeds limit: %v > %v", l, MaxContractTransactoinNum)
 	}
 	for _, st := range msg.ContractTransactions {
 		if err := st.ValidateBasic(); err != nil {
@@ -65,12 +67,6 @@ func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
 		}
 	}
 	return signers
-}
-
-func (msg MsgInitiate) GetTxID() TxID {
-	var txID [32]byte
-	copy(txID[:], tmhash.Sum(msg.GetSignBytes()))
-	return txID
 }
 
 type ChannelInfo struct {

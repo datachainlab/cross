@@ -31,6 +31,8 @@ const (
 var (
 	NewKeeper                  = keeper.NewKeeper
 	NewQuerier                 = keeper.NewQuerier
+	MakeTxID                   = keeper.MakeTxID
+	MakeStoreTransactionID     = keeper.MakeStoreTransactionID
 	ModuleCdc                  = types.ModuleCdc
 	RegisterCodec              = types.RegisterCodec
 	SignersFromContext         = types.SignersFromContext
@@ -62,4 +64,5 @@ type (
 	ContractTransaction     = types.ContractTransaction
 	ContractTransactions    = types.ContractTransactions
 	TxID                    = types.TxID
+	TxIndex                 = types.TxIndex
 )

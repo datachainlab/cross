@@ -50,14 +50,14 @@ func NewTxInfo(status uint8, coordinatorConnectionID string, contract []byte) Tx
 	return TxInfo{Status: status, CoordinatorConnectionID: coordinatorConnectionID, Contract: contract}
 }
 
-func (k Keeper) SetTx(ctx sdk.Context, txID types.TxID, tx TxInfo) {
+func (k Keeper) SetTx(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex, tx TxInfo) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(tx)
-	store.Set(types.KeyTx(txID), bz)
+	store.Set(types.KeyTx(txID, txIndex), bz)
 }
 
-func (k Keeper) EnsureTxStatus(ctx sdk.Context, txID types.TxID, status uint8) (*TxInfo, error) {
-	tx, found := k.GetTx(ctx, txID)
+func (k Keeper) EnsureTxStatus(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex, status uint8) (*TxInfo, error) {
+	tx, found := k.GetTx(ctx, txID, txIndex)
 	if !found {
 		return nil, fmt.Errorf("txID '%x' not found", txID)
 	}
@@ -68,22 +68,22 @@ func (k Keeper) EnsureTxStatus(ctx sdk.Context, txID types.TxID, status uint8) (
 	}
 }
 
-func (k Keeper) UpdateTxStatus(ctx sdk.Context, txID types.TxID, status uint8) error {
+func (k Keeper) UpdateTxStatus(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex, status uint8) error {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.KeyTx(txID))
+	bz := store.Get(types.KeyTx(txID, txIndex))
 	if bz == nil {
 		return fmt.Errorf("txID '%x' not found", txID)
 	}
 	var tx TxInfo
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &tx)
 	tx.Status = status
-	k.SetTx(ctx, txID, tx)
+	k.SetTx(ctx, txID, txIndex, tx)
 	return nil
 }
 
-func (k Keeper) GetTx(ctx sdk.Context, txID [32]byte) (*TxInfo, bool) {
+func (k Keeper) GetTx(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) (*TxInfo, bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.KeyTx(txID))
+	bz := store.Get(types.KeyTx(txID, txIndex))
 	if bz == nil {
 		return nil, false
 	}
@@ -142,8 +142,8 @@ func (k Keeper) ReceiveAckPacket(ctx sdk.Context, ack types.AckDataCommit, txID 
 	if err != nil {
 		return err
 	}
-	if !ci.AddAck(ack.TransactionID) {
-		return fmt.Errorf("transactionID '%v' is already received", ack.TransactionID)
+	if !ci.AddAck(ack.TxIndex) {
+		return fmt.Errorf("transactionID '%v' is already received", ack.TxIndex)
 	}
 	return nil
 }
@@ -164,8 +164,8 @@ type CoordinatorInfo struct {
 
 	Status                uint8
 	Decision              uint8
-	ConfirmedTransactions []int // [TransactionID]
-	Acks                  []int // [TransactionID]
+	ConfirmedTransactions []types.TxIndex // [TransactionID]
+	Acks                  []types.TxIndex // [TransactionID]
 }
 
 func NewCoordinatorInfo(status uint8, tss []string, channels []types.ChannelInfo) CoordinatorInfo {
@@ -175,17 +175,17 @@ func NewCoordinatorInfo(status uint8, tss []string, channels []types.ChannelInfo
 	return CoordinatorInfo{Status: status, Transactions: tss, Channels: channels, Decision: CO_DECISION_NONE}
 }
 
-func (ci *CoordinatorInfo) Confirm(transactionID int, connectionID string) error {
+func (ci *CoordinatorInfo) Confirm(txIndex types.TxIndex, connectionID string) error {
 	for _, id := range ci.ConfirmedTransactions {
-		if id == transactionID {
+		if txIndex == id {
 			return errors.New("this transaction is already confirmed")
 		}
 	}
-	if ci.Transactions[transactionID] != connectionID {
+	if ci.Transactions[txIndex] != connectionID {
 		return errors.New("invalid pair")
 	}
 
-	ci.ConfirmedTransactions = append(ci.ConfirmedTransactions, transactionID)
+	ci.ConfirmedTransactions = append(ci.ConfirmedTransactions, txIndex)
 	return nil
 }
 
@@ -193,13 +193,13 @@ func (ci *CoordinatorInfo) IsCompleted() bool {
 	return len(ci.Transactions) == len(ci.ConfirmedTransactions)
 }
 
-func (ci *CoordinatorInfo) AddAck(transactionID int) bool {
+func (ci *CoordinatorInfo) AddAck(txIndex types.TxIndex) bool {
 	for _, id := range ci.Acks {
-		if transactionID == id {
+		if txIndex == id {
 			return false
 		}
 	}
-	ci.Acks = append(ci.Acks, transactionID)
+	ci.Acks = append(ci.Acks, txIndex)
 	return true
 }
 

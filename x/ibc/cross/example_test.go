@@ -172,8 +172,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			nonce,
 		)
 		suite.NoError(msg.ValidateBasic())
-		txID = msg.GetTxID()
-
+		txID = cross.MakeTxID(app0.ctx, msg)
 		stdTx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, nil, "")
 		for i, signer := range []string{signer0, signer1, signer2} {
 			stdTx, err = txBuilder.WithChainID(app0.chainID).WithAccountNumber(uint64(i)).SignStdTx(signer, clientkeys.DefaultKeyPass, stdTx, true)
@@ -276,6 +275,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			cross.NewPacketDataCommit(
 				relayer0Info.GetAddress(),
 				txID,
+				0,
 				true,
 			),
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
@@ -286,6 +286,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			cross.NewPacketDataCommit(
 				relayer0Info.GetAddress(),
 				txID,
+				1,
 				true,
 			),
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)

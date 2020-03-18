@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/binary"
 	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,12 +10,12 @@ import (
 type PacketDataPrepare struct {
 	Sender              sdk.AccAddress
 	TxID                TxID
-	TransactionID       int
+	TxIndex             TxIndex
 	ContractTransaction ContractTransaction
 }
 
-func NewPacketDataPrepare(sender sdk.AccAddress, txID TxID, transactionID int, transaction ContractTransaction) PacketDataPrepare {
-	return PacketDataPrepare{Sender: sender, TxID: txID, TransactionID: transactionID, ContractTransaction: transaction}
+func NewPacketDataPrepare(sender sdk.AccAddress, txID TxID, txIndex TxIndex, transaction ContractTransaction) PacketDataPrepare {
+	return PacketDataPrepare{Sender: sender, TxID: txID, TxIndex: txIndex, ContractTransaction: transaction}
 }
 
 func (p PacketDataPrepare) ValidateBasic() error {
@@ -44,14 +43,14 @@ const (
 )
 
 type PacketDataPrepareResult struct {
-	Sender        sdk.AccAddress
-	TxID          TxID
-	TransactionID int
-	Status        uint8
+	Sender  sdk.AccAddress
+	TxID    TxID
+	TxIndex TxIndex
+	Status  uint8
 }
 
-func NewPacketDataPrepareResult(sender sdk.AccAddress, txID TxID, transactionID int, status uint8) PacketDataPrepareResult {
-	return PacketDataPrepareResult{Sender: sender, TxID: txID, TransactionID: transactionID, Status: status}
+func NewPacketDataPrepareResult(sender sdk.AccAddress, txID TxID, txIndex TxIndex, status uint8) PacketDataPrepareResult {
+	return PacketDataPrepareResult{Sender: sender, TxID: txID, TxIndex: txIndex, Status: status}
 }
 
 func (p PacketDataPrepareResult) ValidateBasic() error {
@@ -77,11 +76,12 @@ func (p PacketDataPrepareResult) IsOK() bool {
 type PacketDataCommit struct {
 	Sender        sdk.AccAddress
 	TxID          TxID
+	TxIndex       TxIndex
 	IsCommittable bool
 }
 
-func NewPacketDataCommit(sender sdk.AccAddress, txID TxID, isCommittable bool) PacketDataCommit {
-	return PacketDataCommit{Sender: sender, TxID: txID, IsCommittable: isCommittable}
+func NewPacketDataCommit(sender sdk.AccAddress, txID TxID, txIndex TxIndex, isCommittable bool) PacketDataCommit {
+	return PacketDataCommit{Sender: sender, TxID: txID, TxIndex: txIndex, IsCommittable: isCommittable}
 }
 
 func (p PacketDataCommit) ValidateBasic() error {
@@ -103,16 +103,14 @@ func (p PacketDataCommit) Type() string {
 var _ channelexported.PacketAcknowledgementI = AckDataCommit{}
 
 type AckDataCommit struct {
-	TransactionID int
+	TxIndex TxIndex
 }
 
-func NewAckDataCommit(transactionID int) AckDataCommit {
-	return AckDataCommit{TransactionID: transactionID}
+func NewAckDataCommit(txIndex TxIndex) AckDataCommit {
+	return AckDataCommit{TxIndex: txIndex}
 }
 
 // GetBytes implements channelexported.PacketAcknowledgementI
 func (ack AckDataCommit) GetBytes() []byte {
-	var bz [8]byte
-	binary.BigEndian.PutUint64(bz[:], uint64(ack.TransactionID))
-	return bz[:]
+	return []byte{ack.TxIndex}
 }
