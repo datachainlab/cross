@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
+	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 

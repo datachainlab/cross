@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
+	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
+	"github.com/datachainlab/cross/x/ibc/contract/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"

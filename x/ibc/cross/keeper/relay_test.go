@@ -8,7 +8,7 @@ import (
 
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
-	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"

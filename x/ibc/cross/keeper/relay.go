@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
-	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 

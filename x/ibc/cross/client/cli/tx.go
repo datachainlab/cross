@@ -13,7 +13,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
-	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

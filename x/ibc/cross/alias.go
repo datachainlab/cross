@@ -1,8 +1,8 @@
 package cross
 
 import (
-	"github.com/datachainlab/cross/x/ibc/cross/internal/keeper"
-	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
 // nolint

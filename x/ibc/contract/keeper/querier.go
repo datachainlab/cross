@@ -3,7 +3,7 @@ package keeper
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
+	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

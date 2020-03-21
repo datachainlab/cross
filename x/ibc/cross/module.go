@@ -10,8 +10,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/datachainlab/cross/x/ibc/cross/internal/client/cli"
-	"github.com/datachainlab/cross/x/ibc/cross/internal/client/rest"
+	"github.com/datachainlab/cross/x/ibc/cross/client/cli"
+	"github.com/datachainlab/cross/x/ibc/cross/client/rest"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
