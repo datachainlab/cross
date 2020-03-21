@@ -1,5 +1,7 @@
 package types
 
+import "github.com/datachainlab/cross/x/ibc/cross"
+
 type ContractCallInfo struct {
 	ID     string
 	Method string
@@ -33,4 +35,9 @@ func DecodeContractSignature(bz []byte) (*ContractCallInfo, error) {
 		return nil, err
 	}
 	return &c, nil
+}
+
+type ContractResponse struct {
+	ReturnValue []byte
+	OPs         cross.OPs
 }

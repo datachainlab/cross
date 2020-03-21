@@ -126,8 +126,8 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 	return
 }
 
-func (suite *KeeperTestSuite) createContractHandler(stk sdk.StoreKey, cid string) cross.ContractHandler {
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) cross.State {
+func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.StoreKey, cid string) cross.ContractHandler {
+	contractHandler := contract.NewContractHandler(contract.NewKeeper(cdc, stk), func(kvs sdk.KVStore) cross.State {
 		return lock.NewStore(kvs)
 	})
 	c := contract.NewContract([]contract.Method{
@@ -312,7 +312,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	app1 := suite.createApp("app1")
 	signer1 := sdk.AccAddress("signer1")
 	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
-	chd1 := suite.createContractHandler(app1.app.GetKey(cross.StoreKey), "c1")
+	chd1 := suite.createContractHandler(app1.cdc, app1.app.GetKey(cross.StoreKey), "c1")
 
 	app2 := suite.createApp("app2")
 	signer2 := sdk.AccAddress("signer2")
@@ -320,7 +320,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// app2 has multiple contract calls
 	ci2 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
 	ci3 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("tthree"), []byte("40")})
-	chd2 := suite.createContractHandler(app2.app.GetKey(cross.StoreKey), "c2")
+	chd2 := suite.createContractHandler(app2.cdc, app2.app.GetKey(cross.StoreKey), "c2")
 
 	ch0to1 := cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
 	ch1to0 := cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0

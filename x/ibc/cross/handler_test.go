@@ -155,7 +155,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.
 
 func (suite *HandlerTestSuite) TestHandleCrossc() {
 	stk := sdk.NewKVStoreKey("main")
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) cross.State {
+	contractHandler := contract.NewContractHandler(contract.NewKeeper(suite.app.Codec(), stk), func(kvs sdk.KVStore) cross.State {
 		return lock.NewStore(kvs)
 	})
 	handler := cross.NewHandler(suite.app.CrossKeeper, contractHandler)

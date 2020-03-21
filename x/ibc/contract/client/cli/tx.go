@@ -3,9 +3,9 @@ package cli
 import (
 	"bufio"
 	"encoding/hex"
+	"strings"
 
 	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
-	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -14,6 +14,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	"github.com/spf13/cobra"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -33,29 +34,32 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 func CallTxCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "call [from_key_or_address] [contract_id] [contract_method] [contract_arg_hex]",
+		Use:   "call [contract_id] [contract_method] [[contract_arg_hex]...]",
 		Short: "Create and sign a send tx",
-		Args:  cobra.MinimumNArgs(3),
+		Args:  cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithCodec(cdc)
-			sender := cliCtx.GetFromAddress()
 			var cargs [][]byte
-			for _, a := range args[3:] {
-				b, err := hex.DecodeString(a)
-				if err != nil {
-					return err
+			for _, a := range args[2:] {
+				if strings.HasPrefix(a, "0x") {
+					b, err := hex.DecodeString(a)
+					if err != nil {
+						return err
+					}
+					cargs = append(cargs, b)
+				} else {
+					cargs = append(cargs, []byte(a))
 				}
-				cargs = append(cargs, b)
 			}
 			ci := types.NewContractCallInfo(
+				args[0],
 				args[1],
-				args[2],
 				cargs,
 			)
 			msg := types.NewMsgContractCall(
-				sender,
+				cliCtx.GetFromAddress(),
 				nil,
 				ci.Bytes(),
 			)
@@ -63,5 +67,6 @@ func CallTxCmd(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 	cmd = flags.PostCommands(cmd)[0]
+	cmd.MarkFlagRequired(flags.FlagFrom)
 	return cmd
 }
