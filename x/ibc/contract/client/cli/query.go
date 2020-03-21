@@ -82,7 +82,7 @@ func GetSimulationCmd(cdc *codec.Codec) *cobra.Command {
 			cdc.MustUnmarshalBinaryLengthPrefixed(res, &result)
 			cdc.MustUnmarshalBinaryLengthPrefixed(result.Data, &ops)
 			fmt.Println(ops.String())
-			return ioutil.WriteFile(viper.GetString(flagSave), res, 0644)
+			return ioutil.WriteFile(viper.GetString(flagSave), result.Data, 0644)
 		},
 	}
 	cmd = flags.PostCommands(cmd)[0]
