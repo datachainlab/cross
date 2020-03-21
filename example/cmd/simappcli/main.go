@@ -19,8 +19,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 
+	appcodec "github.com/cosmos/cosmos-sdk/simapp/codec"
 	app "github.com/datachainlab/cross/example/simapp"
-	appcodec "github.com/datachainlab/cross/example/simapp/codec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
