@@ -76,7 +76,7 @@ func (suite *HandlerTestSuite) createClient() {
 	signers := []tmtypes.PrivValidator{privVal}
 	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
 
-	header := tendermint.CreateTestHeader(testChainID, 1, now, valSet, valSet, signers)
+	header := tendermint.CreateTestHeader(testChainID, 1, now, valSet, signers)
 	consensusState := header.ConsensusState()
 
 	// create client

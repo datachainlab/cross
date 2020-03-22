@@ -14,7 +14,7 @@ import (
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
-	appcodec "github.com/cosmos/cosmos-sdk/simapp/codec"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
 	"github.com/datachainlab/cross/example/simapp"
 	app "github.com/datachainlab/cross/example/simapp"
 	"github.com/spf13/cobra"
@@ -31,8 +31,8 @@ const flagInvCheckPeriod = "inv-check-period"
 var invCheckPeriod uint
 
 func main() {
-	cdc := appcodec.MakeCodec(app.ModuleBasics)
-	appCodec := appcodec.NewAppCodec(cdc)
+	cdc := codecstd.MakeCodec(app.ModuleBasics)
+	appCodec := codecstd.NewAppCodec(cdc)
 
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)

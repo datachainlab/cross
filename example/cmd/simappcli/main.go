@@ -19,7 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 
-	appcodec "github.com/cosmos/cosmos-sdk/simapp/codec"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
 	app "github.com/datachainlab/cross/example/simapp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	cdc      = appcodec.MakeCodec(app.ModuleBasics)
-	appCodec = appcodec.NewAppCodec(cdc)
+	cdc      = codecstd.MakeCodec(app.ModuleBasics)
+	appCodec = codecstd.NewAppCodec(cdc)
 )
 
 func init() {
