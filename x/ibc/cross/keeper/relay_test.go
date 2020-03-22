@@ -48,7 +48,7 @@ func (suite *KeeperTestSuite) createClient(actx *appContext, clientID string) {
 	actx.ctx = actx.app.BaseApp.NewContext(false, h)
 	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
 
-	header := tendermint.CreateTestHeader(actx.chainID, 1, now, actx.valSet, actx.valSet, actx.signers)
+	header := tendermint.CreateTestHeader(actx.chainID, 1, now, actx.valSet, actx.signers)
 	consensusState := header.ConsensusState()
 
 	// consensusState := tendermint.ConsensusState{

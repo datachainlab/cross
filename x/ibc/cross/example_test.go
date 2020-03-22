@@ -7,8 +7,8 @@ import (
 
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
 	crkeys "github.com/cosmos/cosmos-sdk/crypto/keys"
-	simappcodec "github.com/cosmos/cosmos-sdk/simapp/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
@@ -96,7 +96,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	signer2Acc := authtypes.NewBaseAccountWithAddress(signer2Info.GetAddress())
 	relayer0Acc := authtypes.NewBaseAccountWithAddress(relayer0Info.GetAddress())
 
-	cdc := simappcodec.MakeCodec(simapp.ModuleBasics)
+	cdc := codecstd.MakeCodec(simapp.ModuleBasics)
 	cdc.Seal()
 
 	txBuilder := authtypes.NewTxBuilder(
@@ -326,7 +326,7 @@ func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, se
 	}
 }
 
-func (suite *ExampleTestSuite) buildAckMsgAndDoRelay(ackData cross.AckDataCommit, packet channeltypes.Packet, sender, receiver *appContext, txID []byte, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
+func (suite *ExampleTestSuite) buildAckMsgAndDoRelay(ackData cross.AckDataCommit, packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
 	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
 	suite.True(ok)
 	res := sender.app.Query(abci.RequestQuery{
@@ -477,7 +477,7 @@ func (suite *ExampleTestSuite) createClient(actx *appContext, clientID string, d
 	dst.ctx = dst.app.BaseApp.NewContext(false, h)
 	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
 
-	header := tendermint.CreateTestHeader(dst.chainID, dst.ctx.BlockHeight()-1, now, dst.valSet, dst.valSet, dst.signers)
+	header := tendermint.CreateTestHeader(dst.chainID, dst.ctx.BlockHeight()-1, now, dst.valSet, dst.signers)
 	consensusState := header.ConsensusState()
 	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, header)
 	if err != nil {
@@ -496,7 +496,7 @@ func (suite *ExampleTestSuite) updateClient(actx *appContext, clientID string, d
 
 	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
 	height := dst.app.LastBlockHeight() + 1
-	header := tendermint.CreateTestHeader(dst.chainID, height, now, dst.valSet, dst.valSet, dst.signers)
+	header := tendermint.CreateTestHeader(dst.chainID, height, now, dst.valSet, dst.signers)
 	h := header.ToABCIHeader()
 	dst.app.BeginBlock(abci.RequestBeginBlock{Header: h})
 	dst.ctx = dst.app.BaseApp.NewContext(false, h)
@@ -504,7 +504,7 @@ func (suite *ExampleTestSuite) updateClient(actx *appContext, clientID string, d
 	state := tendermint.ConsensusState{
 		Root: commitment.NewMerkleRoot(commitID.Hash),
 	}
-	preheader := tendermint.CreateTestHeader(dst.chainID, height-1, now, dst.valSet, dst.valSet, dst.signers)
+	preheader := tendermint.CreateTestHeader(dst.chainID, height-1, now, dst.valSet, dst.signers)
 	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, preheader)
 	if err != nil {
 		panic(err)
