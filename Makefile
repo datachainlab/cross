@@ -6,7 +6,7 @@ build:
 	go build -mod readonly -o build/simappcli ./example/cmd/simappcli
 
 test:
-	go test -v ./x/... ./example/...
+	go test -v -count=1 ./x/... ./example/...
 
 e2e:
 	$(MAKE) -C ./tests e2e-test
