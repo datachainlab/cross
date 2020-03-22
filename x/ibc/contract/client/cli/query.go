@@ -28,11 +28,14 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
-	cmd.AddCommand(GetSimulationCmd(cdc))
+	cmd.AddCommand(
+		GetContractCallSimulationCmd(cdc),
+		GetShowContractCallResult(cdc),
+	)
 	return cmd
 }
 
-func GetSimulationCmd(cdc *codec.Codec) *cobra.Command {
+func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 	const (
 		flagSave = "save"
 	)
@@ -71,7 +74,7 @@ func GetSimulationCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			route := fmt.Sprintf("custom/%s/%s", types.ModuleName, types.QuerySimulation)
-			res, _, err := cliCtx.QueryWithData(route, bz)
+			res, height, err := cliCtx.QueryWithData(route, bz)
 			if err != nil {
 				return err
 			}
@@ -81,13 +84,46 @@ func GetSimulationCmd(cdc *codec.Codec) *cobra.Command {
 			)
 			cdc.MustUnmarshalBinaryLengthPrefixed(res, &result)
 			cdc.MustUnmarshalBinaryLengthPrefixed(result.Data, &ops)
-			fmt.Println(ops.String())
-			return ioutil.WriteFile(viper.GetString(flagSave), result.Data, 0644)
+			callResult := cross.ContractCallResult{
+				ChainID:  cliCtx.ChainID,
+				Height:   height,
+				Signers:  []sdk.AccAddress{cliCtx.GetFromAddress()},
+				Contract: ci.Bytes(),
+				OPs:      ops,
+			}
+			bz, err = cdc.MarshalJSON(callResult)
+			if err != nil {
+				return err
+			}
+			fmt.Println(callResult.String())
+			return ioutil.WriteFile(viper.GetString(flagSave), bz, 0644)
 		},
 	}
 	cmd = flags.PostCommands(cmd)[0]
 	cmd.Flags().String(flagSave, "", "Save a result to this file")
 	cmd.MarkFlagRequired(flags.FlagFrom)
 	cmd.MarkFlagRequired(flagSave)
+	return cmd
+}
+
+func GetShowContractCallResult(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "show-result [path to result file]",
+		Short: "show result saved in file",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			bz, err := ioutil.ReadFile(args[0])
+			if err != nil {
+				return err
+			}
+			var res cross.ContractCallResult
+			if err := cdc.UnmarshalJSON(bz, &res); err != nil {
+				return err
+			}
+			fmt.Println(res.String())
+			return nil
+		},
+	}
+	cmd = flags.PostCommands(cmd)[0]
 	return cmd
 }
