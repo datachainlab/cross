@@ -238,7 +238,7 @@ func NewSimApp(
 	)
 
 	app.IBCKeeper = ibc.NewKeeper(
-		app.cdc, keys[ibc.StoreKey], app.StakingKeeper,
+		app.cdc, keys[ibc.StoreKey], stakingKeeper,
 	)
 
 	transferCapKey := app.IBCKeeper.PortKeeper.BindPort(bank.ModuleName)
@@ -281,7 +281,7 @@ func NewSimApp(
 	// During begin block slashing happens after distr.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
-	app.mm.SetOrderBeginBlockers(upgrade.ModuleName, mint.ModuleName, distr.ModuleName, slashing.ModuleName, evidence.ModuleName)
+	app.mm.SetOrderBeginBlockers(upgrade.ModuleName, mint.ModuleName, distr.ModuleName, slashing.ModuleName, staking.ModuleName)
 	app.mm.SetOrderEndBlockers(crisis.ModuleName, gov.ModuleName, staking.ModuleName)
 
 	// NOTE: The genutils moodule must occur after staking so that pools are
@@ -289,7 +289,7 @@ func NewSimApp(
 	app.mm.SetOrderInitGenesis(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
-		crisis.ModuleName, ibc.ModuleName, genutil.ModuleName, evidence.ModuleName,
+		crisis.ModuleName, genutil.ModuleName, evidence.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -308,7 +308,7 @@ func NewSimApp(
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper),
 		distr.NewAppModule(app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, app.StakingKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		params.NewAppModule(), // NOTE: only used for simulation to generate randomized param change proposals
+		// params.NewAppModule(), // NOTE: only used for simulation to generate randomized param change proposals
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -350,7 +350,15 @@ func (app *SimApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.Re
 func (app *SimApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
-	return app.mm.InitGenesis(ctx, app.cdc, genesisState)
+
+	res := app.mm.InitGenesis(ctx, app.cdc, genesisState)
+
+	// Set Historical infos in InitChain to ignore genesis params
+	stakingParams := staking.DefaultParams()
+	stakingParams.HistoricalEntries = 1000
+	app.StakingKeeper.SetParams(ctx, stakingParams)
+
+	return res
 }
 
 // LoadHeight loads a particular height
