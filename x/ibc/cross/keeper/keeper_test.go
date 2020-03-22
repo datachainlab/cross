@@ -9,7 +9,6 @@ import (
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/datachainlab/cross/example/simapp"
 	"github.com/datachainlab/cross/x/ibc/cross"
-	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -19,9 +18,7 @@ type KeeperTestSuite struct {
 	suite.Suite
 }
 
-func (suite *KeeperTestSuite) SetupSuite() {
-	lock.RegisterCodec(cross.ModuleCdc)
-}
+func (suite *KeeperTestSuite) SetupSuite() {}
 
 type appContext struct {
 	chainID string

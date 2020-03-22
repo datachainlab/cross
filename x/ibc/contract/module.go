@@ -32,6 +32,7 @@ func (AppModuleBasic) Name() string {
 // RegisterCodec returns RegisterCodec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	RegisterCodec(cdc)
+
 	// TODO move this to another module?
 	lock.RegisterCodec(cdc)
 }

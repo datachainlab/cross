@@ -46,10 +46,6 @@ type HandlerTestSuite struct {
 	app *simapp.SimApp
 }
 
-func init() {
-	lock.RegisterCodec(cross.ModuleCdc)
-}
-
 func (suite *HandlerTestSuite) SetupTest() {
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
