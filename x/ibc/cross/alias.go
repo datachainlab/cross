@@ -1,8 +1,8 @@
 package cross
 
 import (
-	"github.com/datachainlab/cross/x/ibc/cross/internal/keeper"
-	"github.com/datachainlab/cross/x/ibc/cross/internal/types"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
 // nolint
@@ -63,6 +63,7 @@ type (
 	ChannelInfo             = types.ChannelInfo
 	ContractTransaction     = types.ContractTransaction
 	ContractTransactions    = types.ContractTransactions
+	ContractCallResult      = types.ContractCallResult
 	TxID                    = types.TxID
 	TxIndex                 = types.TxIndex
 )

@@ -247,7 +247,7 @@ func NewSimApp(
 		app.IBCKeeper.ChannelKeeper, app.BankKeeper, app.SupplyKeeper,
 	)
 
-	app.ContractKeeper = contract.NewKeeper(keys[contract.StoreKey])
+	app.ContractKeeper = contract.NewKeeper(app.cdc, keys[contract.StoreKey])
 
 	crossCapKey := app.IBCKeeper.PortKeeper.BindPort(cross.ModuleName)
 	app.CrossKeeper = cross.NewKeeper(

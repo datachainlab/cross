@@ -32,6 +32,7 @@ func (AppModuleBasic) Name() string {
 // RegisterCodec returns RegisterCodec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	RegisterCodec(cdc)
+
 	// TODO move this to another module?
 	lock.RegisterCodec(cdc)
 }
@@ -98,7 +99,7 @@ func (am AppModule) Route() string {
 
 // NewHandler returns new Handler
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.contractHandler)
+	return NewHandler(am.keeper, am.contractHandler)
 }
 
 // QuerierRoute returns module name
@@ -108,7 +109,7 @@ func (am AppModule) QuerierRoute() string {
 
 // NewQuerierHandler returns new Querier
 func (am AppModule) NewQuerierHandler() sdk.Querier {
-	return NewQuerier(am.keeper)
+	return NewQuerier(am.NewHandler(), am.keeper, am.contractHandler)
 }
 
 // BeginBlock is a callback function
@@ -130,8 +131,4 @@ func (am AppModule) InitGenesis(ctx sdk.Context, m codec.JSONMarshaler, data jso
 func (am AppModule) ExportGenesis(ctx sdk.Context, m codec.JSONMarshaler) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper)
 	return m.MustMarshalJSON(gs)
-}
-
-func (am AppModule) ContractHandler() cross.ContractHandler {
-	return am.contractHandler
 }

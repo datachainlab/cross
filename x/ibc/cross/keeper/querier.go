@@ -1,9 +1,10 @@
 package keeper
 
 import (
+	"github.com/datachainlab/cross/x/ibc/cross/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -18,3 +19,16 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		}
 	}
 }
+
+// func queryAddress(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
+// 	address, err := sdk.AccAddressFromBech32(string(req.Data))
+
+// 	if err != nil {
+// 		return nil, sdk.ErrInvalidAddress(address.String())
+// 	}
+
+// 	obj := keeper.Get(ctx, address)
+// 	res, _ := json.Marshal(obj)
+
+// 	return res, nil
+// }

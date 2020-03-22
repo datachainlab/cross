@@ -46,10 +46,6 @@ type HandlerTestSuite struct {
 	app *simapp.SimApp
 }
 
-func init() {
-	lock.RegisterCodec(cross.ModuleCdc)
-}
-
 func (suite *HandlerTestSuite) SetupTest() {
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
@@ -155,7 +151,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.
 
 func (suite *HandlerTestSuite) TestHandleCrossc() {
 	stk := sdk.NewKVStoreKey("main")
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(stk), func(kvs sdk.KVStore) cross.State {
+	contractHandler := contract.NewContractHandler(contract.NewKeeper(suite.app.Codec(), stk), func(kvs sdk.KVStore) cross.State {
 		return lock.NewStore(kvs)
 	})
 	handler := cross.NewHandler(suite.app.CrossKeeper, contractHandler)

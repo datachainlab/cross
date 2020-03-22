@@ -32,8 +32,6 @@ type HandlerTestSuite struct {
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
-	lock.RegisterCodec(cross.ModuleCdc)
-
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
 
@@ -89,7 +87,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 	}...,
 	)
 	contractHandler.AddRoute("first", contract.NewContract(methods))
-	handler := contract.NewHandler(contractHandler)
+	handler := contract.NewHandler(suite.app.ContractKeeper, contractHandler)
 
 	acc0 := sdk.AccAddress("acc0")
 	acc1 := sdk.AccAddress("acc1")

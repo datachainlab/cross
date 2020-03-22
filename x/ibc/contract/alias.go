@@ -1,8 +1,8 @@
 package contract
 
 import (
-	"github.com/datachainlab/cross/x/ibc/contract/internal/keeper"
-	"github.com/datachainlab/cross/x/ibc/contract/internal/types"
+	"github.com/datachainlab/cross/x/ibc/contract/keeper"
+	"github.com/datachainlab/cross/x/ibc/contract/types"
 )
 
 const (
@@ -12,11 +12,12 @@ const (
 )
 
 type (
-	Keeper          = keeper.Keeper
-	Method          = keeper.Method
-	StateProvider   = keeper.StateProvider
-	Context         = keeper.Context
-	MsgContractCall = types.MsgContractCall
+	Keeper           = keeper.Keeper
+	Method           = keeper.Method
+	StateProvider    = keeper.StateProvider
+	Context          = keeper.Context
+	MsgContractCall  = types.MsgContractCall
+	ContractResponse = types.ContractResponse
 )
 
 var (
