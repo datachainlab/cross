@@ -16,7 +16,7 @@ export RELAYER=${RELAYER_DIR}/relayer/build/rly
 
 cd ${PREV_DIR}
 
-./two-chainz
+./three-chainz
 # wait for all chains to start.
 sleep 10
 ./setup-channel.sh
