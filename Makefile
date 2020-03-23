@@ -8,5 +8,5 @@ build:
 test:
 	go test -v -count=1 ./x/... ./example/...
 
-e2e:
+e2e-test:
 	$(MAKE) -C ./tests e2e-test
