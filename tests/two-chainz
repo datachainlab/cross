@@ -2,8 +2,10 @@
 set -e
 
 NODE_DATA="$(pwd)/data"
+
 NODE_NAME=simappcli
 NODED_NAME=simappd
+
 NODE_CLI=$(pwd)/../build/${NODE_NAME}
 NODED_CLI=$(pwd)/../build/${NODED_NAME}
 

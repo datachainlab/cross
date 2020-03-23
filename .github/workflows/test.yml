@@ -22,8 +22,47 @@ jobs:
     - name: Test
       run: make test
 
-    - name: Install jq
-      run: sudo apt install jq -y
+    - name: upload simappd binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: simappd
+        path: ./build
+
+    - name: upload simappcli binary
+      uses: actions/upload-artifact@v1
+      with:
+        name: simappcli
+        path: ./build
+
+  e2e:
+    name: e2e-test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: download simappd
+      uses: actions/download-artifact@v1
+      with:
+        name: simappd
+        path: ./build
+
+    - name: download simappcli
+      uses: actions/download-artifact@v1
+      with:
+        name: simappcli
+        path: ./build
+
+    - name: chmod
+      run: chmod +x ./build/*
 
     - name: e2e-test
       run: make e2e-test

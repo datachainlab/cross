@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-old=$(pwd)
+PREV_DIR=$(pwd)
 RELAYER_DIR=$(mktemp -d)
 
 echo "RELAYER_DIR is ${RELAYER_DIR}"
@@ -14,7 +14,7 @@ make build
 
 export RELAYER=${RELAYER_DIR}/relayer/build/rly
 
-cd ${old}
+cd ${PREV_DIR}
 
 ./two-chainz
 # wait for all chains to start.
