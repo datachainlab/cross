@@ -28,6 +28,22 @@ ${RELAYER_CMD} lite init ibc0 -f
 ${RELAYER_CMD} lite init ibc1 -f
 ${RELAYER_CMD} lite init ibc2 -f
 
+retry() {
+   MAX_RETRY=5
+   n=0
+   until [ $n -ge $MAX_RETRY ]
+   do
+      "$@" && break
+      n=$[$n+1]
+      sleep 1s
+   done
+   if [ $n -ge $MAX_RETRY ]; then
+     echo "failed to execute command ${@}" >&2
+     exit 1
+   fi
+}
+
+# Sometimes an execution of ABCI query is unstable when running on Github action, so we retry it
 # Now you can connect the two chains with one command:
-${RELAYER_CMD} tx full-path ibc0 ibc1
-${RELAYER_CMD} tx full-path ibc0 ibc2
+retry ${RELAYER_CMD} tx full-path ibc0 ibc1
+retry ${RELAYER_CMD} tx full-path ibc0 ibc2
