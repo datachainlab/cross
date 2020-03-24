@@ -20,3 +20,4 @@ cd ${PREV_DIR}
 # wait for all chains to start.
 sleep 10
 ./setup-channel.sh
+./test-tx.sh
