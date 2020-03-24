@@ -31,7 +31,7 @@ SOURCE02_PORT=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."port-id"'
 
 # TODO set some options correctly (timeout, nonce)
 # Compose contracts
-${NODE_CLI} tx cross create --from ${ACC0} --chain-id ${CO_CHAIN} --yes \
+${NODE_CLI} tx --home ./data/ibc0/n0/simappcli cross create --from ${ACC0} --keyring-backend=test --chain-id ${CO_CHAIN} --yes \
     --contract ./data/train.json --channel ${SOURCE01_CHAN}:${SOURCE01_PORT} \
     --contract ./data/hotel.json --channel ${SOURCE02_CHAN}:${SOURCE02_PORT} \
     10 99
