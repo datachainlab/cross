@@ -29,7 +29,7 @@ import (
 
 const (
 	flagInvCheckPeriod = "inv-check-period"
-	flagContractMode   = "contractmode"
+	flagContractMode   = "contract-mode"
 )
 
 var invCheckPeriod uint
