@@ -67,10 +67,13 @@ func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state cross.
 		return nil, fmt.Errorf("signer is not set")
 	}
 	c := NewContext(signers, info.Args)
-
 	defer func() {
 		if e := recover(); e != nil {
-			err = fmt.Errorf("failed to execute a contract: %#v", e)
+			if e2, ok := e.(error); ok {
+				err = fmt.Errorf("error=%v object=%#v", e2.Error(), e)
+			} else {
+				err = fmt.Errorf("type=%T object=%#v", e, e)
+			}
 		}
 	}()
 
