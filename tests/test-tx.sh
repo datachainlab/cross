@@ -21,17 +21,18 @@ HOTEL_CHAIN=ibc2
 ACC0=acc0
 
 # Get contract ops from each nodes
-${NODE_CLI} query contract call --node ${TRAIN_NODE} --from ${ACC0} train reserve 0x00000001 --chain-id ${TRAIN_CHAIN} --save ./data/train.json
-${NODE_CLI} query contract call --node ${HOTEL_NODE} --from ${ACC0} hotel reserve 0x00000002 --chain-id ${HOTEL_CHAIN} --save ./data/hotel.json
+${NODE_CLI} query --home ./data/ibc0/n0/simappcli contract call --node ${TRAIN_NODE} --from ${ACC0} --keyring-backend=test train reserve 0x00000001 --chain-id ${TRAIN_CHAIN} --save ./data/train.json
+${NODE_CLI} query --home ./data/ibc0/n0/simappcli contract call --node ${HOTEL_NODE} --from ${ACC0} --keyring-backend=test hotel reserve 0x00000002 --chain-id ${HOTEL_CHAIN} --save ./data/hotel.json
 
 SOURCE01_CHAN=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."channel-id"')
 SOURCE01_PORT=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."port-id"')
 SOURCE02_CHAN=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."channel-id"')
 SOURCE02_PORT=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."port-id"')
 
-# TODO set some options correctly (timeout, nonce)
+LATEST_HEIGHT=$(${NODE_CLI} --home ./data/ibc0/n0/simappcli status | jq -r '.sync_info.latest_block_height')
+
 # Compose contracts
 ${NODE_CLI} tx --home ./data/ibc0/n0/simappcli cross create --from ${ACC0} --keyring-backend=test --chain-id ${CO_CHAIN} --yes \
     --contract ./data/train.json --channel ${SOURCE01_CHAN}:${SOURCE01_PORT} \
     --contract ./data/hotel.json --channel ${SOURCE02_CHAN}:${SOURCE02_PORT} \
-    10 99
+    $((${LATEST_HEIGHT}+100)) 0
