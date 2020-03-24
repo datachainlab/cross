@@ -18,11 +18,11 @@ CO_CHAIN=ibc0
 TRAIN_CHAIN=ibc1
 HOTEL_CHAIN=ibc2
 
-ACC0=$(${NODE_CLI} keys list --home ./data/ibc0/n0/simappd -o json | jq -r '.[0].address')
+ACC0=acc0
 
 # Get contract ops from each nodes
-${NODE_CLI} query contract call --node ${TRAIN_NODE} --from ${ACC0} train reserve --chain-id ${TRAIN_CHAIN} --save ./data/train.json
-${NODE_CLI} query contract call --node ${HOTEL_NODE} --from ${ACC0} hotel reserve --chain-id ${HOTEL_CHAIN} --save ./data/hotel.json
+${NODE_CLI} query contract call --node ${TRAIN_NODE} --from ${ACC0} train reserve 0x00000001 --chain-id ${TRAIN_CHAIN} --save ./data/train.json
+${NODE_CLI} query contract call --node ${HOTEL_NODE} --from ${ACC0} hotel reserve 0x00000002 --chain-id ${HOTEL_CHAIN} --save ./data/hotel.json
 
 SOURCE01_CHAN=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."channel-id"')
 SOURCE01_PORT=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."port-id"')
