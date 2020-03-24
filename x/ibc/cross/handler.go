@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
 // NewHandler returns a handler
@@ -49,7 +50,7 @@ Steps:
 func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result, error) {
 	err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 	}
 	return &sdk.Result{}, nil
 }
@@ -65,7 +66,7 @@ Steps:
 func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataPrepare) (*sdk.Result, error) {
 	err := k.PrepareTransaction(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data, msg.Signer)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
 	return &sdk.Result{}, nil
 }
@@ -82,11 +83,13 @@ Steps:
 func handlePacketDataPrepareResult(ctx sdk.Context, k Keeper, msg channeltypes.MsgPacket, data PacketDataPrepareResult) (*sdk.Result, error) {
 	canMulticast, isCommitable, err := k.ReceivePrepareResultPacket(ctx, msg.Packet, data)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(types.ErrFailedRecievePrepareResult, err.Error())
 	}
 	if canMulticast {
-		err := k.MulticastCommitPacket(ctx, data.TxID, msg.Signer, isCommitable)
-		return &sdk.Result{}, err
+		if err := k.MulticastCommitPacket(ctx, data.TxID, msg.Signer, isCommitable); err != nil {
+			return nil, sdkerrors.Wrap(types.ErrFailedMulticastCommitPacket, err.Error())
+		}
+		return &sdk.Result{}, nil
 	} else {
 		return &sdk.Result{}, nil
 	}
@@ -102,7 +105,7 @@ Steps:
 func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataCommit) (*sdk.Result, error) {
 	err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(types.ErrFailedReceiveCommitPacket, err.Error())
 	}
 
 	// FIXME set transactionID that is taken from packet or state
