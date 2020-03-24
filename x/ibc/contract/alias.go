@@ -16,6 +16,7 @@ type (
 	Method           = keeper.Method
 	StateProvider    = keeper.StateProvider
 	Context          = keeper.Context
+	Contract         = keeper.Contract
 	MsgContractCall  = types.MsgContractCall
 	ContractResponse = types.ContractResponse
 )

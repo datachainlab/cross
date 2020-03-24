@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	simappcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -88,6 +89,8 @@ var (
 	allowedReceivingModAcc = map[string]bool{
 		distr.ModuleName: true,
 	}
+
+	DefaultContractHandlerProvider = simappcontract.CounterContractHandlerProvider
 )
 
 var _ App = (*SimApp)(nil)

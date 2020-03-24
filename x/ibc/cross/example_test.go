@@ -25,6 +25,7 @@ import (
 	ibcante "github.com/cosmos/cosmos-sdk/x/ibc/ante"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 	"github.com/datachainlab/cross/example/simapp"
+	simappcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/datachainlab/cross/x/ibc/store/lock"
@@ -113,8 +114,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	).WithKeybase(kb)
 
 	app0 := suite.createApp("app0", simapp.DefaultContractHandlerProvider, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc}) // coordinator node
-	app1 := suite.createApp("app1", getTrainContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
-	app2 := suite.createApp("app2", getHotelContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
+	app1 := suite.createApp("app1", simappcontract.TrainReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
+	app2 := suite.createApp("app2", simappcontract.HotelReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
 
 	ch0to1 := cross.NewChannelInfo(cross.RouterKey, "testchannelzeroone") // app0 -> app1
 	ch1to0 := cross.NewChannelInfo(cross.RouterKey, "testchannelonezero") // app1 -> app
@@ -144,21 +145,21 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		app2,
 	)
 
-	trainCall := contract.NewContractCallInfo(trainContractID, reserveFnName, [][]byte{contract.ToBytes(int32(1))})
-	hotelCall := contract.NewContractCallInfo(hotelContractID, reserveFnName, [][]byte{contract.ToBytes(int32(8))})
+	trainCall := contract.NewContractCallInfo(simappcontract.TrainContractID, simappcontract.ReserveFnName, [][]byte{contract.ToBytes(int32(1))})
+	hotelCall := contract.NewContractCallInfo(simappcontract.HotelContractID, simappcontract.ReserveFnName, [][]byte{contract.ToBytes(int32(8))})
 
 	var tss = []cross.ContractTransaction{
 		cross.NewContractTransaction(
 			ch0to1,
 			[]sdk.AccAddress{signer1Info.GetAddress()},
 			trainCall.Bytes(),
-			[]cross.OP{lock.Write{K: makeSeatKey(1), V: signer1Info.GetAddress()}},
+			[]cross.OP{lock.Write{K: simappcontract.MakeSeatKey(1), V: signer1Info.GetAddress()}},
 		),
 		cross.NewContractTransaction(
 			ch0to2,
 			[]sdk.AccAddress{signer2Info.GetAddress()},
 			hotelCall.Bytes(),
-			[]cross.OP{lock.Write{K: makeRoomKey(8), V: signer2Info.GetAddress()}},
+			[]cross.OP{lock.Write{K: simappcontract.MakeRoomKey(8), V: signer2Info.GetAddress()}},
 		),
 	}
 	var txID cross.TxID
@@ -381,70 +382,6 @@ func (suite *ExampleTestSuite) getAndIncrAccountSeq(chainID string, address sdk.
 	seq := suite.getAccountSeq(chainID, address)
 	suite.incrAccountSeq(chainID, address)
 	return seq
-}
-
-const (
-	trainContractID = "train"
-	hotelContractID = "hotel"
-	reserveFnName   = "reserve"
-)
-
-func makeSeatKey(id int32) []byte {
-	return []byte(fmt.Sprintf("seat/%v", id))
-}
-
-func getTrainContractHandler(k contract.Keeper) cross.ContractHandler {
-	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore) cross.State {
-		return lock.NewStore(store)
-	})
-
-	c := contract.NewContract([]contract.Method{
-		{
-			Name: reserveFnName,
-			F: func(ctx contract.Context, store cross.Store) error {
-				reserver := ctx.Signers()[0]
-				seatID := contract.Int32(ctx.Args()[0])
-				key := makeSeatKey(seatID)
-				if store.Has(key) {
-					return fmt.Errorf("seat %v is already reserved", seatID)
-				} else {
-					store.Set(key, reserver)
-				}
-				return nil
-			},
-		},
-	})
-	contractHandler.AddRoute(trainContractID, c)
-	return contractHandler
-}
-
-func makeRoomKey(id int32) []byte {
-	return []byte(fmt.Sprintf("room/%v", id))
-}
-
-func getHotelContractHandler(k contract.Keeper) cross.ContractHandler {
-	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore) cross.State {
-		return lock.NewStore(store)
-	})
-
-	c := contract.NewContract([]contract.Method{
-		{
-			Name: reserveFnName,
-			F: func(ctx contract.Context, store cross.Store) error {
-				reserver := ctx.Signers()[0]
-				roomID := contract.Int32(ctx.Args()[0])
-				key := makeRoomKey(roomID)
-				if store.Has(key) {
-					return fmt.Errorf("room %v is already reserved", roomID)
-				} else {
-					store.Set(key, reserver)
-				}
-				return nil
-			},
-		},
-	})
-	contractHandler.AddRoute(hotelContractID, c)
-	return contractHandler
 }
 
 /**
