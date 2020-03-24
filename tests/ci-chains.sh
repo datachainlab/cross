@@ -12,7 +12,7 @@ cd ./relayer
 echo "Building Relayer..."
 make build
 
-export RELAYER=${RELAYER_DIR}/relayer/build/rly
+export RELAYER_CLI=${RELAYER_DIR}/relayer/build/rly
 
 cd ${PREV_DIR}
 

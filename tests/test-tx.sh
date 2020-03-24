@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 # Ensure jq is installed
 if [[ ! -x "$(which jq)" ]]; then
@@ -8,6 +8,8 @@ if [[ ! -x "$(which jq)" ]]; then
   exit 1
 fi
 
+RELAYER_CMD="${RELAYER_CLI} --home $(pwd)/.relayer"
+NODE_CLI=$(pwd)/../build/simappcli
 # NODE_URL
 CO_NODE=tcp://localhost:26657
 TRAIN_NODE=tcp://localhost:26557
@@ -22,9 +24,14 @@ ACC0=$(${NODE_CLI} keys list --home ./data/ibc0/n0/simappd -o json | jq -r '.[0]
 ${NODE_CLI} query contract call --node ${TRAIN_NODE} --from ${ACC0} train reserve --chain-id ${TRAIN_CHAIN} --save ./data/train.json
 ${NODE_CLI} query contract call --node ${HOTEL_NODE} --from ${ACC0} hotel reserve --chain-id ${HOTEL_CHAIN} --save ./data/hotel.json
 
+SOURCE01_CHAN=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."channel-id"')
+SOURCE01_PORT=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."port-id"')
+SOURCE02_CHAN=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."channel-id"')
+SOURCE02_PORT=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."port-id"')
+
 # TODO set some options correctly (timeout, nonce)
 # Compose contracts
 ${NODE_CLI} tx cross create --from ${ACC0} --chain-id ${CO_CHAIN} --yes \
-    --contract ./data/train.json --channel mychan:myport \
-    --contract ./data/hotel.json --channel mychan:myport \
+    --contract ./data/train.json --channel ${SOURCE01_CHAN}:${SOURCE01_PORT} \
+    --contract ./data/hotel.json --channel ${SOURCE02_CHAN}:${SOURCE02_PORT} \
     10 99

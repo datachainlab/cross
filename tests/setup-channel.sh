@@ -2,7 +2,7 @@
 set -e
 
 NODE_NAME=simappcli
-RELAYER_CMD="${RELAYER} --home $(pwd)/.relayer"
+RELAYER_CMD="${RELAYER_CLI} --home $(pwd)/.relayer"
 
 # First initialize your configuration for the relayer
 ${RELAYER_CMD} config init
