@@ -17,22 +17,65 @@ HOTEL_NODE=tcp://localhost:26457
 CO_CHAIN=ibc0
 TRAIN_CHAIN=ibc1
 HOTEL_CHAIN=ibc2
+CO_HOME=./data/ibc0/n0/simappcli
+TRAIN_HOME=./data/ibc1/n0/simappcli
+HOTEL_HOME=./data/ibc2/n0/simappcli
+WAIT_NEW_BLOCK=3s
 
 ACC0=acc0
 
 # Get contract ops from each nodes
-${NODE_CLI} query --home ./data/ibc0/n0/simappcli contract call --node ${TRAIN_NODE} --from ${ACC0} --keyring-backend=test train reserve 0x00000001 --chain-id ${TRAIN_CHAIN} --save ./data/train.json
-${NODE_CLI} query --home ./data/ibc0/n0/simappcli contract call --node ${HOTEL_NODE} --from ${ACC0} --keyring-backend=test hotel reserve 0x00000002 --chain-id ${HOTEL_CHAIN} --save ./data/hotel.json
+${NODE_CLI} query --home ${CO_HOME} contract call --node ${TRAIN_NODE} --from ${ACC0} --keyring-backend=test train reserve 0x00000001 --chain-id ${TRAIN_CHAIN} --save ./data/train.json
+${NODE_CLI} query --home ${CO_HOME} contract call --node ${HOTEL_NODE} --from ${ACC0} --keyring-backend=test hotel reserve 0x00000002 --chain-id ${HOTEL_CHAIN} --save ./data/hotel.json
 
-SOURCE01_CHAN=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."channel-id"')
-SOURCE01_PORT=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."port-id"')
-SOURCE02_CHAN=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."channel-id"')
-SOURCE02_PORT=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."port-id"')
+SRC01_CHAN=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."channel-id"')
+SRC01_PORT=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src."port-id"')
+DST01_CHAN=$(${RELAYER_CMD} paths show path01 --json | jq -r '.dst."channel-id"')
+DST01_PORT=$(${RELAYER_CMD} paths show path01 --json | jq -r '.dst."port-id"')
 
-LATEST_HEIGHT=$(${NODE_CLI} --home ./data/ibc0/n0/simappcli status | jq -r '.sync_info.latest_block_height')
+SRC02_CHAN=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."channel-id"')
+SRC02_PORT=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src."port-id"')
+DST02_CHAN=$(${RELAYER_CMD} paths show path02 --json | jq -r '.dst."channel-id"')
+DST02_PORT=$(${RELAYER_CMD} paths show path02 --json | jq -r '.dst."port-id"')
 
-# Compose contracts
+RELAYER0=$(${NODE_CLI} --home ${CO_HOME} --keyring-backend=test keys show ${ACC0} -a)
+RELAYER1=$(${NODE_CLI} --home ${TRAIN_HOME} --keyring-backend=test keys show ${ACC0} -a)
+RELAYER2=$(${NODE_CLI} --home ${HOTEL_HOME} --keyring-backend=test keys show ${ACC0} -a)
+
+### Broadcast MsgInitiate
+LATEST_HEIGHT=$(${NODE_CLI} --home ${CO_HOME} status | jq -r '.sync_info.latest_block_height')
 ${NODE_CLI} tx --home ./data/ibc0/n0/simappcli cross create --from ${ACC0} --keyring-backend=test --chain-id ${CO_CHAIN} --yes \
-    --contract ./data/train.json --channel ${SOURCE01_CHAN}:${SOURCE01_PORT} \
-    --contract ./data/hotel.json --channel ${SOURCE02_CHAN}:${SOURCE02_PORT} \
+    --contract ./data/train.json --channel ${SRC01_CHAN}:${SRC01_PORT} \
+    --contract ./data/hotel.json --channel ${SRC02_CHAN}:${SRC02_PORT} \
     $((${LATEST_HEIGHT}+100)) 0
+###
+
+sleep ${WAIT_NEW_BLOCK}
+
+### TRAIN_CHAIN receives the PacketDataPrepare
+CLIENT_ID=$(${RELAYER_CMD} paths show path01 --json | jq -r '.dst["client-id"]')
+${RELAYER_CMD} transactions raw update-client ${TRAIN_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${TRAIN_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${NODE_CLI} tx --home ${CO_HOME} relayer relay \
+  --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER1} --yes \
+  ${INCLUDED_AT} ${SRC01_PORT} ${SRC01_CHAN} 1 ${DST01_PORT} ${DST01_CHAN} 0 > packet0.json
+${NODE_CLI} tx --home ${TRAIN_HOME} sign ./packet0.json --from ${RELAYER1} --keyring-backend=test --yes > packet0-signed.json
+${NODE_CLI} tx --home ${TRAIN_HOME} broadcast ./packet0-signed.json --from ${RELAYER1} --keyring-backend=test --yes
+###
+
+### HOTEL_CHAIN receives the PacketDataPrepare
+CLIENT_ID=$(${RELAYER_CMD} paths show path02 --json | jq -r '.dst["client-id"]')
+${RELAYER_CMD} transactions raw update-client ${HOTEL_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${HOTEL_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${NODE_CLI} tx --home ${CO_HOME} relayer relay \
+  --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER2} --yes \
+  ${INCLUDED_AT} ${SRC02_PORT} ${SRC02_CHAN} 1 ${DST02_PORT} ${DST02_CHAN} 1 > packet1.json
+${NODE_CLI} tx --home ${HOTEL_HOME} sign ./packet1.json --from ${RELAYER2} --keyring-backend=test --yes > packet1-signed.json
+${NODE_CLI} tx --home ${HOTEL_HOME} broadcast ./packet1-signed.json --from ${RELAYER2} --keyring-backend=test --yes
+###
+
+sleep ${WAIT_NEW_BLOCK}
+
+### Coordinator receives PacketDataPrepareResult
+# TODO implements
+###

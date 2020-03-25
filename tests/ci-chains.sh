@@ -7,8 +7,9 @@ RELAYER_DIR=$(mktemp -d)
 echo "RELAYER_DIR is ${RELAYER_DIR}"
 
 cd ${RELAYER_DIR}
-git clone https://github.com/cosmos/relayer.git
+git clone https://github.com/datachainlab/relayer
 cd ./relayer
+git checkout fix-output-flags
 echo "Building Relayer..."
 make build
 

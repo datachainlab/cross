@@ -83,6 +83,8 @@ ${NODE_CLI} config --home $chainid2/$gclpth node http://localhost:26457 &> /dev/
 
 echo "Import key"
 jq -r .secret ./$chainid0/n0/${NODE_NAME}/key_seed.json | ${NODE_CLI} keys --keyring-backend test --home $chainid0/$gclpth add acc0 --recover
+jq -r .secret ./$chainid1/n0/${NODE_NAME}/key_seed.json | ${NODE_CLI} keys --keyring-backend test --home $chainid1/$gclpth add acc0 --recover
+jq -r .secret ./$chainid2/n0/${NODE_NAME}/key_seed.json | ${NODE_CLI} keys --keyring-backend test --home $chainid2/$gclpth add acc0 --recover
 
 echo "Starting ${NODED_NAME} instances..."
 ${NODED_CLI} --home $NODE_DATA/$chainid0/n0/${NODED_NAME} start --pruning=nothing > $chainid0.log 2>&1 &

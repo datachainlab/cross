@@ -52,7 +52,7 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result,
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 	}
-	return &sdk.Result{}, nil
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
 /*
@@ -68,7 +68,7 @@ func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler Contract
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
-	return &sdk.Result{}, nil
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
 /*
@@ -89,9 +89,9 @@ func handlePacketDataPrepareResult(ctx sdk.Context, k Keeper, msg channeltypes.M
 		if err := k.MulticastCommitPacket(ctx, data.TxID, msg.Signer, isCommitable); err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedMulticastCommitPacket, err.Error())
 		}
-		return &sdk.Result{}, nil
+		return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 	} else {
-		return &sdk.Result{}, nil
+		return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 	}
 }
 
@@ -114,12 +114,12 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 		return nil, err
 	}
 
-	return &sdk.Result{}, nil
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
 func handleAcknowledgePacket(ctx sdk.Context, k Keeper, msg channeltypes.MsgAcknowledgement, ack AckDataCommit, data PacketDataCommit) (*sdk.Result, error) {
 	if err := k.ReceiveAckPacket(ctx, ack, data.TxID); err != nil {
 		return nil, err
 	}
-	return &sdk.Result{}, nil
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }

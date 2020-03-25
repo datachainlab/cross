@@ -7,6 +7,7 @@ import (
 	simappcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/relayer"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -72,6 +73,7 @@ var (
 		transfer.AppModuleBasic{},
 		cross.AppModuleBasic{},
 		contract.AppModuleBasic{},
+		relayer.AppModuleBasic{},
 	)
 
 	// module account permissions
