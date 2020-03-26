@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -29,9 +30,9 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "relay [src-height] [src-port] [src-channel] [src-seq] [dst-port] [dst-channel] [txIdx]",
+		Use:   "relay [src-height] [src-port] [src-channel] [src-seq] [dst-port] [dst-channel]",
 		Short: "relay each packets",
-		Args:  cobra.ExactArgs(7),
+		Args:  cobra.ExactArgs(6),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
@@ -47,13 +48,8 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			dstPort, dstChannel := args[4], args[5]
-			txIndex, err := strconv.Atoi(args[6])
-			if err != nil {
-				return err
-			}
 
 			events := []string{
-				fmt.Sprintf("message.%v = '%v'", "action", "cross_initiate"),
 				fmt.Sprintf("%v.%v = '%v'", channeltypes.EventTypeSendPacket, channeltypes.AttributeKeySrcPort, srcPort),
 				fmt.Sprintf("%v.%v = '%v'", channeltypes.EventTypeSendPacket, channeltypes.AttributeKeySrcChannel, srcChannel),
 				fmt.Sprintf("%v.%v = '%v'", channeltypes.EventTypeSendPacket, channeltypes.AttributeKeySequence, srcSeq),
@@ -69,23 +65,9 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 			} else if resTx.TotalCount > 1 {
 				return fmt.Errorf("multiple events found")
 			}
-
-			var count = 0
-			var data []byte
-		L:
-			for _, ev := range resTx.Txs[0].TxResult.Events {
-				if ev.Type == channeltypes.EventTypeSendPacket {
-					if count != txIndex {
-						count++
-						continue
-					}
-					for _, attr := range ev.GetAttributes() {
-						if bytes.Equal(attr.GetKey(), []byte(channeltypes.AttributeKeyData)) {
-							data = attr.GetValue()
-							break L
-						}
-					}
-				}
+			data, err := parseEvents(resTx.Txs[0].TxResult.GetEvents(), uint64(srcSeq), srcPort, srcChannel, dstPort, dstChannel)
+			if err != nil {
+				return err
 			}
 
 			var packetData exported.PacketDataI
@@ -124,4 +106,48 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(flagRelayerAddress, "", "")
 	cmd.MarkFlagRequired(flagRelayerAddress)
 	return cmd
+}
+
+func parseEvents(events []abci.Event, srcSeq uint64, srcPort, srcChannel, dstPort, dstChannel string) ([]byte, error) {
+L:
+	for _, ev := range events {
+		if ev.Type != channeltypes.EventTypeSendPacket {
+			continue
+		}
+		var data []byte
+		for _, attr := range ev.GetAttributes() {
+			v := attr.GetValue()
+			switch string(attr.GetKey()) {
+			case channeltypes.AttributeKeyData:
+				data = v
+			case channeltypes.AttributeKeySrcPort:
+				if srcPort != string(v) {
+					continue L
+				}
+			case channeltypes.AttributeKeySrcChannel:
+				if srcChannel != string(v) {
+					continue L
+				}
+			case channeltypes.AttributeKeySequence:
+				if fmt.Sprint(srcSeq) != string(v) {
+					continue L
+				}
+			case channeltypes.AttributeKeyDstPort:
+				if dstPort != string(v) {
+					continue L
+				}
+			case channeltypes.AttributeKeyDstChannel:
+				if dstChannel != string(v) {
+					continue L
+				}
+			default:
+				continue
+			}
+		}
+		if data == nil {
+			panic("data must not be empty")
+		}
+		return data, nil
+	}
+	return nil, errors.New("data not found")
 }

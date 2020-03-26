@@ -7,6 +7,11 @@ import (
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 )
 
+const (
+	PREPARE_STATUS_OK uint8 = iota + 1
+	PREPARE_STATUS_FAILED
+)
+
 type PacketDataPrepare struct {
 	Sender              sdk.AccAddress
 	TxID                TxID
@@ -34,13 +39,8 @@ func (p PacketDataPrepare) GetTimeoutHeight() uint64 {
 }
 
 func (p PacketDataPrepare) Type() string {
-	return "cross/prepare"
+	return TypePrepare
 }
-
-const (
-	PREPARE_STATUS_OK uint8 = iota + 1
-	PREPARE_STATUS_FAILED
-)
 
 type PacketDataPrepareResult struct {
 	Sender  sdk.AccAddress
@@ -66,7 +66,7 @@ func (p PacketDataPrepareResult) GetTimeoutHeight() uint64 {
 }
 
 func (p PacketDataPrepareResult) Type() string {
-	return "cross/prepareresult"
+	return TypePrepareResult
 }
 
 func (p PacketDataPrepareResult) IsOK() bool {
@@ -97,7 +97,7 @@ func (p PacketDataCommit) GetTimeoutHeight() uint64 {
 }
 
 func (p PacketDataCommit) Type() string {
-	return "cross/commit"
+	return TypeCommit
 }
 
 var _ channelexported.PacketAcknowledgementI = AckDataCommit{}

@@ -25,6 +25,11 @@ const (
 
 	PREPARE_STATUS_FAILED = types.PREPARE_STATUS_FAILED
 	PREPARE_STATUS_OK     = types.PREPARE_STATUS_OK
+
+	TypeInitiate      = types.TypeInitiate
+	TypePrepare       = types.TypePrepare
+	TypePrepareResult = types.TypePrepareResult
+	TypeCommit        = types.TypeCommit
 )
 
 // nolint
