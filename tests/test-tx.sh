@@ -97,3 +97,27 @@ ${NODE_CLI} tx --home ${HOTEL_HOME} relayer relay \
 ${NODE_CLI} tx --home ${CO_HOME} sign ./packet3.json --from ${RELAYER0} --keyring-backend=test --yes > packet3-signed.json
 ${NODE_CLI} tx --home ${CO_HOME} broadcast ./packet3-signed.json --broadcast-mode=block --from ${RELAYER0} --keyring-backend=test --yes
 ###
+
+sleep ${WAIT_NEW_BLOCK}
+
+### TRAIN_CHAIN receives PacketDataCommit from coordinator
+CLIENT_ID=$(${RELAYER_CMD} paths show path01 --json | jq -r '.dst["client-id"]')
+${RELAYER_CMD} transactions raw update-client ${TRAIN_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${TRAIN_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${NODE_CLI} tx --home ${CO_HOME} relayer relay \
+  --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER1} --yes \
+  ${INCLUDED_AT} ${SRC01_PORT} ${SRC01_CHAN} 2 ${DST01_PORT} ${DST01_CHAN} > packet4.json
+${NODE_CLI} tx --home ${TRAIN_HOME} sign ./packet4.json --from ${RELAYER1} --keyring-backend=test --yes > packet4-signed.json
+${NODE_CLI} tx --home ${TRAIN_HOME} broadcast ./packet4-signed.json --broadcast-mode=block --from ${RELAYER1} --keyring-backend=test --yes
+###
+
+### HOTEL_CHAIN receives PacketDataCommit from coordinator
+CLIENT_ID=$(${RELAYER_CMD} paths show path02 --json | jq -r '.dst["client-id"]')
+${RELAYER_CMD} transactions raw update-client ${HOTEL_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${HOTEL_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${NODE_CLI} tx --home ${CO_HOME} relayer relay \
+  --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER2} --yes \
+  ${INCLUDED_AT} ${SRC02_PORT} ${SRC02_CHAN} 2 ${DST02_PORT} ${DST02_CHAN} > packet5.json
+${NODE_CLI} tx --home ${HOTEL_HOME} sign ./packet5.json --from ${RELAYER2} --keyring-backend=test --yes > packet5-signed.json
+${NODE_CLI} tx --home ${HOTEL_HOME} broadcast ./packet5-signed.json --broadcast-mode=block --from ${RELAYER2} --keyring-backend=test --yes
+###
