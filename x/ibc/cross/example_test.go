@@ -327,24 +327,6 @@ func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, se
 	}
 }
 
-func (suite *ExampleTestSuite) buildAckMsgAndDoRelay(ackData cross.AckDataCommit, packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
-	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
-	suite.True(ok)
-	res := sender.app.Query(abci.RequestQuery{
-		Path:   "store/ibc/key",
-		Data:   ibctypes.KeyPacketAcknowledgement(packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence()),
-		Height: int64(state.GetLatestHeight()),
-		Prove:  true,
-	})
-	suite.True(res.IsOK())
-	proof := commitment.MerkleProof{Proof: res.Proof}
-
-	msg := channeltypes.NewMsgAcknowledgement(packet, ackData, proof, uint64(state.GetLatestHeight()), relayer.GetAddress())
-	if err := suite.doRelay(msg, sender, receiver, relayer, txBuilder); err != nil {
-		suite.FailNow(err.Error())
-	}
-}
-
 func (suite *ExampleTestSuite) doRelay(msg sdk.Msg, sender, receiver *appContext, relayer crkeys.Info, txBuilder authtypes.TxBuilder) error {
 	var err error
 	stdTx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, nil, "")

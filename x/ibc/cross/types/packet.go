@@ -4,13 +4,15 @@ import (
 	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
+	"github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 )
 
 const (
 	PREPARE_STATUS_OK uint8 = iota + 1
 	PREPARE_STATUS_FAILED
 )
+
+var _ exported.PacketDataI = (*PacketDataPrepare)(nil)
 
 type PacketDataPrepare struct {
 	Sender              sdk.AccAddress
@@ -41,6 +43,8 @@ func (p PacketDataPrepare) GetTimeoutHeight() uint64 {
 func (p PacketDataPrepare) Type() string {
 	return TypePrepare
 }
+
+var _ exported.PacketDataI = (*PacketDataPrepareResult)(nil)
 
 type PacketDataPrepareResult struct {
 	Sender  sdk.AccAddress
@@ -73,6 +77,8 @@ func (p PacketDataPrepareResult) IsOK() bool {
 	return p.Status == PREPARE_STATUS_OK
 }
 
+var _ exported.PacketDataI = (*PacketDataCommit)(nil)
+
 type PacketDataCommit struct {
 	Sender        sdk.AccAddress
 	TxID          TxID
@@ -100,17 +106,29 @@ func (p PacketDataCommit) Type() string {
 	return TypeCommit
 }
 
-var _ channelexported.PacketAcknowledgementI = AckDataCommit{}
+var _ exported.PacketDataI = (*PacketDataAckCommit)(nil)
 
-type AckDataCommit struct {
+type PacketDataAckCommit struct {
+	TxID    TxID
 	TxIndex TxIndex
 }
 
-func NewAckDataCommit(txIndex TxIndex) AckDataCommit {
-	return AckDataCommit{TxIndex: txIndex}
+func NewPacketDataAckCommit(txID TxID, txIndex TxIndex) PacketDataAckCommit {
+	return PacketDataAckCommit{TxID: txID, TxIndex: txIndex}
 }
 
-// GetBytes implements channelexported.PacketAcknowledgementI
-func (ack AckDataCommit) GetBytes() []byte {
-	return []byte{ack.TxIndex}
+func (p PacketDataAckCommit) ValidateBasic() error {
+	return nil
+}
+
+func (p PacketDataAckCommit) GetBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
+}
+
+func (p PacketDataAckCommit) GetTimeoutHeight() uint64 {
+	return math.MaxUint64
+}
+
+func (p PacketDataAckCommit) Type() string {
+	return TypeAckCommit
 }

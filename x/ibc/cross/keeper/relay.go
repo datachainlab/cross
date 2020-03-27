@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
+	"github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
@@ -36,26 +37,15 @@ func (k Keeper) MulticastPreparePacket(
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
 		}
 
-		// get the next sequence
-		seq, found := k.channelKeeper.GetNextSequenceSend(ctx, t.Source.Port, t.Source.Channel)
-		if !found {
-			return channel.ErrSequenceSendNotFound
-		}
-
+		data := types.NewPacketDataPrepare(sender, txID, types.TxIndex(id), transactions[id])
 		s := transactions[id].Source
-		p := k.CreatePreparePacket(
+		err := k.sendPacket(
 			ctx,
-			seq,
-			s.Port,
-			s.Channel,
-			c.Counterparty.PortID,
-			c.Counterparty.ChannelID,
-			txID,
-			types.TxIndex(id),
-			transactions[id],
-			sender,
+			data,
+			s.Port, s.Channel,
+			c.Counterparty.PortID, c.Counterparty.ChannelID,
 		)
-		if err := k.channelKeeper.SendPacket(ctx, p); err != nil {
+		if err != nil {
 			return err
 		}
 		hops := c.GetConnectionHops()
@@ -111,15 +101,13 @@ func (k Keeper) PrepareTransaction(
 		status = types.PREPARE_STATUS_FAILED
 	}
 
-	// get the next sequence
-	seq, found := k.channelKeeper.GetNextSequenceSend(ctx, destinationPort, destinationChannel)
-	if !found {
-		return channel.ErrSequenceSendNotFound
-	}
-
 	// Send a Prepared Packet to coordinator (reply to source channel)
-	packet := k.CreatePrepareResultPacket(seq, destinationPort, destinationChannel, sourcePort, sourceChannel, sender, data.TxID, data.TxIndex, status)
-	if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
+	if err := k.sendPacket(
+		ctx,
+		types.NewPacketDataPrepareResult(sender, data.TxID, data.TxIndex, status),
+		destinationPort, destinationChannel,
+		sourcePort, sourceChannel,
+	); err != nil {
 		return err
 	}
 
@@ -161,28 +149,6 @@ func (k Keeper) prepareTransaction(
 		return fmt.Errorf("unexpected ops")
 	}
 	return nil
-}
-
-func (k Keeper) CreatePrepareResultPacket(
-	seq uint64,
-	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
-	sender sdk.AccAddress,
-	txID types.TxID,
-	txIndex types.TxIndex,
-	status uint8,
-) channel.Packet {
-	packetData := types.NewPacketDataPrepareResult(sender, txID, txIndex, status)
-	return channel.NewPacket(
-		packetData,
-		seq,
-		sourcePort,
-		sourceChannel,
-		destinationPort,
-		destinationChannel,
-	)
 }
 
 func (k Keeper) ReceivePrepareResultPacket(
@@ -344,6 +310,53 @@ func (k Keeper) ReceiveCommitPacket(
 		return err
 	}
 
+	return nil
+}
+
+func (k Keeper) SendAckCommitPacket(
+	ctx sdk.Context,
+	txID types.TxID,
+	txIndex types.TxIndex,
+	sourcePort,
+	sourceChannel,
+	destinationPort,
+	destinationChannel string,
+) error {
+	return k.sendPacket(ctx, types.NewPacketDataAckCommit(txID, txIndex), sourcePort, sourceChannel, destinationPort, destinationChannel)
+}
+
+func (k Keeper) sendPacket(
+	ctx sdk.Context,
+	data exported.PacketDataI,
+	sourcePort,
+	sourceChannel,
+	destinationPort,
+	destinationChannel string,
+) error {
+	// get the next sequence
+	seq, found := k.channelKeeper.GetNextSequenceSend(ctx, sourcePort, sourceChannel)
+	if !found {
+		return channel.ErrSequenceSendNotFound
+	}
+	packet := channel.NewPacket(
+		data,
+		seq,
+		sourcePort,
+		sourceChannel,
+		destinationPort,
+		destinationChannel,
+	)
+	return k.channelKeeper.SendPacket(ctx, packet)
+}
+
+func (k Keeper) ReceiveAckPacket(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) error {
+	ci, err := k.EnsureCoordinatorStatus(ctx, txID, CO_STATUS_DECIDED)
+	if err != nil {
+		return err
+	}
+	if !ci.AddAck(txIndex) {
+		return fmt.Errorf("transactionID '%v' is already received", txIndex)
+	}
 	return nil
 }
 

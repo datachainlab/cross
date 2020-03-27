@@ -48,7 +48,7 @@ var (
 	NewPacketDataPrepare       = types.NewPacketDataPrepare
 	NewPacketDataPrepareResult = types.NewPacketDataPrepareResult
 	NewPacketDataCommit        = types.NewPacketDataCommit
-	NewAckDataCommit           = types.NewAckDataCommit
+	NewPacketDataAckCommit     = types.NewPacketDataAckCommit
 )
 
 // nolint
@@ -59,7 +59,7 @@ type (
 	PacketDataPrepare       = types.PacketDataPrepare
 	PacketDataPrepareResult = types.PacketDataPrepareResult
 	PacketDataCommit        = types.PacketDataCommit
-	AckDataCommit           = types.AckDataCommit
+	PacketDataAckCommit     = types.PacketDataAckCommit
 	OP                      = types.OP
 	OPs                     = types.OPs
 	State                   = types.State

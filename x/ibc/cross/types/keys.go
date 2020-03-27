@@ -18,6 +18,7 @@ const (
 	TypePrepare       = "cross_prepare"
 	TypePrepareResult = "cross_prepare_result"
 	TypeCommit        = "cross_commit"
+	TypeAckCommit     = "cross_ack_commit"
 )
 
 const (

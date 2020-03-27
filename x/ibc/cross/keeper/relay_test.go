@@ -708,19 +708,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 
 	suite.Equal(
 		packetCommitment,
-		channeltypes.CommitPacket(
-			actx.app.CrossKeeper.CreatePrepareResultPacket(
-				nextseq,
-				src.Port,
-				src.Channel,
-				dst.Port,
-				dst.Channel,
-				relayer,
-				txID,
-				txIndex,
-				cross.PREPARE_STATUS_OK,
-			).Data,
-		),
+		channeltypes.CommitPacket(types.NewPacketDataPrepareResult(relayer, txID, txIndex, cross.PREPARE_STATUS_OK)),
 	)
 	writer()
 }
