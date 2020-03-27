@@ -17,16 +17,16 @@ func (k Keeper) MulticastPreparePacket(
 	sender sdk.AccAddress,
 	msg types.MsgInitiate,
 	transactions []types.ContractTransaction,
-) error {
+) (types.TxID, error) {
 	if ctx.ChainID() != msg.ChainID {
-		return fmt.Errorf("unexpected chainID: '%v' != '%v'", ctx.ChainID(), msg.ChainID)
+		return types.TxID{}, fmt.Errorf("unexpected chainID: '%v' != '%v'", ctx.ChainID(), msg.ChainID)
 	} else if ctx.BlockHeight() >= msg.TimeoutHeight {
-		return fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
+		return types.TxID{}, fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
 	}
 
 	txID := MakeTxID(ctx, msg)
 	if _, ok := k.GetCoordinator(ctx, txID); ok {
-		return fmt.Errorf("coordinator '%x' already exists", txID)
+		return types.TxID{}, fmt.Errorf("coordinator '%x' already exists", txID)
 	}
 
 	channelInfos := make([]types.ChannelInfo, len(transactions))
@@ -34,7 +34,7 @@ func (k Keeper) MulticastPreparePacket(
 	for id, t := range transactions {
 		c, found := k.channelKeeper.GetChannel(ctx, t.Source.Port, t.Source.Channel)
 		if !found {
-			return sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
+			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
 		}
 
 		data := types.NewPacketDataPrepare(sender, txID, types.TxIndex(id), transactions[id])
@@ -46,7 +46,7 @@ func (k Keeper) MulticastPreparePacket(
 			c.Counterparty.PortID, c.Counterparty.ChannelID,
 		)
 		if err != nil {
-			return err
+			return types.TxID{}, err
 		}
 		hops := c.GetConnectionHops()
 		tss[id] = hops[len(hops)-1]
@@ -55,7 +55,7 @@ func (k Keeper) MulticastPreparePacket(
 
 	k.SetCoordinator(ctx, txID, types.NewCoordinatorInfo(types.CO_STATUS_INIT, tss, channelInfos))
 
-	return nil
+	return txID, nil
 }
 
 func (k Keeper) CreatePreparePacket(

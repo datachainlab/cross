@@ -214,7 +214,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			5,
 			nonce,
 		)
-		err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -260,7 +260,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			3,
 			nonce,
 		)
-		err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -277,7 +277,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			4,
 			nonce,
 		)
-		err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -294,7 +294,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			4,
 			nonce,
 		)
-		err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -357,9 +357,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		256,
 		nonce,
 	)
-	txID := cross.MakeTxID(app0.ctx, msg)
-
-	err = app0.app.CrossKeeper.MulticastPreparePacket(
+	_, err = app0.app.CrossKeeper.MulticastPreparePacket(
 		app0.ctx,
 		initiator,
 		msg,
@@ -393,7 +391,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		app2,
 	)
 
-	err = app0.app.CrossKeeper.MulticastPreparePacket(
+	txID, err := app0.app.CrossKeeper.MulticastPreparePacket(
 		app0.ctx,
 		initiator,
 		msg,

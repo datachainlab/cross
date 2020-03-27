@@ -12,4 +12,6 @@ var (
 	ErrFailedReceiveCommitPacket    = sdkerrors.Register(ModuleName, 6, "failed to receive a CommitPacket")
 	ErrFailedSendAckCommitPacket    = sdkerrors.Register(ModuleName, 7, "failed to send an AckCommitPacket")
 	ErrFailedReceiveAckCommitPacket = sdkerrors.Register(ModuleName, 8, "failed to receive an AckCommitPacket")
+
+	ErrCoordinatorNotFound = sdkerrors.Register(ModuleName, 100, "coordinator not found")
 )

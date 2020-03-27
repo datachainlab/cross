@@ -44,10 +44,10 @@ RELAYER2=$(${NODE_CLI} --home ${HOTEL_HOME} --keyring-backend=test keys show ${A
 
 ### Broadcast MsgInitiate
 LATEST_HEIGHT=$(${NODE_CLI} --home ${CO_HOME} status | jq -r '.sync_info.latest_block_height')
-${NODE_CLI} tx --home ./data/ibc0/n0/simappcli cross create --from ${ACC0} --keyring-backend=test --chain-id ${CO_CHAIN} --yes \
+TX_ID=$(${NODE_CLI} tx --home ./data/ibc0/n0/simappcli cross create --from ${ACC0} --keyring-backend=test --chain-id ${CO_CHAIN} --yes \
     --contract ./data/train.json --channel ${SRC01_CHAN}:${SRC01_PORT} \
     --contract ./data/hotel.json --channel ${SRC02_CHAN}:${SRC02_PORT} \
-    $((${LATEST_HEIGHT}+100)) 0
+    $((${LATEST_HEIGHT}+100)) 0 | jq -r '.data')
 ###
 
 sleep ${WAIT_NEW_BLOCK}
@@ -144,4 +144,16 @@ ${NODE_CLI} tx --home ${HOTEL_HOME} relayer relay \
   ${INCLUDED_AT} ${DST02_PORT} ${DST02_CHAN} 2 ${SRC02_PORT} ${SRC02_CHAN} > packet7.json
 ${NODE_CLI} tx --home ${CO_HOME} sign ./packet7.json --from ${RELAYER0} --keyring-backend=test --yes > packet7-signed.json
 ${NODE_CLI} tx --home ${CO_HOME} broadcast ./packet7-signed.json --broadcast-mode=block --from ${RELAYER0} --keyring-backend=test --yes
+###
+
+sleep ${WAIT_NEW_BLOCK}
+
+### Ensure coordinator status is done
+STATUS=$(${NODE_CLI} query --home ${CO_HOME} cross coordinator ${TX_ID} | jq -r '.completed')
+if [ ${STATUS} = "true" ]; then
+  echo "completed!"
+else
+  echo "failed"
+  exit 1
+fi
 ###

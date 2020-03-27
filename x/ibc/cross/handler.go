@@ -38,11 +38,11 @@ Steps:
 - Multicast a Prepare packet to each participants
 */
 func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result, error) {
-	err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
+	txID, err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 	}
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Data: txID[:], Events: ctx.EventManager().Events()}, nil
 }
 
 /*
