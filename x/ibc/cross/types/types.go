@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -13,6 +14,84 @@ type (
 )
 
 const MaxContractTransactoinNum = math.MaxUint8
+
+const (
+	CO_STATUS_NONE uint8 = iota
+	CO_STATUS_INIT
+	CO_STATUS_DECIDED // abort or commit
+
+	CO_DECISION_NONE uint8 = iota
+	CO_DECISION_COMMIT
+	CO_DECISION_ABORT
+)
+
+type CoordinatorInfo struct {
+	Transactions []string      // {TransactionID => ConnectionID}
+	Channels     []ChannelInfo // {TransactionID => Channel}
+
+	Status                uint8
+	Decision              uint8
+	ConfirmedTransactions []TxIndex // [TransactionID]
+	Acks                  []TxIndex // [TransactionID]
+}
+
+func NewCoordinatorInfo(status uint8, tss []string, channels []ChannelInfo) CoordinatorInfo {
+	if len(tss) != len(channels) {
+		panic("fatal error")
+	}
+	return CoordinatorInfo{Status: status, Transactions: tss, Channels: channels, Decision: CO_DECISION_NONE}
+}
+
+func (ci *CoordinatorInfo) Confirm(txIndex TxIndex, connectionID string) error {
+	for _, id := range ci.ConfirmedTransactions {
+		if txIndex == id {
+			return errors.New("this transaction is already confirmed")
+		}
+	}
+
+	if int(txIndex) >= len(ci.Transactions) {
+		return fmt.Errorf("txIndex '%v' not found", txIndex)
+	} else if cid := ci.Transactions[txIndex]; cid != connectionID {
+		return fmt.Errorf("expected connectionID is '%v', but got '%v'", cid, connectionID)
+	}
+
+	ci.ConfirmedTransactions = append(ci.ConfirmedTransactions, txIndex)
+	return nil
+}
+
+func (ci *CoordinatorInfo) IsCompleted() bool {
+	return len(ci.Transactions) == len(ci.ConfirmedTransactions)
+}
+
+func (ci *CoordinatorInfo) AddAck(txIndex TxIndex) bool {
+	for _, id := range ci.Acks {
+		if txIndex == id {
+			return false
+		}
+	}
+	ci.Acks = append(ci.Acks, txIndex)
+	return true
+}
+
+func (ci *CoordinatorInfo) IsReceivedALLAcks() bool {
+	return len(ci.Transactions) == len(ci.Acks)
+}
+
+const (
+	TX_STATUS_PREPARE uint8 = iota + 1
+	TX_STATUS_COMMIT
+	TX_STATUS_ABORT
+)
+
+type TxInfo struct {
+	Status                  uint8
+	CoordinatorConnectionID string
+	Contract                []byte
+}
+
+func NewTxInfo(status uint8, coordinatorConnectionID string, contract []byte) TxInfo {
+	return TxInfo{Status: status, CoordinatorConnectionID: coordinatorConnectionID, Contract: contract}
+}
 
 type ContractCallResult struct {
 	ChainID  string           `json:"chain_id" yaml:"chain_id"`
