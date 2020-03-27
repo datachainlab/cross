@@ -294,19 +294,27 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		suite.buildMsgAndDoRelay(commitPacketTx1, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
-	// // Confirm ack packet
+	// Receive an Ack packet
 
-	// { // app1
-	// 	suite.updateClient(app0, app1.chainID, app1)
-	// 	suite.updateClient(app1, app0.chainID, app0)
+	{ // app1
+		packet := channeltypes.NewPacket(
+			cross.NewPacketDataAckCommit(txID, 0),
+			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel)
+		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
+		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
+		suite.True(ok)
+		suite.False(ci.IsReceivedALLAcks())
+	}
+	{ // app2
+		packet := channeltypes.NewPacket(
+			cross.NewPacketDataAckCommit(txID, 1),
+			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel)
+		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 
-	// 	suite.buildAckMsgAndDoRelay(cross.NewAckDataCommit(0), commitPacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
-	// }
-	// { // app2
-	// 	suite.updateClient(app0, app2.chainID, app2)
-	// 	suite.updateClient(app2, app0.chainID, app0)
-	// 	suite.buildAckMsgAndDoRelay(cross.NewAckDataCommit(1), commitPacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
-	// }
+		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
+		suite.True(ok)
+		suite.True(ci.IsReceivedALLAcks())
+	}
 }
 
 func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {

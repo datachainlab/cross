@@ -357,6 +357,7 @@ func (k Keeper) ReceiveAckPacket(ctx sdk.Context, txID types.TxID, txIndex types
 	if !ci.AddAck(txIndex) {
 		return fmt.Errorf("transactionID '%v' is already received", txIndex)
 	}
+	k.SetCoordinator(ctx, txID, *ci)
 	return nil
 }
 
