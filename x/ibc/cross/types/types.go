@@ -8,13 +8,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type (
-	TxID    = [32]byte
-	TxIndex = uint8
-)
-
-const MaxContractTransactoinNum = math.MaxUint8
-
 const (
 	CO_STATUS_NONE uint8 = iota
 	CO_STATUS_INIT
@@ -23,6 +16,15 @@ const (
 	CO_DECISION_NONE uint8 = iota
 	CO_DECISION_COMMIT
 	CO_DECISION_ABORT
+)
+
+const (
+	MaxContractTransactoinNum = math.MaxUint8
+)
+
+type (
+	TxID    = HexByteArray32
+	TxIndex = uint8
 )
 
 type CoordinatorInfo struct {
