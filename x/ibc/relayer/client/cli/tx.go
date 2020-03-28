@@ -23,7 +23,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-// This method should be moved into query.go
 func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 	const (
 		flagRelayerAddress = "relayer-address"
@@ -31,7 +30,7 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "relay [src-height] [src-port] [src-channel] [src-seq] [dst-port] [dst-channel]",
-		Short: "relay each packets",
+		Short: "generates a transaction to relay a packet that matches the condition",
 		Args:  cobra.ExactArgs(6),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
@@ -103,7 +102,7 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 	cmd = flags.PostCommands(cmd)[0]
-	cmd.Flags().String(flagRelayerAddress, "", "")
+	cmd.Flags().String(flagRelayerAddress, "", "relayer address")
 	cmd.MarkFlagRequired(flagRelayerAddress)
 	return cmd
 }
