@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"fmt"
+
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,23 +14,27 @@ import (
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
 		switch path[0] {
-		// case types.QueryAddress:
-		// 	// return queryAddress(ctx, path[1:], req, keeper)
+		case types.QueryCoordinatorStatus:
+			return queryCoordinatorStatus(ctx, keeper, req)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown IBC %s query endpoint", types.ModuleName)
 		}
 	}
 }
 
-// func queryAddress(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-// 	address, err := sdk.AccAddressFromBech32(string(req.Data))
-
-// 	if err != nil {
-// 		return nil, sdk.ErrInvalidAddress(address.String())
-// 	}
-
-// 	obj := keeper.Get(ctx, address)
-// 	res, _ := json.Marshal(obj)
-
-// 	return res, nil
-// }
+func queryCoordinatorStatus(ctx sdk.Context, k Keeper, req abci.RequestQuery) ([]byte, error) {
+	var query types.QueryCoordinatorStatusRequest
+	if err := k.cdc.UnmarshalBinaryLengthPrefixed(req.Data, &query); err != nil {
+		return nil, err
+	}
+	ci, ok := k.GetCoordinator(ctx, query.TxID)
+	if !ok {
+		return nil, sdkerrors.Wrapf(types.ErrCoordinatorNotFound, fmt.Sprintf("Coordinator for TxID '%X' not found", query.TxID))
+	}
+	res := types.QueryCoordinatorStatusResponse{
+		TxID:            query.TxID,
+		Completed:       ci.IsReceivedALLAcks(),
+		CoordinatorInfo: *ci,
+	}
+	return k.cdc.MarshalBinaryLengthPrefixed(res)
+}

@@ -28,7 +28,7 @@ func (MsgInitiate) Route() string {
 
 // Type implements sdk.Msg
 func (MsgInitiate) Type() string {
-	return "cross_initiate"
+	return TypeInitiate
 }
 
 // ValidateBasic implements sdk.Msg

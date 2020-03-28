@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -15,8 +16,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
-	"github.com/datachainlab/cross/example/simapp"
 	app "github.com/datachainlab/cross/example/simapp"
+	appcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -26,7 +27,10 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-const flagInvCheckPeriod = "inv-check-period"
+const (
+	flagInvCheckPeriod = "inv-check-period"
+	flagContractMode   = "contract-mode"
+)
 
 var invCheckPeriod uint
 
@@ -70,6 +74,7 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "GA", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+	rootCmd.PersistentFlags().String(flagContractMode, "", "Use specified contract handler")
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
@@ -90,8 +95,8 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 
 	return app.NewSimApp(
 		logger, db, traceStore, true, skipUpgradeHeights, viper.GetString(cli.HomeFlag), invCheckPeriod,
-		simapp.DefaultContractHandlerProvider,
-		simapp.DefaultAnteHandlerProvider,
+		getContractHandler(viper.GetString(flagContractMode)),
+		app.DefaultAnteHandlerProvider,
 		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(viper.GetUint64(server.FlagHaltHeight)),
@@ -105,7 +110,7 @@ func exportAppStateAndTMValidators(
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
 	if height != -1 {
-		gapp := app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider, simapp.DefaultAnteHandlerProvider)
+		gapp := app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), getContractHandler(viper.GetString(flagContractMode)), app.DefaultAnteHandlerProvider)
 		err := gapp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
@@ -113,6 +118,19 @@ func exportAppStateAndTMValidators(
 		return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
 
-	gapp := app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), simapp.DefaultContractHandlerProvider, simapp.DefaultAnteHandlerProvider)
+	gapp := app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), app.DefaultContractHandlerProvider, app.DefaultAnteHandlerProvider)
 	return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+}
+
+func getContractHandler(mode string) app.ContractHandlerProvider {
+	switch mode {
+	case "":
+		return app.DefaultContractHandlerProvider
+	case "train":
+		return appcontract.TrainReservationContractHandler
+	case "hotel":
+		return appcontract.HotelReservationContractHandler
+	default:
+		panic(fmt.Sprintf("unknown contract mode: %v", mode))
+	}
 }

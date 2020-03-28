@@ -6,8 +6,8 @@ Cross is a framework for Cross-chain transaction. It is implemented as [Cosmos m
 
 Cross provides several key features:
 
-- **Cross-chain transaction support** - Supports a transaction that atomically executes each contract functions on multiple blockchain networks(zones).
-- **Smart contract support** - Provides a contract system that can support general smart contracts. Such contracts gain Cross-chain transaction support. Contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
+- **Cross-chain transaction support** - Supports the transaction that atomically executes each smart contract on multiple blockchain networks(zones).
+- **Smart contract support** - Provides the smart contract system that can support general application. Smart contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
 - **Compliant with [ics-004](https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics)** - Supports above features on networks where membership changes dynamically
 
 **This project is currently under development and not production ready.**
@@ -45,11 +45,6 @@ Currently, Contract layer supports only Golang, but there is plan to support EVM
 - A. No. But our protocol requires some assumptions. They are here:
     1. Many assumptions required by [IBC](https://github.com/cosmos/ics/tree/master/spec)
     1. Any [relayers](https://github.com/cosmos/ics/tree/master/spec/ics-018-relayer-algorithms) work as expected.
-
-## TODO
-
-- [ ] Implement CLI commands
-- [ ] Create e2e tests using [relayer](https://github.com/cosmos/relayer)
 
 ## Maintainers
 

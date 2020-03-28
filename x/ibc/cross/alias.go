@@ -11,20 +11,25 @@ const (
 	RouterKey  = types.RouterKey
 	StoreKey   = types.StoreKey
 
-	CO_STATUS_NONE    = keeper.CO_STATUS_NONE
-	CO_STATUS_INIT    = keeper.CO_STATUS_INIT
-	CO_STATUS_DECIDED = keeper.CO_STATUS_DECIDED
+	CO_STATUS_NONE    = types.CO_STATUS_NONE
+	CO_STATUS_INIT    = types.CO_STATUS_INIT
+	CO_STATUS_DECIDED = types.CO_STATUS_DECIDED
 
-	CO_DECISION_NONE   = keeper.CO_DECISION_NONE
-	CO_DECISION_COMMIT = keeper.CO_DECISION_COMMIT
-	CO_DECISION_ABORT  = keeper.CO_DECISION_ABORT
+	CO_DECISION_NONE   = types.CO_DECISION_NONE
+	CO_DECISION_COMMIT = types.CO_DECISION_COMMIT
+	CO_DECISION_ABORT  = types.CO_DECISION_ABORT
 
-	TX_STATUS_PREPARE = keeper.TX_STATUS_PREPARE
-	TX_STATUS_COMMIT  = keeper.TX_STATUS_COMMIT
-	TX_STATUS_ABORT   = keeper.TX_STATUS_ABORT
+	TX_STATUS_PREPARE = types.TX_STATUS_PREPARE
+	TX_STATUS_COMMIT  = types.TX_STATUS_COMMIT
+	TX_STATUS_ABORT   = types.TX_STATUS_ABORT
 
 	PREPARE_STATUS_FAILED = types.PREPARE_STATUS_FAILED
 	PREPARE_STATUS_OK     = types.PREPARE_STATUS_OK
+
+	TypeInitiate      = types.TypeInitiate
+	TypePrepare       = types.TypePrepare
+	TypePrepareResult = types.TypePrepareResult
+	TypeCommit        = types.TypeCommit
 )
 
 // nolint
@@ -43,7 +48,7 @@ var (
 	NewPacketDataPrepare       = types.NewPacketDataPrepare
 	NewPacketDataPrepareResult = types.NewPacketDataPrepareResult
 	NewPacketDataCommit        = types.NewPacketDataCommit
-	NewAckDataCommit           = types.NewAckDataCommit
+	NewPacketDataAckCommit     = types.NewPacketDataAckCommit
 )
 
 // nolint
@@ -54,7 +59,7 @@ type (
 	PacketDataPrepare       = types.PacketDataPrepare
 	PacketDataPrepareResult = types.PacketDataPrepareResult
 	PacketDataCommit        = types.PacketDataCommit
-	AckDataCommit           = types.AckDataCommit
+	PacketDataAckCommit     = types.PacketDataAckCommit
 	OP                      = types.OP
 	OPs                     = types.OPs
 	State                   = types.State

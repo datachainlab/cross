@@ -3,6 +3,7 @@ package contract
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
 )
 
@@ -22,14 +23,14 @@ func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contract
 	ctx = cross.WithSigners(ctx, msg.GetSigners())
 	state, err := contractHandler.Handle(ctx, msg.Contract)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(types.ErrFailedContractHandle, err.Error())
 	}
 	bz, err := k.SerializeOPs(state.OPs())
-	if err != nil {
+	if err != nil { // internal error
 		return nil, err
 	}
 	if err := state.CommitImmediately(); err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(types.ErrFailedCommitStore, err.Error())
 	}
 	return &sdk.Result{Data: bz, Events: ctx.EventManager().Events()}, nil
 }
