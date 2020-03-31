@@ -35,6 +35,8 @@ type WriteOP interface {
 	Value() []byte
 }
 
+var _ ReadOP = (*Read)(nil)
+
 type Read struct {
 	K []byte
 }
@@ -60,6 +62,8 @@ func (r Read) ApplyTo(sdk.KVStore) {}
 func (r Read) String() string {
 	return fmt.Sprintf("Read{%X}", r.K)
 }
+
+var _ WriteOP = (*Write)(nil)
 
 type Write struct {
 	K []byte

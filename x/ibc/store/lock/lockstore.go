@@ -39,6 +39,8 @@ func (ls lockStore) Lock(tp uint8, key []byte) {
 		if err := locks.Append(LOCK_TYPE_WRITE); err != nil {
 			panic(err)
 		}
+	default:
+		panic(fmt.Errorf("unknown lock type '%v'", tp))
 	}
 	ls.locks.Set(key, locks)
 }
