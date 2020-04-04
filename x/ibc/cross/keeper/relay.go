@@ -310,6 +310,7 @@ func (k Keeper) ReceiveCommitPacket(
 			return nil, err
 		}
 		status = types.TX_STATUS_ABORT
+		res = types.ContractHandlerAbortResult{}
 	}
 
 	k.RemoveContractResult(ctx, data.TxID, data.TxIndex)

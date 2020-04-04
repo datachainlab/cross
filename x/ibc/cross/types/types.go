@@ -38,6 +38,16 @@ type ContractHandlerResult interface {
 	GetEvents() sdk.Events
 }
 
+type ContractHandlerAbortResult struct{}
+
+func (ContractHandlerAbortResult) GetData() []byte {
+	return nil
+}
+
+func (ContractHandlerAbortResult) GetEvents() sdk.Events {
+	return nil
+}
+
 type CoordinatorInfo struct {
 	Transactions []string      // {TransactionID => ConnectionID}
 	Channels     []ChannelInfo // {TransactionID => Channel}
