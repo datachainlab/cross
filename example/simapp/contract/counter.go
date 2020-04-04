@@ -34,9 +34,13 @@ func CounterContractHandlerProvider(k contract.Keeper) cross.ContractHandler {
 						fmt.Printf("f0 is called by %v counter=%v\n", ctx.Signers()[0].String(), counter)
 
 						b := make([]byte, 4)
-						binary.BigEndian.PutUint32(b, counter+1)
-
+						counter++
+						binary.BigEndian.PutUint32(b, counter)
 						store.Set(k, b)
+
+						ctx.EventManager().EmitEvent(
+							sdk.NewEvent("counter", sdk.NewAttribute("count", fmt.Sprint(counter))),
+						)
 						return b, nil
 					},
 				},

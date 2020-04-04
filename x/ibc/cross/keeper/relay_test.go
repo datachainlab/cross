@@ -141,7 +141,10 @@ func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.St
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				balance = balance.Add(coin)
 				setBalance(store, ctx.Signers()[0], balance)
-				return nil, nil
+				ctx.EventManager().EmitEvent(
+					sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String())),
+				)
+				return coin.Marshal()
 			},
 		},
 		{
@@ -570,19 +573,46 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		// In a1, execute to commit
 		{
 			capp, _ := app1.Cache()
-			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, 0, true), signer1)
+			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(relayer, txID, 0, true), signer1, func(res cross.ContractHandlerResult) {
+				coin := sdk.NewCoin("tone", sdk.NewInt(80))
+				expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
+				suite.Equal(expectedEvent, res.GetEvents()[0])
+				bz, err := coin.Marshal()
+				if err != nil {
+					suite.FailNow(err.Error())
+				}
+				suite.Equal(bz, res.GetData())
+			})
 		}
 
 		// In a2-0, execute to commit
 		{
 			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 1, true), signer2)
+			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 1, true), signer2, func(res cross.ContractHandlerResult) {
+				coin := sdk.NewCoin("ttwo", sdk.NewInt(60))
+				expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
+				suite.Equal(expectedEvent, res.GetEvents()[0])
+				bz, err := coin.Marshal()
+				if err != nil {
+					suite.FailNow(err.Error())
+				}
+				suite.Equal(bz, res.GetData())
+			})
 		}
 
 		// In a2-1, execute to commit
 		{
 			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 2, true), signer3)
+			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(relayer, txID, 2, true), signer3, func(res cross.ContractHandlerResult) {
+				coin := sdk.NewCoin("tthree", sdk.NewInt(40))
+				expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
+				suite.Equal(expectedEvent, res.GetEvents()[0])
+				bz, err := coin.Marshal()
+				if err != nil {
+					suite.FailNow(err.Error())
+				}
+				suite.Equal(bz, res.GetData())
+			})
 		}
 
 		// In a1, execute to abort
@@ -605,11 +635,12 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	}
 }
 
-func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
-	_, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress, checkResult func(cross.ContractHandlerResult)) {
+	res, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
+	checkResult(res)
 	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID, packet.TxIndex)
 	if !suite.True(found) {
 		return
