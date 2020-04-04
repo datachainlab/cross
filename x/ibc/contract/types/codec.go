@@ -15,4 +15,5 @@ func init() {
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgContractCall{}, "contract/MsgContractCall", nil)
 	cdc.RegisterConcrete(ContractCallInfo{}, "contract/ContractCallInfo", nil)
+	cdc.RegisterConcrete(ContractHandlerResult{}, "contract/ContractHandlerResult", nil)
 }

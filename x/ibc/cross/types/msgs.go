@@ -90,7 +90,7 @@ type ContractTransaction struct {
 
 	Signers  []sdk.AccAddress `json:"signers" yaml:"signers"`
 	Contract []byte           `json:"contract" yaml:"contract"`
-	OPs      []OP             `json:"ops" yaml:"ops"`
+	OPs      OPs              `json:"ops" yaml:"ops"`
 }
 
 type ContractTransactions = []ContractTransaction

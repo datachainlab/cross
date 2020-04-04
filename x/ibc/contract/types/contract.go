@@ -1,6 +1,9 @@
 package types
 
-import "github.com/datachainlab/cross/x/ibc/cross"
+import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/ibc/cross"
+)
 
 type ContractCallInfo struct {
 	ID     string
@@ -40,4 +43,23 @@ func DecodeContractSignature(bz []byte) (*ContractCallInfo, error) {
 type ContractResponse struct {
 	ReturnValue []byte
 	OPs         cross.OPs
+}
+
+var _ cross.ContractHandlerResult = (*ContractHandlerResult)(nil)
+
+type ContractHandlerResult struct {
+	Data   []byte
+	Events sdk.Events
+}
+
+func (r ContractHandlerResult) GetData() []byte {
+	return r.Data
+}
+
+func (r ContractHandlerResult) GetEvents() sdk.Events {
+	return r.Events
+}
+
+func NewContractHandlerResult(data []byte, events sdk.Events) ContractHandlerResult {
+	return ContractHandlerResult{Data: data, Events: events}
 }

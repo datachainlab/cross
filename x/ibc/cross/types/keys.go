@@ -22,8 +22,9 @@ const (
 )
 
 const (
-	KeyCoordinatorPrefix uint8 = iota + 1
+	KeyCoordinatorPrefix uint8 = iota
 	KeyTxPrefix
+	KeyContractResultPrefix
 )
 
 // KeyPrefixBytes return the key prefix bytes from a URL string format
@@ -45,5 +46,15 @@ func KeyCoordinator(txID TxID) []byte {
 	return append(
 		KeyPrefixBytes(KeyCoordinatorPrefix),
 		txID[:]...,
+	)
+}
+
+func KeyContractResult(txID TxID, txIndex TxIndex) []byte {
+	return append(
+		append(
+			KeyPrefixBytes(KeyContractResultPrefix),
+			txID[:]...,
+		),
+		txIndex,
 	)
 }

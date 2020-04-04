@@ -41,16 +41,16 @@ func GetHotelContract() contract.Contract {
 	return contract.NewContract([]contract.Method{
 		{
 			Name: ReserveFnName,
-			F: func(ctx contract.Context, store cross.Store) error {
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				reserver := ctx.Signers()[0]
 				roomID := contract.Int32(ctx.Args()[0])
 				key := MakeRoomKey(roomID)
 				if store.Has(key) {
-					return fmt.Errorf("room %v is already reserved", roomID)
+					return nil, fmt.Errorf("room %v is already reserved", roomID)
 				} else {
 					store.Set(key, reserver)
 				}
-				return nil
+				return key, nil
 			},
 		},
 	})
@@ -64,16 +64,16 @@ func GetTrainContract() contract.Contract {
 	return contract.NewContract([]contract.Method{
 		{
 			Name: ReserveFnName,
-			F: func(ctx contract.Context, store cross.Store) error {
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				reserver := ctx.Signers()[0]
 				seatID := contract.Int32(ctx.Args()[0])
 				key := MakeSeatKey(seatID)
 				if store.Has(key) {
-					return fmt.Errorf("seat %v is already reserved", seatID)
+					return nil, fmt.Errorf("seat %v is already reserved", seatID)
 				} else {
 					store.Set(key, reserver)
 				}
-				return nil
+				return key, nil
 			},
 		},
 	})

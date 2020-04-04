@@ -84,7 +84,7 @@ func (k Keeper) CreatePreparePacket(
 
 func (k Keeper) PrepareTransaction(
 	ctx sdk.Context,
-	contractHandler ContractHandler,
+	contractHandler types.ContractHandler,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
@@ -125,7 +125,7 @@ func (k Keeper) PrepareTransaction(
 
 func (k Keeper) prepareTransaction(
 	ctx sdk.Context,
-	contractHandler ContractHandler,
+	contractHandler types.ContractHandler,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
@@ -133,7 +133,7 @@ func (k Keeper) prepareTransaction(
 	data types.PacketDataPrepare,
 	sender sdk.AccAddress,
 ) error {
-	store, err := contractHandler.Handle(
+	store, res, err := contractHandler.Handle(
 		types.WithSigners(ctx, data.ContractTransaction.Signers),
 		data.ContractTransaction.Contract,
 	)
@@ -145,9 +145,10 @@ func (k Keeper) prepareTransaction(
 	if err := store.Precommit(id); err != nil {
 		return err
 	}
-	if !store.OPs().Equal(data.ContractTransaction.OPs) {
-		return fmt.Errorf("unexpected ops")
+	if ops := store.OPs(); !ops.Equal(data.ContractTransaction.OPs) {
+		return fmt.Errorf("unexpected ops: %v != %v", ops.String(), data.ContractTransaction.OPs.String())
 	}
+	k.SetContractResult(ctx, data.TxID, data.TxIndex, res)
 	return nil
 }
 
@@ -265,52 +266,59 @@ func (k Keeper) CreateCommitPacket(
 
 func (k Keeper) ReceiveCommitPacket(
 	ctx sdk.Context,
-	contractHandler ContractHandler,
+	contractHandler types.ContractHandler,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
 	data types.PacketDataCommit,
-) error {
+) (types.ContractHandlerResult, error) {
 	tx, err := k.EnsureTxStatus(ctx, data.TxID, data.TxIndex, types.TX_STATUS_PREPARE)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
 	if !found {
-		return fmt.Errorf("channel not found: port=%v channel=%v", destinationPort, destinationChannel)
+		return nil, fmt.Errorf("channel not found: port=%v channel=%v", destinationPort, destinationChannel)
 	}
 	hops := c.GetConnectionHops()
 	connID := hops[len(hops)-1]
 
 	if tx.CoordinatorConnectionID != connID {
-		return fmt.Errorf("expected coordinatorConnectionID is %v, but got %v", tx.CoordinatorConnectionID, connID)
+		return nil, fmt.Errorf("expected coordinatorConnectionID is %v, but got %v", tx.CoordinatorConnectionID, connID)
 	}
 
 	state, err := contractHandler.GetState(ctx, tx.Contract)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	res, ok := k.GetContractResult(ctx, data.TxID, data.TxIndex)
+	if !ok {
+		return nil, fmt.Errorf("Can't find the execution result of contract handler")
 	}
 
 	var status uint8
 	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if data.IsCommittable {
 		if err := state.Commit(id); err != nil {
-			return err
+			return nil, err
 		}
 		status = types.TX_STATUS_COMMIT
+		res = contractHandler.OnCommit(ctx, res)
 	} else {
 		if err := state.Discard(id); err != nil {
-			return err
+			return nil, err
 		}
 		status = types.TX_STATUS_ABORT
+		res = types.ContractHandlerAbortResult{}
 	}
 
+	k.RemoveContractResult(ctx, data.TxID, data.TxIndex)
 	if err := k.UpdateTxStatus(ctx, data.TxID, data.TxIndex, status); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return res, nil
 }
 
 func (k Keeper) SendAckCommitPacket(

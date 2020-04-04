@@ -93,7 +93,7 @@ Steps:
 - If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
 */
 func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg channeltypes.MsgPacket, data PacketDataCommit) (*sdk.Result, error) {
-	err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data)
+	res, err := k.ReceiveCommitPacket(ctx, contractHandler, msg.SourcePort, msg.SourceChannel, msg.DestinationPort, msg.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveCommitPacket, err.Error())
 	}
@@ -101,7 +101,8 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedSendAckCommitPacket, err.Error())
 	}
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	ctx.EventManager().EmitEvents(res.GetEvents())
+	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().Events()}, nil
 }
 
 func handlePacketDataAckCommit(ctx sdk.Context, k Keeper, msg channeltypes.MsgPacket, data PacketDataAckCommit) (*sdk.Result, error) {

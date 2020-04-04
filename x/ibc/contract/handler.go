@@ -21,7 +21,7 @@ func NewHandler(k Keeper, contractHandler cross.ContractHandler) sdk.Handler {
 
 func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contractHandler cross.ContractHandler) (*sdk.Result, error) {
 	ctx = cross.WithSigners(ctx, msg.GetSigners())
-	state, err := contractHandler.Handle(ctx, msg.Contract)
+	state, res, err := contractHandler.Handle(ctx, msg.Contract)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedContractHandle, err.Error())
 	}
@@ -32,5 +32,7 @@ func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contract
 	if err := state.CommitImmediately(); err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedCommitStore, err.Error())
 	}
+	res = contractHandler.OnCommit(ctx, res)
+	ctx.EventManager().EmitEvents(res.GetEvents())
 	return &sdk.Result{Data: bz, Events: ctx.EventManager().Events()}, nil
 }

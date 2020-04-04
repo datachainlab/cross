@@ -53,35 +53,35 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 	methods = append(methods, []contract.Method{
 		{
 			Name: "f0",
-			F: func(ctx contract.Context, store cross.Store) error {
-				return nil
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
+				return nil, nil
 			},
 		},
 		{
 			Name: "issue",
-			F: func(ctx contract.Context, store cross.Store) error {
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				balance = balance.Add(coin)
 				setBalance(store, ctx.Signers()[0], balance)
-				return nil
+				return nil, nil
 			},
 		},
 		{
 			Name: "test-balance",
-			F: func(ctx contract.Context, store cross.Store) error {
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				if !balance.AmountOf(coin.Denom).Equal(coin.Amount) {
-					return errors.New("amount is unexpected")
+					return nil, errors.New("amount is unexpected")
 				}
-				return nil
+				return nil, nil
 			},
 		},
 	}...,
