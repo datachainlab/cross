@@ -133,39 +133,39 @@ func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.St
 	c := contract.NewContract([]contract.Method{
 		{
 			Name: "issue",
-			F: func(ctx contract.Context, store cross.Store) error {
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				balance = balance.Add(coin)
 				setBalance(store, ctx.Signers()[0], balance)
-				return nil
+				return nil, nil
 			},
 		},
 		{
 			Name: "test-balance",
-			F: func(ctx contract.Context, store cross.Store) error {
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				if !balance.AmountOf(coin.Denom).Equal(coin.Amount) {
-					return errors.New("amount is unexpected")
+					return nil, errors.New("amount is unexpected")
 				}
-				return nil
+				return nil, nil
 			},
 		},
 		{
 			Name: "test-not-issued",
-			F: func(ctx contract.Context, store cross.Store) error {
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				if len(balance) == 0 {
-					return nil
+					return nil, nil
 				} else {
-					return errors.New("maybe coin is already issued")
+					return nil, errors.New("maybe coin is already issued")
 				}
 			},
 		},
@@ -606,7 +606,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 }
 
 func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
-	err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+	_, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
@@ -633,12 +633,12 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 		return
 	}
 	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
-	_, err = contractHandler.Handle(ctx, bz)
+	_, _, err = contractHandler.Handle(ctx, bz)
 	suite.NoError(err)
 }
 
 func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
-	err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+	_, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
@@ -658,7 +658,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 		return
 	}
 	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
-	_, err = contractHandler.Handle(ctx, bz)
+	_, _, err = contractHandler.Handle(ctx, bz)
 	suite.NoError(err)
 }
 

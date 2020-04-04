@@ -27,6 +27,17 @@ type (
 	TxIndex = uint8
 )
 
+type ContractHandler interface {
+	GetState(ctx sdk.Context, contract []byte) (State, error)
+	Handle(ctx sdk.Context, contract []byte) (State, ContractHandlerResult, error)
+	OnCommit(ctx sdk.Context, result ContractHandlerResult) ContractHandlerResult
+}
+
+type ContractHandlerResult interface {
+	GetData() []byte
+	GetEvents() sdk.Events
+}
+
 type CoordinatorInfo struct {
 	Transactions []string      // {TransactionID => ConnectionID}
 	Channels     []ChannelInfo // {TransactionID => Channel}

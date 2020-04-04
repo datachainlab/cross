@@ -14,17 +14,17 @@ type contract struct {
 	methods map[string]Method
 }
 
-func (c contract) CallMethod(ctx Context, store cross.Store, method string) error {
+func (c contract) CallMethod(ctx Context, store cross.Store, method string) ([]byte, error) {
 	m, ok := c.methods[method]
 	if !ok {
-		return fmt.Errorf("method '%v' not found", method)
+		return nil, fmt.Errorf("method '%v' not found", method)
 	}
 	return m.F(ctx, store)
 }
 
 type Method struct {
 	Name string
-	F    func(ctx Context, store cross.Store) error
+	F    func(ctx Context, store cross.Store) ([]byte, error)
 }
 
 func NewContract(methods []Method) Contract {
@@ -36,8 +36,10 @@ func NewContract(methods []Method) Contract {
 }
 
 type Contract interface {
-	CallMethod(ctx Context, store cross.Store, method string) error
+	CallMethod(ctx Context, store cross.Store, method string) ([]byte, error)
 }
+
+type StateProvider = func(sdk.KVStore) cross.State
 
 type contractHandler struct {
 	keeper        Keeper
@@ -47,24 +49,26 @@ type contractHandler struct {
 
 var _ cross.ContractHandler = (*contractHandler)(nil)
 
-type StateProvider = func(sdk.KVStore) cross.State
+func NewContractHandler(k Keeper, stateProvider StateProvider) *contractHandler {
+	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider}
+}
 
-func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state cross.State, err error) {
+func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state cross.State, res cross.ContractHandlerResult, err error) {
 	info, err := types.DecodeContractSignature(contract)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	st, err := h.GetState(ctx, contract)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	route, ok := h.routes[info.ID]
 	if !ok {
-		return nil, fmt.Errorf("route for '%v' not found", info.ID)
+		return nil, nil, fmt.Errorf("route for '%v' not found", info.ID)
 	}
 	signers, ok := cross.SignersFromContext(ctx)
 	if !ok {
-		return nil, fmt.Errorf("signer is not set")
+		return nil, nil, fmt.Errorf("signer is not set")
 	}
 	c := NewContext(signers, info.Args)
 	defer func() {
@@ -77,11 +81,11 @@ func (h *contractHandler) Handle(ctx sdk.Context, contract []byte) (state cross.
 		}
 	}()
 
-	err = route.CallMethod(c, st, info.Method)
+	v, err := route.CallMethod(c, st, info.Method)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return st, nil
+	return st, types.NewContractHandlerResult(v, c.EventManager().Events()), nil
 }
 
 func (h *contractHandler) GetState(ctx sdk.Context, contract []byte) (cross.State, error) {
@@ -92,8 +96,8 @@ func (h *contractHandler) GetState(ctx sdk.Context, contract []byte) (cross.Stat
 	return h.stateProvider(h.keeper.GetContractStateStore(ctx, []byte(info.ID))), nil
 }
 
-func NewContractHandler(k Keeper, stateProvider StateProvider) *contractHandler {
-	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider}
+func (h *contractHandler) OnCommit(ctx sdk.Context, result cross.ContractHandlerResult) cross.ContractHandlerResult {
+	return result
 }
 
 func (h *contractHandler) AddRoute(id string, c Contract) {
@@ -106,15 +110,17 @@ func (h *contractHandler) AddRoute(id string, c Contract) {
 type Context interface {
 	Signers() []sdk.AccAddress
 	Args() [][]byte
+	EventManager() *sdk.EventManager
 }
 
 type ccontext struct {
-	signers []sdk.AccAddress
-	args    [][]byte
+	signers      []sdk.AccAddress
+	args         [][]byte
+	eventManager *sdk.EventManager
 }
 
 func NewContext(signers []sdk.AccAddress, args [][]byte) Context {
-	return &ccontext{signers: signers, args: args}
+	return &ccontext{signers: signers, args: args, eventManager: sdk.NewEventManager()}
 }
 
 func (c ccontext) Signers() []sdk.AccAddress {
@@ -123,4 +129,8 @@ func (c ccontext) Signers() []sdk.AccAddress {
 
 func (c ccontext) Args() [][]byte {
 	return c.args
+}
+
+func (c ccontext) EventManager() *sdk.EventManager {
+	return c.eventManager
 }

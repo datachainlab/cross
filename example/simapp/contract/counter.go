@@ -21,7 +21,7 @@ func CounterContractHandlerProvider(k contract.Keeper) cross.ContractHandler {
 			[]contract.Method{
 				{
 					Name: "f0",
-					F: func(ctx contract.Context, store cross.Store) error {
+					F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 						k := []byte("counter")
 						v := store.Get(k)
 						var counter uint32
@@ -37,7 +37,7 @@ func CounterContractHandlerProvider(k contract.Keeper) cross.ContractHandler {
 						binary.BigEndian.PutUint32(b, counter+1)
 
 						store.Set(k, b)
-						return nil
+						return b, nil
 					},
 				},
 			},

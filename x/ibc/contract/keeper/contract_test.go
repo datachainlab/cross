@@ -52,7 +52,7 @@ func TestContractHandler(t *testing.T) {
 			[]byte("100"),
 		})
 		bz, _ := types.EncodeContractSignature(contractInfo)
-		state, err := h.Handle(ctx, bz)
+		state, _, err := h.Handle(ctx, bz)
 		if err != nil {
 			assert.FailNow(err.Error())
 		}
@@ -67,7 +67,7 @@ func TestContractHandler(t *testing.T) {
 				[]byte("100"),
 			})
 			bz, _ := types.EncodeContractSignature(contractInfo)
-			_, err := h.Handle(ctx, bz)
+			_, _, err := h.Handle(ctx, bz)
 			if err == nil {
 				assert.FailNow("expected an error")
 			}
@@ -83,7 +83,7 @@ func TestContractHandler(t *testing.T) {
 				[]byte("100"),
 			})
 			bz, _ := types.EncodeContractSignature(contractInfo)
-			_, err := h.Handle(ctx, bz)
+			_, _, err := h.Handle(ctx, bz)
 			if err != nil {
 				assert.FailNow(err.Error())
 			}
@@ -95,7 +95,7 @@ func TestContractHandler(t *testing.T) {
 				[]byte("50"),
 			})
 			bz, _ := types.EncodeContractSignature(contractInfo)
-			state, err := h.Handle(ctx, bz)
+			state, _, err := h.Handle(ctx, bz)
 			if err != nil {
 				assert.FailNow(err.Error())
 			}
@@ -110,7 +110,7 @@ func TestContractHandler(t *testing.T) {
 				[]byte("50"),
 			})
 			bz, _ := types.EncodeContractSignature(contractInfo)
-			_, err := h.Handle(ctx, bz)
+			_, _, err := h.Handle(ctx, bz)
 			if err != nil {
 				assert.FailNow(err.Error())
 			}
@@ -159,23 +159,23 @@ func makeContract() Contract {
 	c := NewContract([]Method{
 		{
 			Name: "issue",
-			F: func(ctx Context, store cross.Store) error {
+			F: func(ctx Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				balance = balance.Add(coin)
 				setBalance(store, ctx.Signers()[0], balance)
-				return nil
+				return nil, nil
 			},
 		},
 		{
 			Name: "transfer",
-			F: func(ctx Context, store cross.Store) error {
+			F: func(ctx Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				rem := sdk.NewCoins(coin)
 
@@ -183,7 +183,7 @@ func makeContract() Contract {
 
 				signerBalance := getBalanceOf(store, ctx.Signers()[0])
 				if !signerBalance.IsAllGT(rem) {
-					return fmt.Errorf("balance is insufficent")
+					return nil, fmt.Errorf("balance is insufficent")
 				}
 				signerBalance = signerBalance.Sub(rem)
 				setBalance(store, ctx.Signers()[0], signerBalance)
@@ -192,21 +192,21 @@ func makeContract() Contract {
 				recipientBalance.Add(rem...)
 				setBalance(store, recipient, recipientBalance)
 
-				return nil
+				return nil, nil
 			},
 		},
 		{
 			Name: "test-balance",
-			F: func(ctx Context, store cross.Store) error {
+			F: func(ctx Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				balance := getBalanceOf(store, ctx.Signers()[0])
 				if !balance.AmountOf(coin.Denom).Equal(coin.Amount) {
-					return errors.New("amount is unexpected")
+					return nil, errors.New("amount is unexpected")
 				}
-				return nil
+				return nil, nil
 			},
 		},
 	})

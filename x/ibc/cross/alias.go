@@ -54,7 +54,8 @@ var (
 // nolint
 type (
 	Keeper                  = keeper.Keeper
-	ContractHandler         = keeper.ContractHandler
+	ContractHandler         = types.ContractHandler
+	ContractHandlerResult   = types.ContractHandlerResult
 	MsgInitiate             = types.MsgInitiate
 	PacketDataPrepare       = types.PacketDataPrepare
 	PacketDataPrepareResult = types.PacketDataPrepareResult
