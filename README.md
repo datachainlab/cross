@@ -7,7 +7,7 @@ Cross is a framework for Cross-chain transaction. It is implemented as [Cosmos m
 Cross provides several key features:
 
 - **Cross-chain transaction support** - Supports the transaction that can support an atomic execution on different blockchains. We call such a transaction "Cross-chain transaction".
-- **General application support** - Provides a framework to enable the support of "general" applications as smart contracts. ("general" application refers to something like Ethereum's smart contract, not something like the UTXO model.) With Cross framework, smart contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
+- **General application support** - Provides a framework to enable the support of "general" applications as smart contracts. ("general" application refers to models like smart contract on Ethereum, not the UTXO model.) With Cross framework, smart contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
 - **Compliant with [ics-004](https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics)** - Supports above features on networks where membership changes dynamically
 
 ## Motivation
