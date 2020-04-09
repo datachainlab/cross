@@ -19,8 +19,8 @@ The participant who receives a packet executes a smart contract according to con
 This phase is initiated by receiving a CommitPacket from the coordinator.
 
 If the status of CommitPacket is "Commit", it first applies(commits) the operation saved in Prepare to state, then releases the acquired Lock, and finally returns the Ack packet to the coordinator.
-
 If the status of packet is "Abort", it first discards the operation saved in Prepare phase, then releases the acquired Lock, and finally returns the Ack packet to the coordinator.
+
 
 That's all the execution flow for the Contract.
 
@@ -31,3 +31,4 @@ Let's create a simple smart contract in the next section and check out its execu
 TODO: modify this section
 
 Currently, a complete example can be found [here](https://github.com/datachainlab/cross/blob/master/tests/test-tx.sh).
+
