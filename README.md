@@ -6,45 +6,31 @@ Cross is a framework for Cross-chain transaction. It is implemented as [Cosmos m
 
 Cross provides several key features:
 
-- **Cross-chain transaction support** - Supports the transaction that atomically executes each smart contract on multiple blockchain networks(zones).
-- **Smart contract support** - Provides the smart contract system that can support general application. Smart contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
+- **Cross-chain transaction support** - Supports the transaction that can support an atomic execution on different blockchains. We call such a transaction "Cross-chain transaction".
+- **General application support** - Provides a framework to enable the support of "general" application as smart contract. ("general" application refers to models like smart contract on Ethereum, not UTXO model.) With Cross framework, smart contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
 - **Compliant with [ics-004](https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics)** - Supports above features on networks where membership changes dynamically
-
-**This project is currently under development and not production ready.**
 
 ## Motivation
 
-It is difficult to atomically execute general smart contract on multiple networks. One such example is Train-Hotel problem. If we can convert Train and Hotel reservation rights into NFT that can be moved to any chain using Two-way peg method such as [ics-020](https://github.com/cosmos/ics/tree/master/spec/ics-020-fungible-token-transfer), it may be possible to solve this problem simply by doing atomicswap on a single chain. However, if each Token's metadata (e.g. a whitelist of owner) depends on other states of its origin chain and common state is referenced by other contract states, it is difficult to move between chains.
+It is difficult to atomically execute general smart contract on multiple networks. One such example is [Train-And-Hotel problem](https://github.com/ethereum/wiki/wiki/Sharding-FAQ#what-is-the-train-and-hotel-problem). If we can convert Train and Hotel reservation rights into NFT that can be moved to any chain using Two-way peg method such as [ics-020](https://github.com/cosmos/ics/tree/master/spec/ics-020-fungible-token-transfer), it may be possible to solve this problem simply by doing atomicswap on a single chain. However, if each Token's metadata (e.g. a whitelist of owner) depends on other states of its origin chain and common state is referenced by other contract states, it is difficult to move between chains.
 
-To solve such problem, we need to be able to execute BOTH or NEITHER reservation contracts that exist in two different chains, rather than pegging to single blockchain. This is similar to Atomic commit protocol for distributed systems. To achieve this, each contract state machine must be able to support "Lock" state. But it is not safe to enforce these requirements on contract developers. So we decided to create a framework that supports Atomic commit protocol and contract system that transparently satisfy required locking protocol.
+To solve such problem, we need to be able to execute All or Nothing reservation contracts that exist in two different chains, rather than pegging to single blockchain. This is similar to Atomic commit protocol for distributed systems. To achieve this, each contract's state machine needs to lock the state required for "commit" at "prepare" phase. But it is not safe to enforce these requirements on each contract developers. Therefore, we decided to implement Atomic commit protocol in compliance with ics-004 and create a datastore that transparently meets the required locking protocol.
 
-## Protocol description
+## Getting started
 
-To achieve Cross-chain transaction, it is necessary to execute ALL or Nothing transaction on multiple networks. This is called Atomic commit in a distributed system. A common protocol for achieving this is Two phase commit (2PC).
+Please see [here](./docs/spec/02_smart_contract.md#how-to-execute-a-smart-contract-on-cross-chain).
 
-We defined requirements to achieve Cross-chain transaction between networks connected by [ics-004](https://github.com/cosmos/ics/tree/master/spec/ics-004-channel-and-packet-semantics) with classic 2PC. There are some prior art such as ["Dang et al.(2018) Towards Scaling Blockchain Systems via Sharding"](https://arxiv.org/abs/1804.00399). It is assumed that bellow properties are required to achieve 2PC on Cross-chain as with the research of Dang et al.
+## Documents
 
-1. Safety for general blockchain transactions
-2. Liveness against malicious coordinators
+For specs and documents, see [here](./docs/spec).
 
-We use Two-phase locking protocol to achieve 1. Therefore, Contract state machine must have "Lock" and "Unlock" state.
+## FAQ
 
-It is known that 2PC can be a blocking protocol when Coordinator fails. Therefore, in order to achieve 2, we use a blockchain network that executes BFT consensus as a coordinator.
+Please see [here](./docs/spec/XX_faq.md).
 
-To achieve Cross-chain transaction, we implemented above requirements. 2PC execution flow of Cross-chain transaction is shown below. Note that the number of participants is 3(A,B,C) and Coordinator is not included in Participants.
+## Future works
 
-![cross-flow](./docs/images/cross-flow.png "cross-flow")
-
-## Future work
-
-Currently, Contract layer supports only Golang, but there is plan to support EVM in future. This will bring not only scaling, but also interoperability to existing smart contract that is developed as Ethereum contracts.
-
-## Q&A
-
-- Q. Are there any blocking case during an execution of Atomic commit?
-- A. No. But our protocol requires some assumptions. They are here:
-    1. Many assumptions required by [IBC](https://github.com/cosmos/ics/tree/master/spec)
-    1. Any [relayers](https://github.com/cosmos/ics/tree/master/spec/ics-018-relayer-algorithms) work as expected.
+Currently, golang is the only language supported for smart contract development. However, in the future, EVM support will allow for development using solidity. This will bring not only scaling, but also interoperability to existing smart contract that is developed as Ethereum contracts.
 
 ## Maintainers
 
