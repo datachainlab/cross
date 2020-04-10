@@ -6,7 +6,7 @@ Cross is a framework that enables the development of smart contracts that suppor
 
 ## What's Cross-chain transaction?
 
-Cross-chain transactions is a transaction that atomically executes multiple smart contracts on different blockchains.
+Cross-chain transaction is a transaction that atomically executes multiple smart contracts on different blockchains.
 
 ## Protocol description
 
