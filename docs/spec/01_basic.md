@@ -19,13 +19,13 @@ It is known that 2PC can be a blocking protocol when Coordinator fails. Therefor
 
 To achieve Cross-chain transaction, we implemented above requirements. 2PC execution flow of Cross-chain transaction is shown below. Note that the number of participants is 3(A,B,C) and Coordinator is not included in Participants.
 
-![cross-flow](../images/packet-flow.png "cross-flow")
+![packet-flow](../images/packet-flow.png "packet-flow")
 
 ## Architecture
 
 In this section, we describe the structure of Cross and each layer.
 
-![Figure-architecture](../images/architecture.png "architecture")
+![architecture](../images/architecture.png "architecture")
 
 Each layer is described below.
 

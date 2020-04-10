@@ -24,16 +24,13 @@ Please see [here](./docs/spec/02_smart_contract.md#how-to-execute-a-smart-contra
 
 For specs and documents, see [here](./docs/spec).
 
+## FAQ
+
+Please see [here](./docs/spec/XX_faq.md).
+
 ## Future works
 
 Currently, golang is the only language supported for smart contract development. However, in the future, EVM support will allow for development using solidity. This will bring not only scaling, but also interoperability to existing smart contract that is developed as Ethereum contracts.
-
-## Q&A
-
-- Q. Are there any blocking case during an execution of Atomic commit?
-- A. No. But our protocol requires some assumptions. They are here:
-    1. Many assumptions required by [IBC](https://github.com/cosmos/ics/tree/master/spec)
-    1. Any [relayers](https://github.com/cosmos/ics/tree/master/spec/ics-018-relayer-algorithms) work as expected.
 
 ## Maintainers
 
