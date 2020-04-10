@@ -31,7 +31,7 @@ Each layer is described below.
 
 - IBC-Channel
     
-    This is the Channel spec as defined in the ICS. By complying with this, we can use IBC ecosystem.
+    This is the specification for communication between two blockchains as defined within [ics](https://github.com/cosmos/ics). By complying with this, we can use IBC ecosystem.
 
 - Cross handler
 
