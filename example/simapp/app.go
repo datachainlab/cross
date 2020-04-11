@@ -22,6 +22,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/capability"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/evidence"
@@ -29,6 +30,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
 	ibcclient "github.com/cosmos/cosmos-sdk/x/ibc/02-client"
+	port "github.com/cosmos/cosmos-sdk/x/ibc/05-port"
 	transfer "github.com/cosmos/cosmos-sdk/x/ibc/20-transfer"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
@@ -114,22 +116,23 @@ type SimApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
-	StakingKeeper  staking.Keeper
-	SlashingKeeper slashing.Keeper
-	MintKeeper     mint.Keeper
-	DistrKeeper    distr.Keeper
-	GovKeeper      gov.Keeper
-	CrisisKeeper   crisis.Keeper
-	UpgradeKeeper  upgrade.Keeper
-	ParamsKeeper   params.Keeper
-	IBCKeeper      ibc.Keeper
-	EvidenceKeeper evidence.Keeper
-	TransferKeeper transfer.Keeper
-	CrossKeeper    cross.Keeper
-	ContractKeeper contract.Keeper
+	AccountKeeper    auth.AccountKeeper
+	BankKeeper       bank.Keeper
+	CapabilityKeeper *capability.Keeper
+	SupplyKeeper     supply.Keeper
+	StakingKeeper    staking.Keeper
+	SlashingKeeper   slashing.Keeper
+	MintKeeper       mint.Keeper
+	DistrKeeper      distr.Keeper
+	GovKeeper        gov.Keeper
+	CrisisKeeper     crisis.Keeper
+	UpgradeKeeper    upgrade.Keeper
+	ParamsKeeper     params.Keeper
+	IBCKeeper        *ibc.Keeper
+	EvidenceKeeper   evidence.Keeper
+	TransferKeeper   transfer.Keeper
+	CrossKeeper      cross.Keeper
+	ContractKeeper   contract.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -161,7 +164,7 @@ func NewSimApp(
 		bam.MainStoreKey, auth.StoreKey, bank.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, ibc.StoreKey, upgrade.StoreKey,
-		evidence.StoreKey, transfer.StoreKey, cross.StoreKey, contract.StoreKey,
+		evidence.StoreKey, transfer.StoreKey, cross.StoreKey, contract.StoreKey, capability.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
@@ -185,6 +188,12 @@ func NewSimApp(
 	app.subspaces[gov.ModuleName] = app.ParamsKeeper.Subspace(gov.DefaultParamspace).WithKeyTable(gov.ParamKeyTable())
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
 	app.subspaces[evidence.ModuleName] = app.ParamsKeeper.Subspace(evidence.DefaultParamspace)
+
+	// add capability keeper and ScopeToModule for ibc module
+	app.CapabilityKeeper = capability.NewKeeper(appCodec, keys[capability.StoreKey])
+	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibc.ModuleName)
+	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(transfer.ModuleName)
+	scopedCrossKeeper := app.CapabilityKeeper.ScopeToModule(cross.ModuleName)
 
 	// add keepers
 	app.AccountKeeper = auth.NewAccountKeeper(
@@ -243,24 +252,31 @@ func NewSimApp(
 	)
 
 	app.IBCKeeper = ibc.NewKeeper(
-		app.cdc, keys[ibc.StoreKey], stakingKeeper,
+		app.cdc, keys[ibc.StoreKey], stakingKeeper, scopedIBCKeeper,
 	)
 
-	transferCapKey := app.IBCKeeper.PortKeeper.BindPort(bank.ModuleName)
 	app.TransferKeeper = transfer.NewKeeper(
-		app.cdc, keys[transfer.StoreKey], transferCapKey,
-		app.IBCKeeper.ChannelKeeper, app.BankKeeper, app.SupplyKeeper,
+		app.cdc, keys[transfer.StoreKey],
+		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
+		app.BankKeeper, app.SupplyKeeper,
+		scopedTransferKeeper,
 	)
-
 	app.ContractKeeper = contract.NewKeeper(app.cdc, keys[contract.StoreKey])
-
-	crossCapKey := app.IBCKeeper.PortKeeper.BindPort(cross.ModuleName)
 	app.CrossKeeper = cross.NewKeeper(
-		app.cdc, keys[cross.StoreKey], crossCapKey,
+		app.cdc, keys[cross.StoreKey],
 		app.IBCKeeper.ChannelKeeper,
+		scopedCrossKeeper,
 	)
-
 	contractHandler := contractHandlerProvider(app.ContractKeeper)
+
+	transferModule := transfer.NewAppModule(app.TransferKeeper)
+	crossModule := cross.NewAppModule(app.CrossKeeper, contractHandler)
+
+	// Create static IBC router, add transfer route, then set and seal it
+	ibcRouter := port.NewRouter()
+	ibcRouter.AddRoute(transfer.ModuleName, transferModule)
+	ibcRouter.AddRoute(cross.ModuleName, crossModule)
+	app.IBCKeeper.SetRouter(ibcRouter)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -278,8 +294,8 @@ func NewSimApp(
 		upgrade.NewAppModule(app.UpgradeKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
 		ibc.NewAppModule(app.IBCKeeper),
-		transfer.NewAppModule(app.TransferKeeper),
-		cross.NewAppModule(app.CrossKeeper, contractHandler),
+		transferModule,
+		crossModule,
 		contract.NewAppModule(app.ContractKeeper, contractHandler),
 	)
 
@@ -436,7 +452,7 @@ func GetMaccPerms() map[string][]string {
 
 func DefaultAnteHandlerProvider(app *SimApp) sdk.AnteHandler {
 	return ante.NewAnteHandler(
-		app.AccountKeeper, app.SupplyKeeper, app.IBCKeeper,
+		app.AccountKeeper, app.SupplyKeeper, *app.IBCKeeper,
 		ante.DefaultSigVerificationGasConsumer,
 	)
 }
