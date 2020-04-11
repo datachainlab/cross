@@ -7,8 +7,8 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/simulation"
 )
 
 // SimAppChainID hardcoded chainID for simulation
@@ -28,7 +28,6 @@ func GenTx(msgs []sdk.Msg, feeAmt sdk.Coins, gas uint64, chainID string, accnums
 
 	// create a random length memo
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	memo := simulation.RandStringOfLength(r, simulation.RandIntBetween(r, 0, 100))
 
 	for i, p := range priv {
@@ -39,7 +38,7 @@ func GenTx(msgs []sdk.Msg, feeAmt sdk.Coins, gas uint64, chainID string, accnums
 		}
 
 		sigs[i] = auth.StdSignature{
-			PubKey:    p.PubKey(),
+			PubKey:    p.PubKey().Bytes(),
 			Signature: sig,
 		}
 	}

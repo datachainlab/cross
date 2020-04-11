@@ -4,7 +4,6 @@ import (
 	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 )
 
 const (
@@ -12,7 +11,14 @@ const (
 	PREPARE_STATUS_FAILED
 )
 
-var _ exported.PacketDataI = (*PacketDataPrepare)(nil)
+type PacketData interface {
+	ValidateBasic() error
+	GetBytes() []byte
+	GetTimeoutHeight() uint64
+	Type() string
+}
+
+var _ PacketData = (*PacketDataPrepare)(nil)
 
 type PacketDataPrepare struct {
 	Sender              sdk.AccAddress
@@ -44,7 +50,7 @@ func (p PacketDataPrepare) Type() string {
 	return TypePrepare
 }
 
-var _ exported.PacketDataI = (*PacketDataPrepareResult)(nil)
+var _ PacketData = (*PacketDataPrepareResult)(nil)
 
 type PacketDataPrepareResult struct {
 	Sender  sdk.AccAddress
@@ -77,7 +83,7 @@ func (p PacketDataPrepareResult) IsOK() bool {
 	return p.Status == PREPARE_STATUS_OK
 }
 
-var _ exported.PacketDataI = (*PacketDataCommit)(nil)
+var _ PacketData = (*PacketDataCommit)(nil)
 
 type PacketDataCommit struct {
 	Sender        sdk.AccAddress
@@ -106,7 +112,7 @@ func (p PacketDataCommit) Type() string {
 	return TypeCommit
 }
 
-var _ exported.PacketDataI = (*PacketDataAckCommit)(nil)
+var _ PacketData = (*PacketDataAckCommit)(nil)
 
 type PacketDataAckCommit struct {
 	TxID    TxID

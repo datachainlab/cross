@@ -8,7 +8,7 @@ import (
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/datachainlab/cross/example/simapp"
-	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -29,7 +29,7 @@ type appContext struct {
 	signers []tmtypes.PrivValidator
 
 	// src => dst
-	channels map[cross.ChannelInfo]cross.ChannelInfo
+	channels map[types.ChannelInfo]types.ChannelInfo
 }
 
 func (a appContext) Cache() (appContext, func()) {
@@ -62,8 +62,8 @@ func (suite *KeeperTestSuite) createConnections(
 }
 
 func (suite *KeeperTestSuite) createChannels(
-	srcConnectionID string, srcapp *appContext, srcc cross.ChannelInfo,
-	dstConnectionID string, dstapp *appContext, dstc cross.ChannelInfo,
+	srcConnectionID string, srcapp *appContext, srcc types.ChannelInfo,
+	dstConnectionID string, dstapp *appContext, dstc types.ChannelInfo,
 ) {
 	suite.createChannel(srcapp, srcc.Port, srcc.Channel, srcConnectionID, dstc.Port, dstc.Channel, channelexported.OPEN)
 	suite.createChannel(dstapp, dstc.Port, dstc.Channel, dstConnectionID, srcc.Port, srcc.Channel, channelexported.OPEN)
@@ -79,12 +79,12 @@ func (suite *KeeperTestSuite) createChannels(
 func (suite *KeeperTestSuite) openChannels(
 	srcClientID string, // clientID of dstapp
 	srcConnectionID string, // id of the connection with dstapp
-	srcc cross.ChannelInfo, // src's channel with dstapp
+	srcc types.ChannelInfo, // src's channel with dstapp
 	srcapp *appContext,
 
 	dstClientID string, // clientID of srcapp
 	dstConnectionID string, // id of the connection with srcapp
-	dstc cross.ChannelInfo, // dst's channel with srcapp
+	dstc types.ChannelInfo, // dst's channel with srcapp
 	dstapp *appContext,
 ) {
 	suite.createClients(srcClientID, srcapp, dstClientID, dstapp)
@@ -112,7 +112,7 @@ func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header) *appContex
 		app:      app,
 		valSet:   valSet,
 		signers:  signers,
-		channels: make(map[cross.ChannelInfo]cross.ChannelInfo),
+		channels: make(map[types.ChannelInfo]types.ChannelInfo),
 	}
 
 	updateApp(actx, int(header.Height))

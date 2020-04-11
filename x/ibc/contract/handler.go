@@ -34,5 +34,5 @@ func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contract
 	}
 	res = contractHandler.OnCommit(ctx, res)
 	ctx.EventManager().EmitEvents(res.GetEvents())
-	return &sdk.Result{Data: bz, Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Data: bz, Events: ctx.EventManager().ABCIEvents()}, nil
 }

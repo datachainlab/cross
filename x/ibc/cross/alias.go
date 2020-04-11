@@ -57,6 +57,7 @@ type (
 	ContractHandler         = types.ContractHandler
 	ContractHandlerResult   = types.ContractHandlerResult
 	MsgInitiate             = types.MsgInitiate
+	PacketData              = types.PacketData
 	PacketDataPrepare       = types.PacketDataPrepare
 	PacketDataPrepareResult = types.PacketDataPrepareResult
 	PacketDataCommit        = types.PacketDataCommit

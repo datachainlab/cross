@@ -694,7 +694,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 }
 
 func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, sender sdk.AccAddress, data cross.PacketDataPrepareResult, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
-	packet := channeltypes.NewPacket(data, nextseq, src.Port, src.Channel, dst.Port, dst.Channel)
+	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight())
 	canMulticast, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareResultPacket(actx.ctx, packet, data)
 	if err != nil {
 		return false, false, err
@@ -735,9 +735,11 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	packetCommitment := actx.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(ctx, src.Port, src.Channel, nextseq)
 	suite.NotNil(packetCommitment)
 
+	data := types.NewPacketDataPrepareResult(relayer, txID, txIndex, cross.PREPARE_STATUS_OK)
+	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight())
 	suite.Equal(
 		packetCommitment,
-		channeltypes.CommitPacket(types.NewPacketDataPrepareResult(relayer, txID, txIndex, cross.PREPARE_STATUS_OK)),
+		channeltypes.CommitPacket(packet),
 	)
 	writer()
 }

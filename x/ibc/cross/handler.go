@@ -13,19 +13,20 @@ func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 		switch msg := msg.(type) {
 		case MsgInitiate:
 			return handleMsgInitiate(ctx, keeper, msg)
-		case channeltypes.MsgPacket:
-			switch data := msg.Data.(type) {
-			case PacketDataPrepare:
-				return handlePacketDataPrepare(ctx, keeper, contractHandler, msg, data)
-			case PacketDataPrepareResult:
-				return handlePacketDataPrepareResult(ctx, keeper, msg, data)
-			case PacketDataCommit:
-				return handlePacketDataCommit(ctx, keeper, contractHandler, msg, data)
-			case PacketDataAckCommit:
-				return handlePacketDataAckCommit(ctx, keeper, msg, data)
-			default:
-				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized packet data type: %T", data)
-			}
+		// TODO move these handlers into AppModule
+		// case channeltypes.MsgPacket:
+		// 	switch data := msg.Data.(type) {
+		// 	case PacketDataPrepare:
+		// 		return handlePacketDataPrepare(ctx, keeper, contractHandler, msg, data)
+		// 	case PacketDataPrepareResult:
+		// 		return handlePacketDataPrepareResult(ctx, keeper, msg, data)
+		// 	case PacketDataCommit:
+		// 		return handlePacketDataCommit(ctx, keeper, contractHandler, msg, data)
+		// 	case PacketDataAckCommit:
+		// 		return handlePacketDataAckCommit(ctx, keeper, msg, data)
+		// 	default:
+		// 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized packet data type: %T", data)
+		// 	}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC message type: %T", msg)
 		}
@@ -42,7 +43,7 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result,
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 	}
-	return &sdk.Result{Data: txID[:], Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Data: txID[:], Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 /*
@@ -58,7 +59,7 @@ func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler Contract
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 /*
@@ -79,9 +80,9 @@ func handlePacketDataPrepareResult(ctx sdk.Context, k Keeper, msg channeltypes.M
 		if err := k.MulticastCommitPacket(ctx, data.TxID, msg.Signer, isCommitable); err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedMulticastCommitPacket, err.Error())
 		}
-		return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 	} else {
-		return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 	}
 }
 
@@ -102,7 +103,7 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 		return nil, sdkerrors.Wrap(types.ErrFailedSendAckCommitPacket, err.Error())
 	}
 	ctx.EventManager().EmitEvents(res.GetEvents())
-	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 func handlePacketDataAckCommit(ctx sdk.Context, k Keeper, msg channeltypes.MsgPacket, data PacketDataAckCommit) (*sdk.Result, error) {
@@ -110,5 +111,5 @@ func handlePacketDataAckCommit(ctx sdk.Context, k Keeper, msg channeltypes.MsgPa
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveAckCommitPacket, err.Error())
 	}
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
