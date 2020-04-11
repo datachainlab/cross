@@ -5,30 +5,31 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/capability"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
 // Keeper maintains the link to storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
-	cdc               *codec.Codec // The wire codec for binary encoding/decoding.
-	storeKey          sdk.StoreKey // Unexposed key to access store from sdk.Context
-	boundedCapability sdk.CapabilityKey
+	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
+	storeKey sdk.StoreKey // Unexposed key to access store from sdk.Context
 
 	channelKeeper types.ChannelKeeper
+	scopedKeeper  capability.ScopedKeeper
 }
 
 // NewKeeper creates new instances of the cross Keeper
 func NewKeeper(
 	cdc *codec.Codec,
 	storeKey sdk.StoreKey,
-	capKey sdk.CapabilityKey,
 	channelKeeper types.ChannelKeeper,
+	scopedKeeper capability.ScopedKeeper,
 ) Keeper {
 	return Keeper{
-		cdc:               cdc,
-		storeKey:          storeKey,
-		boundedCapability: capKey,
-		channelKeeper:     channelKeeper,
+		cdc:           cdc,
+		storeKey:      storeKey,
+		channelKeeper: channelKeeper,
+		scopedKeeper:  scopedKeeper,
 	}
 }
 
@@ -133,4 +134,10 @@ func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex type
 func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.KeyContractResult(txID, txIndex))
+}
+
+// ClaimCapability allows the transfer module that can claim a capability that IBC module
+// passes to it
+func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capability.Capability, name string) error {
+	return k.scopedKeeper.ClaimCapability(ctx, cap, name)
 }

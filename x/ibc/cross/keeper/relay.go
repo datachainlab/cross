@@ -91,19 +91,18 @@ func (k Keeper) PrepareTransaction(
 	destinationPort,
 	destinationChannel string,
 	data types.PacketDataPrepare,
-	sender sdk.AccAddress,
 ) error {
 	if _, ok := k.GetTx(ctx, data.TxID, data.TxIndex); ok {
 		return fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
 	status := types.PREPARE_STATUS_OK
-	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data, sender); err != nil {
+	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data); err != nil {
 		status = types.PREPARE_STATUS_FAILED
 	}
 
 	// Send a Prepared Packet to coordinator (reply to source channel)
-	packetData := types.NewPacketDataPrepareResult(sender, data.TxID, data.TxIndex, status)
+	packetData := types.NewPacketDataPrepareResult(data.TxID, data.TxIndex, status)
 	if err := k.sendPacket(
 		ctx,
 		packetData.GetBytes(),
@@ -134,7 +133,6 @@ func (k Keeper) prepareTransaction(
 	destinationPort,
 	destinationChannel string,
 	data types.PacketDataPrepare,
-	sender sdk.AccAddress,
 ) error {
 	store, res, err := contractHandler.Handle(
 		types.WithSigners(ctx, data.ContractTransaction.Signers),
@@ -204,7 +202,6 @@ func (k Keeper) ReceivePrepareResultPacket(
 func (k Keeper) MulticastCommitPacket(
 	ctx sdk.Context,
 	txID types.TxID,
-	sender sdk.AccAddress,
 	isCommittable bool,
 ) error {
 	co, ok := k.GetCoordinator(ctx, txID)
@@ -231,7 +228,6 @@ func (k Keeper) MulticastCommitPacket(
 			c.Channel,
 			ch.GetCounterparty().GetPortID(),
 			ch.GetCounterparty().GetChannelID(),
-			sender,
 			txID,
 			types.TxIndex(id),
 			isCommittable,
@@ -251,12 +247,11 @@ func (k Keeper) CreateCommitPacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	sender sdk.AccAddress,
 	txID types.TxID,
 	txIndex types.TxIndex,
 	isCommitable bool,
 ) channel.Packet {
-	packetData := types.NewPacketDataCommit(sender, txID, txIndex, isCommitable)
+	packetData := types.NewPacketDataCommit(txID, txIndex, isCommitable)
 	return channel.NewPacket(
 		packetData.GetBytes(),
 		seq,

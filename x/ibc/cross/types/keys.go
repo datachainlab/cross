@@ -6,11 +6,21 @@ const (
 	// ModuleName is the name of the module
 	ModuleName = "cross"
 
+	// Version defines the current version the Cross
+	// module supports
+	Version = "cross-1"
+
+	// PortID that Cross module binds to
+	PortID = "cross"
+
 	// StoreKey to be used when creating the KVStore
 	StoreKey = ModuleName
 
 	// RouterKey is the msg router key for the IBC module
 	RouterKey string = ModuleName
+
+	// QuerierRoute is the querier route for Cross
+	QuerierRoute = ModuleName
 )
 
 const (

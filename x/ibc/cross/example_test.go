@@ -238,7 +238,6 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 
 	{ // app0 receives PacketPrepareResult from app1
 		data := cross.NewPacketDataPrepareResult(
-			relayer0Info.GetAddress(),
 			txID,
 			0,
 			cross.PREPARE_STATUS_OK,
@@ -251,7 +250,6 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 
 	{ // app0 receives PacketPrepareResult from app2
 		data := cross.NewPacketDataPrepareResult(
-			relayer0Info.GetAddress(),
 			txID,
 			1,
 			cross.PREPARE_STATUS_OK,
@@ -278,7 +276,6 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 
 	{ // execute to commit on app1
 		data := cross.NewPacketDataCommit(
-			relayer0Info.GetAddress(),
 			txID,
 			0,
 			true,
@@ -290,7 +287,6 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	}
 	{ // execute to commit on app2
 		data := cross.NewPacketDataCommit(
-			relayer0Info.GetAddress(),
 			txID,
 			1,
 			true,

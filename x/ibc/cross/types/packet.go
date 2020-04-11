@@ -53,14 +53,13 @@ func (p PacketDataPrepare) Type() string {
 var _ PacketData = (*PacketDataPrepareResult)(nil)
 
 type PacketDataPrepareResult struct {
-	Sender  sdk.AccAddress
 	TxID    TxID
 	TxIndex TxIndex
 	Status  uint8
 }
 
-func NewPacketDataPrepareResult(sender sdk.AccAddress, txID TxID, txIndex TxIndex, status uint8) PacketDataPrepareResult {
-	return PacketDataPrepareResult{Sender: sender, TxID: txID, TxIndex: txIndex, Status: status}
+func NewPacketDataPrepareResult(txID TxID, txIndex TxIndex, status uint8) PacketDataPrepareResult {
+	return PacketDataPrepareResult{TxID: txID, TxIndex: txIndex, Status: status}
 }
 
 func (p PacketDataPrepareResult) ValidateBasic() error {
@@ -86,14 +85,13 @@ func (p PacketDataPrepareResult) IsOK() bool {
 var _ PacketData = (*PacketDataCommit)(nil)
 
 type PacketDataCommit struct {
-	Sender        sdk.AccAddress
 	TxID          TxID
 	TxIndex       TxIndex
 	IsCommittable bool
 }
 
-func NewPacketDataCommit(sender sdk.AccAddress, txID TxID, txIndex TxIndex, isCommittable bool) PacketDataCommit {
-	return PacketDataCommit{Sender: sender, TxID: txID, TxIndex: txIndex, IsCommittable: isCommittable}
+func NewPacketDataCommit(txID TxID, txIndex TxIndex, isCommittable bool) PacketDataCommit {
+	return PacketDataCommit{TxID: txID, TxIndex: txIndex, IsCommittable: isCommittable}
 }
 
 func (p PacketDataCommit) ValidateBasic() error {

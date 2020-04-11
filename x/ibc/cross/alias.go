@@ -7,9 +7,10 @@ import (
 
 // nolint
 const (
-	ModuleName = types.ModuleName
-	RouterKey  = types.RouterKey
-	StoreKey   = types.StoreKey
+	ModuleName   = types.ModuleName
+	RouterKey    = types.RouterKey
+	StoreKey     = types.StoreKey
+	QuerierRoute = types.QuerierRoute
 
 	CO_STATUS_NONE    = types.CO_STATUS_NONE
 	CO_STATUS_INIT    = types.CO_STATUS_INIT
