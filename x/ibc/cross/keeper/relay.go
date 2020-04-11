@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
+	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
@@ -221,6 +222,10 @@ func (k Keeper) MulticastCommitPacket(
 		if !found {
 			return channel.ErrSequenceSendNotFound
 		}
+		channelCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(c.Port, c.Channel))
+		if !ok {
+			return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
+		}
 		packet := k.CreateCommitPacket(
 			ctx,
 			seq,
@@ -232,7 +237,7 @@ func (k Keeper) MulticastCommitPacket(
 			types.TxIndex(id),
 			isCommittable,
 		)
-		if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
+		if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
 			return err
 		}
 	}
@@ -356,7 +361,11 @@ func (k Keeper) sendPacket(
 		destinationChannel,
 		timeout,
 	)
-	return k.channelKeeper.SendPacket(ctx, packet)
+	channelCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(sourcePort, sourceChannel))
+	if !ok {
+		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
+	}
+	return k.channelKeeper.SendPacket(ctx, channelCap, packet)
 }
 
 func (k Keeper) ReceiveAckPacket(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) error {
