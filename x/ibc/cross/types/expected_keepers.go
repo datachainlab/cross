@@ -13,3 +13,8 @@ type ChannelKeeper interface {
 	GetNextSequenceSend(ctx sdk.Context, portID, channelID string) (uint64, bool)
 	SendPacket(ctx sdk.Context, channelCap *capability.Capability, packet channelexported.PacketI) error
 }
+
+// PortKeeper defines the expected IBC port keeper
+type PortKeeper interface {
+	BindPort(ctx sdk.Context, portID string) *capability.Capability
+}
