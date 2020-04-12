@@ -482,6 +482,15 @@ func (suite *ExampleTestSuite) createChannel(actx *appContext, portID string, ch
 	}
 
 	actx.app.IBCKeeper.ChannelKeeper.SetChannel(actx.ctx, portID, chanID, ch)
+
+	capName := ibctypes.ChannelCapabilityPath(portID, chanID)
+	cap, err := actx.app.ScopedIBCKeeper.NewCapability(actx.ctx, capName)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	if err := actx.app.CrossKeeper.ClaimCapability(actx.ctx, cap, capName); err != nil {
+		suite.FailNow(err.Error())
+	}
 }
 
 func (suite *ExampleTestSuite) createClients(

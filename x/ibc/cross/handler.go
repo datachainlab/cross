@@ -19,6 +19,29 @@ func NewHandler(keeper Keeper) sdk.Handler {
 	}
 }
 
+type PacketReceiver func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error)
+
+func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketReceiver {
+	return func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error) {
+		var data PacketData
+		if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
+		}
+		switch data := data.(type) {
+		case PacketDataPrepare:
+			return handlePacketDataPrepare(ctx, keeper, contractHandler, packet, data)
+		case PacketDataPrepareResult:
+			return handlePacketDataPrepareResult(ctx, keeper, packet, data)
+		case PacketDataCommit:
+			return handlePacketDataCommit(ctx, keeper, contractHandler, packet, data)
+		case PacketDataAckCommit:
+			return handlePacketDataAckCommit(ctx, keeper, packet, data)
+		default:
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet data type: %T", data)
+		}
+	}
+}
+
 /*
 Steps:
 - Ensure that all channels in ContractTransactions are correct
@@ -98,27 +121,4 @@ func handlePacketDataAckCommit(ctx sdk.Context, k Keeper, packet channeltypes.Pa
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveAckCommitPacket, err.Error())
 	}
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
-}
-
-type PacketReceiver func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error)
-
-func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketReceiver {
-	return func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error) {
-		var data PacketData
-		if err := types.ModuleCdc.UnmarshalBinaryLengthPrefixed(packet.GetData(), &data); err != nil {
-			return nil, err
-		}
-		switch data := data.(type) {
-		case PacketDataPrepare:
-			return handlePacketDataPrepare(ctx, keeper, contractHandler, packet, data)
-		case PacketDataPrepareResult:
-			return handlePacketDataPrepareResult(ctx, keeper, packet, data)
-		case PacketDataCommit:
-			return handlePacketDataCommit(ctx, keeper, contractHandler, packet, data)
-		case PacketDataAckCommit:
-			return handlePacketDataAckCommit(ctx, keeper, packet, data)
-		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized packet data type: %T", data)
-		}
-	}
 }
