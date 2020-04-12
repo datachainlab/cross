@@ -16,6 +16,7 @@ import (
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -97,7 +98,7 @@ var (
 	DefaultContractHandlerProvider = simappcontract.CounterContractHandlerProvider
 )
 
-var _ App = (*SimApp)(nil)
+var _ simapp.App = (*SimApp)(nil)
 
 // SimApp extends an ABCI application, but with most of its parameters exported.
 // They are exported for convenience in creating helper functions, as object
@@ -133,6 +134,11 @@ type SimApp struct {
 	TransferKeeper   transfer.Keeper
 	CrossKeeper      cross.Keeper
 	ContractKeeper   contract.Keeper
+
+	// make scoped keepers public for test purposes
+	ScopedIBCKeeper      capability.ScopedKeeper
+	ScopedTransferKeeper capability.ScopedKeeper
+	ScopedCrossKeeper    capability.ScopedKeeper
 
 	// the module manager
 	mm *module.Manager
@@ -224,16 +230,6 @@ func NewSimApp(
 	)
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], appCodec, homePath)
 
-	// create evidence keeper with router
-	evidenceKeeper := evidence.NewKeeper(
-		appCodec, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
-	)
-	evidenceRouter := evidence.NewRouter().
-		AddRoute(ibcclient.RouterKey, ibcclient.HandlerClientMisbehaviour(app.IBCKeeper.ClientKeeper))
-
-	evidenceKeeper.SetRouter(evidenceRouter)
-	app.EvidenceKeeper = *evidenceKeeper
-
 	// register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
@@ -265,6 +261,7 @@ func NewSimApp(
 	app.CrossKeeper = cross.NewKeeper(
 		app.cdc, keys[cross.StoreKey],
 		app.IBCKeeper.ChannelKeeper,
+		&app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper,
 	)
 	contractHandler := contractHandlerProvider(app.ContractKeeper)
@@ -277,6 +274,16 @@ func NewSimApp(
 	ibcRouter.AddRoute(transfer.ModuleName, transferModule)
 	ibcRouter.AddRoute(cross.ModuleName, crossModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
+
+	// create evidence keeper with router
+	evidenceKeeper := evidence.NewKeeper(
+		appCodec, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
+	)
+	evidenceRouter := evidence.NewRouter().
+		AddRoute(ibcclient.RouterKey, ibcclient.HandlerClientMisbehaviour(app.IBCKeeper.ClientKeeper))
+
+	evidenceKeeper.SetRouter(evidenceRouter)
+	app.EvidenceKeeper = *evidenceKeeper
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -351,6 +358,16 @@ func NewSimApp(
 		}
 	}
 
+	// Initialize and seal the capability keeper so all persistent capabilities
+	// are loaded in-memory and prevent any further modules from creating scoped
+	// sub-keepers.
+	ctx := app.BaseApp.NewContext(true, abci.Header{})
+	app.CapabilityKeeper.InitializeAndSeal(ctx)
+
+	app.ScopedIBCKeeper = scopedIBCKeeper
+	app.ScopedTransferKeeper = scopedTransferKeeper
+	app.ScopedCrossKeeper = scopedCrossKeeper
+
 	return app
 }
 
@@ -369,7 +386,7 @@ func (app *SimApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.Re
 
 // InitChainer application update at chain initialization
 func (app *SimApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
-	var genesisState GenesisState
+	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 
 	res := app.mm.InitGenesis(ctx, app.cdc, genesisState)
