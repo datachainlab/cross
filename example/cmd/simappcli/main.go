@@ -62,9 +62,13 @@ func main() {
 		return initConfig(rootCmd)
 	}
 
+	// NOTE: StatusCommand always use FlagKeyringBackend
+	rpccmd := rpc.StatusCommand()
+	rpccmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "keyring backend")
+
 	// Construct Root Command
 	rootCmd.AddCommand(
-		rpc.StatusCommand(),
+		rpccmd,
 		client.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
