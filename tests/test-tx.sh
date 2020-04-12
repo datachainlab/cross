@@ -22,7 +22,7 @@ TRAIN_HOME=./data/ibc1/n0/simappcli
 HOTEL_HOME=./data/ibc2/n0/simappcli
 WAIT_NEW_BLOCK=3s
 
-ACC0=acc0
+ACC0=n0
 
 # Get contract ops from each nodes
 ${NODE_CLI} query --home ${CO_HOME} contract call --node ${TRAIN_NODE} --from ${ACC0} --keyring-backend=test train reserve 0x00000001 --chain-id ${TRAIN_CHAIN} --save ./data/train.json

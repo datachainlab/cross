@@ -18,9 +18,9 @@ ${RELAYER_CMD} paths add ibc0 ibc1 path01 -f demo/path01.json
 ${RELAYER_CMD} paths add ibc0 ibc2 path02 -f demo/path02.json
 
 # Now, add the key seeds from each chain to the relayer to give it funds to work with
-${RELAYER_CMD} keys restore ibc0 testkey "$(jq -r '.secret' data/ibc0/n0/${NODE_NAME}/key_seed.json)" -a
-${RELAYER_CMD} keys restore ibc1 testkey "$(jq -r '.secret' data/ibc1/n0/${NODE_NAME}/key_seed.json)" -a
-${RELAYER_CMD} keys restore ibc2 testkey "$(jq -r '.secret' data/ibc2/n0/${NODE_NAME}/key_seed.json)" -a
+${RELAYER_CMD} keys restore ibc0 testkey "$(jq -r '.secret' data/ibc0/n0/${NODE_NAME}/key_seed.json)"
+${RELAYER_CMD} keys restore ibc1 testkey "$(jq -r '.secret' data/ibc1/n0/${NODE_NAME}/key_seed.json)"
+${RELAYER_CMD} keys restore ibc2 testkey "$(jq -r '.secret' data/ibc2/n0/${NODE_NAME}/key_seed.json)"
 
 # Then its time to initialize the relayer's lite clients for each chain
 # All data moving forward is validated by these lite clients.
@@ -45,5 +45,5 @@ retry() {
 
 # Sometimes an execution of ABCI query is unstable when running on Github action, so we retry it
 # Now you can connect the two chains with one command:
-retry ${RELAYER_CMD} tx full-path ibc0 ibc1
-retry ${RELAYER_CMD} tx full-path ibc0 ibc2
+retry ${RELAYER_CMD} tx full-path path01 -d -o 3s
+retry ${RELAYER_CMD} tx full-path path02 -d -o 3s

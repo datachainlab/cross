@@ -1,7 +1,10 @@
 package cross
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -26,6 +29,10 @@ func DefaultGenesisState() GenesisState {
 
 // InitGenesis inits genesis
 func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.ValidatorUpdate {
+	_, err := keeper.BindPort(ctx, types.PortID)
+	if err != nil {
+		panic(fmt.Sprintf("could not claim port capability: %v", err))
+	}
 	return []abci.ValidatorUpdate{}
 }
 

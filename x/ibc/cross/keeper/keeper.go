@@ -5,30 +5,34 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/capability"
+	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/05-port/types"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
 // Keeper maintains the link to storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
-	cdc               *codec.Codec // The wire codec for binary encoding/decoding.
-	storeKey          sdk.StoreKey // Unexposed key to access store from sdk.Context
-	boundedCapability sdk.CapabilityKey
+	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
+	storeKey sdk.StoreKey // Unexposed key to access store from sdk.Context
 
 	channelKeeper types.ChannelKeeper
+	portKeeper    types.PortKeeper
+	scopedKeeper  capability.ScopedKeeper
 }
 
 // NewKeeper creates new instances of the cross Keeper
 func NewKeeper(
 	cdc *codec.Codec,
 	storeKey sdk.StoreKey,
-	capKey sdk.CapabilityKey,
-	channelKeeper types.ChannelKeeper,
+	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper,
+	scopedKeeper capability.ScopedKeeper,
 ) Keeper {
 	return Keeper{
-		cdc:               cdc,
-		storeKey:          storeKey,
-		boundedCapability: capKey,
-		channelKeeper:     channelKeeper,
+		cdc:           cdc,
+		storeKey:      storeKey,
+		channelKeeper: channelKeeper,
+		portKeeper:    portKeeper,
+		scopedKeeper:  scopedKeeper,
 	}
 }
 
@@ -133,4 +137,20 @@ func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex type
 func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.KeyContractResult(txID, txIndex))
+}
+
+// BindPort defines a wrapper function for the ort Keeper's function in
+// order to expose it to module's InitGenesis function
+func (k Keeper) BindPort(ctx sdk.Context, portID string) (*capability.Capability, error) {
+	cap := k.portKeeper.BindPort(ctx, portID)
+	if err := k.ClaimCapability(ctx, cap, porttypes.PortPath(portID)); err != nil {
+		return nil, err
+	}
+	return cap, nil
+}
+
+// ClaimCapability allows the transfer module that can claim a capability that IBC module
+// passes to it
+func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capability.Capability, name string) error {
+	return k.scopedKeeper.ClaimCapability(ctx, cap, name)
 }

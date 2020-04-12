@@ -119,7 +119,7 @@ func (suite *HandlerTestSuite) createConnection(state connectionexported.State) 
 }
 
 func (suite *HandlerTestSuite) createChannel(
-	portID, channnelID, connnnectionID, counterpartyPortID, counterpartyChannelID string, state channelexported.State) {
+	portID, channelID, connnnectionID, counterpartyPortID, counterpartyChannelID string, state channelexported.State) {
 	ch := channel.Channel{
 		State:    state,
 		Ordering: testChannelOrder,
@@ -131,7 +131,16 @@ func (suite *HandlerTestSuite) createChannel(
 		Version:        testChannelVersion,
 	}
 
-	suite.app.IBCKeeper.ChannelKeeper.SetChannel(suite.ctx, portID, channnelID, ch)
+	suite.app.IBCKeeper.ChannelKeeper.SetChannel(suite.ctx, portID, channelID, ch)
+
+	capName := ibctypes.ChannelCapabilityPath(portID, channelID)
+	cap, err := suite.app.ScopedIBCKeeper.NewCapability(suite.ctx, capName)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	if err := suite.app.CrossKeeper.ClaimCapability(suite.ctx, cap, capName); err != nil {
+		suite.FailNow(err.Error())
+	}
 }
 
 func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.Proof, height int64) {
@@ -150,11 +159,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.
 }
 
 func (suite *HandlerTestSuite) TestHandleCrossc() {
-	stk := sdk.NewKVStoreKey("main")
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(suite.app.Codec(), stk), func(kvs sdk.KVStore) cross.State {
-		return lock.NewStore(kvs)
-	})
-	handler := cross.NewHandler(suite.app.CrossKeeper, contractHandler)
+	handler := cross.NewHandler(suite.app.CrossKeeper)
 	coordinator := sdk.AccAddress("coordinator")
 
 	signer0 := sdk.AccAddress("signerzero")

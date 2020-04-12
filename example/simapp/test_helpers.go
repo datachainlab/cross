@@ -12,13 +12,14 @@ import (
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/simapp/helpers"
 	stypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/datachainlab/cross/example/simapp/helpers"
 )
 
 // Setup initializes a new SimApp. A Nop logger is set in SimApp.
@@ -31,7 +32,7 @@ func SetupWithContractHandlerProvider(isCheckTx bool, contractHandlerProvider Co
 	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, anteHandlerProvider, bam.SetPruning(stypes.PruneNothing))
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
-		genesisState := NewDefaultGenesisState()
+		genesisState := simapp.NewDefaultGenesisState()
 		stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
 		if err != nil {
 			panic(err)
@@ -56,7 +57,7 @@ func SetupWithGenesisAccounts(chainID string, contractHandlerProvider ContractHa
 	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, anteHandlerProvider)
 
 	// initialize the chain with the passed in genesis accounts
-	genesisState := NewDefaultGenesisState()
+	genesisState := simapp.NewDefaultGenesisState()
 
 	authGenesis := auth.NewGenesisState(auth.DefaultParams(), genAccs)
 	genesisState[auth.ModuleName] = app.Codec().MustMarshalJSON(authGenesis)

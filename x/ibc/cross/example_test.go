@@ -8,7 +8,8 @@ import (
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
-	crkeys "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
@@ -47,11 +48,11 @@ func (suite *ExampleTestSuite) SetupSuite() {
 	suite.accountSeqs = make(map[string]uint64)
 }
 
-func createMnemonics(kb crkeys.Keybase, names ...string) ([]crkeys.Info, error) {
-	var infos []crkeys.Info
+func createMnemonics(kb keyring.Keyring, names ...string) ([]keyring.Info, error) {
+	var infos []keyring.Info
 	for _, name := range names {
-		info, _, err := kb.CreateMnemonic(
-			name, crkeys.English, clientkeys.DefaultKeyPass, crkeys.SigningAlgo("secp256k1"),
+		info, _, err := kb.NewMnemonic(
+			name, keyring.English, clientkeys.DefaultKeyPass, hd.Secp256k1,
 		)
 		if err != nil {
 			return nil, err
@@ -83,7 +84,7 @@ func getAnteHandler(app *simapp.SimApp) sdk.AnteHandler {
 }
 
 func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
-	kb := crkeys.NewInMemory()
+	kb := keyring.NewInMemory()
 	signer0, signer1, signer2 := "signer0", "signer1", "signer2"
 	relayer0 := "relayer0"
 	infos, err := createMnemonics(kb, signer0, signer1, signer2, relayer0)
@@ -208,52 +209,54 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	// doPrepare
 
 	{ // execute Train contract on app1
+		data := cross.NewPacketDataPrepare(
+			signer0Info.GetAddress(),
+			txID,
+			0,
+			tss[0],
+		)
 		packet := channeltypes.NewPacket(
-			cross.NewPacketDataPrepare(
-				signer0Info.GetAddress(),
-				txID,
-				0,
-				tss[0],
-			),
-			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
+			data.GetBytes(),
+			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // execute Hotel contract on app2
+		data := cross.NewPacketDataPrepare(
+			signer0Info.GetAddress(),
+			txID,
+			1,
+			tss[1],
+		)
 		packet := channeltypes.NewPacket(
-			cross.NewPacketDataPrepare(
-				signer0Info.GetAddress(),
-				txID,
-				1,
-				tss[1],
-			),
-			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
+			data.GetBytes(),
+			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	// doConfirm
 
 	{ // app0 receives PacketPrepareResult from app1
+		data := cross.NewPacketDataPrepareResult(
+			txID,
+			0,
+			cross.PREPARE_STATUS_OK,
+		)
 		packet := channeltypes.NewPacket(
-			cross.NewPacketDataPrepareResult(
-				relayer0Info.GetAddress(),
-				txID,
-				0,
-				cross.PREPARE_STATUS_OK,
-			),
-			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel)
+			data.GetBytes(),
+			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
+		data := cross.NewPacketDataPrepareResult(
+			txID,
+			1,
+			cross.PREPARE_STATUS_OK,
+		)
 		packet := channeltypes.NewPacket(
-			cross.NewPacketDataPrepareResult(
-				relayer0Info.GetAddress(),
-				txID,
-				1,
-				cross.PREPARE_STATUS_OK,
-			),
-			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel)
+			data.GetBytes(),
+			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
@@ -272,43 +275,45 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	)
 
 	{ // execute to commit on app1
+		data := cross.NewPacketDataCommit(
+			txID,
+			0,
+			true,
+		)
 		commitPacketTx0 = channeltypes.NewPacket(
-			cross.NewPacketDataCommit(
-				relayer0Info.GetAddress(),
-				txID,
-				0,
-				true,
-			),
-			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel)
+			data.GetBytes(),
+			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(commitPacketTx0, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
 	{ // execute to commit on app2
+		data := cross.NewPacketDataCommit(
+			txID,
+			1,
+			true,
+		)
 		commitPacketTx1 = channeltypes.NewPacket(
-			cross.NewPacketDataCommit(
-				relayer0Info.GetAddress(),
-				txID,
-				1,
-				true,
-			),
-			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel)
+			data.GetBytes(),
+			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(commitPacketTx1, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	// Receive an Ack packet
 
 	{ // app1
+		data := cross.NewPacketDataAckCommit(txID, 0)
 		packet := channeltypes.NewPacket(
-			cross.NewPacketDataAckCommit(txID, 0),
-			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel)
+			data.GetBytes(),
+			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 		suite.True(ok)
 		suite.False(ci.IsReceivedALLAcks())
 	}
 	{ // app2
+		data := cross.NewPacketDataAckCommit(txID, 1)
 		packet := channeltypes.NewPacket(
-			cross.NewPacketDataAckCommit(txID, 1),
-			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel)
+			data.GetBytes(),
+			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight())
 		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
@@ -317,7 +322,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	}
 }
 
-func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer crkeys.Info, txBuilder authtypes.TxBuilder, seq uint64) {
+func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer keyring.Info, txBuilder authtypes.TxBuilder, seq uint64) {
 	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
 	suite.True(ok)
 	res := sender.app.Query(abci.RequestQuery{
@@ -335,7 +340,7 @@ func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, se
 	}
 }
 
-func (suite *ExampleTestSuite) doRelay(msg sdk.Msg, sender, receiver *appContext, relayer crkeys.Info, txBuilder authtypes.TxBuilder) error {
+func (suite *ExampleTestSuite) doRelay(msg sdk.Msg, sender, receiver *appContext, relayer keyring.Info, txBuilder authtypes.TxBuilder) error {
 	var err error
 	stdTx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, nil, "")
 	stdTx, err = txBuilder.WithChainID(receiver.chainID).
@@ -477,6 +482,15 @@ func (suite *ExampleTestSuite) createChannel(actx *appContext, portID string, ch
 	}
 
 	actx.app.IBCKeeper.ChannelKeeper.SetChannel(actx.ctx, portID, chanID, ch)
+
+	capName := ibctypes.ChannelCapabilityPath(portID, chanID)
+	cap, err := actx.app.ScopedIBCKeeper.NewCapability(actx.ctx, capName)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	if err := actx.app.CrossKeeper.ClaimCapability(actx.ctx, cap, capName); err != nil {
+		suite.FailNow(err.Error())
+	}
 }
 
 func (suite *ExampleTestSuite) createClients(

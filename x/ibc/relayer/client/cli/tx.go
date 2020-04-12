@@ -14,10 +14,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
-	"github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
 	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
+	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -69,14 +69,14 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var packetData exported.PacketDataI
+			var packetData cross.PacketData
 			cdc.MustUnmarshalJSON(data, &packetData)
 
 			relayer, err := sdk.AccAddressFromBech32(viper.GetString(flagRelayerAddress))
 			if err != nil {
 				return err
 			}
-			packet := channeltypes.NewPacket(packetData, uint64(srcSeq), srcPort, srcChannel, dstPort, dstChannel)
+			packet := channeltypes.NewPacket(packetData.GetBytes(), uint64(srcSeq), srcPort, srcChannel, dstPort, dstChannel, packetData.GetTimeoutHeight())
 			cliCtx.Height = int64(height - 1)
 			res, err := cliCtx.QueryABCI(abci.RequestQuery{
 				Path:   "store/ibc/key",
@@ -90,7 +90,7 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 			if res.IsErr() {
 				return fmt.Errorf("failed to execute QueryABCI")
 			}
-			if bz := channeltypes.CommitPacket(packet.GetData()); !bytes.Equal(res.Value, bz) {
+			if bz := channeltypes.CommitPacket(packet); !bytes.Equal(res.Value, bz) {
 				return fmt.Errorf("unexpected CommitPacket: %X != %X", res.Value, bz)
 			}
 			proof := commitment.MerkleProof{Proof: res.Proof}

@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
-	"github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
+	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
@@ -41,9 +41,10 @@ func (k Keeper) MulticastPreparePacket(
 		s := transactions[id].Source
 		err := k.sendPacket(
 			ctx,
-			data,
+			data.GetBytes(),
 			s.Port, s.Channel,
 			c.Counterparty.PortID, c.Counterparty.ChannelID,
+			data.GetTimeoutHeight(),
 		)
 		if err != nil {
 			return types.TxID{}, err
@@ -72,12 +73,13 @@ func (k Keeper) CreatePreparePacket(
 ) channel.Packet {
 	packetData := types.NewPacketDataPrepare(sender, txID, txIndex, transaction)
 	packet := channel.NewPacket(
-		packetData,
+		packetData.GetBytes(),
 		seq,
 		sourcePort,
 		sourceChannel,
 		destinationPort,
 		destinationChannel,
+		packetData.GetTimeoutHeight(),
 	)
 	return packet
 }
@@ -90,23 +92,24 @@ func (k Keeper) PrepareTransaction(
 	destinationPort,
 	destinationChannel string,
 	data types.PacketDataPrepare,
-	sender sdk.AccAddress,
 ) error {
 	if _, ok := k.GetTx(ctx, data.TxID, data.TxIndex); ok {
 		return fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
 	status := types.PREPARE_STATUS_OK
-	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data, sender); err != nil {
+	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data); err != nil {
 		status = types.PREPARE_STATUS_FAILED
 	}
 
 	// Send a Prepared Packet to coordinator (reply to source channel)
+	packetData := types.NewPacketDataPrepareResult(data.TxID, data.TxIndex, status)
 	if err := k.sendPacket(
 		ctx,
-		types.NewPacketDataPrepareResult(sender, data.TxID, data.TxIndex, status),
+		packetData.GetBytes(),
 		destinationPort, destinationChannel,
 		sourcePort, sourceChannel,
+		packetData.GetTimeoutHeight(),
 	); err != nil {
 		return err
 	}
@@ -131,7 +134,6 @@ func (k Keeper) prepareTransaction(
 	destinationPort,
 	destinationChannel string,
 	data types.PacketDataPrepare,
-	sender sdk.AccAddress,
 ) error {
 	store, res, err := contractHandler.Handle(
 		types.WithSigners(ctx, data.ContractTransaction.Signers),
@@ -201,7 +203,6 @@ func (k Keeper) ReceivePrepareResultPacket(
 func (k Keeper) MulticastCommitPacket(
 	ctx sdk.Context,
 	txID types.TxID,
-	sender sdk.AccAddress,
 	isCommittable bool,
 ) error {
 	co, ok := k.GetCoordinator(ctx, txID)
@@ -221,6 +222,10 @@ func (k Keeper) MulticastCommitPacket(
 		if !found {
 			return channel.ErrSequenceSendNotFound
 		}
+		channelCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(c.Port, c.Channel))
+		if !ok {
+			return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
+		}
 		packet := k.CreateCommitPacket(
 			ctx,
 			seq,
@@ -228,12 +233,11 @@ func (k Keeper) MulticastCommitPacket(
 			c.Channel,
 			ch.GetCounterparty().GetPortID(),
 			ch.GetCounterparty().GetChannelID(),
-			sender,
 			txID,
 			types.TxIndex(id),
 			isCommittable,
 		)
-		if err := k.channelKeeper.SendPacket(ctx, packet); err != nil {
+		if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
 			return err
 		}
 	}
@@ -248,19 +252,19 @@ func (k Keeper) CreateCommitPacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	sender sdk.AccAddress,
 	txID types.TxID,
 	txIndex types.TxIndex,
 	isCommitable bool,
 ) channel.Packet {
-	packetData := types.NewPacketDataCommit(sender, txID, txIndex, isCommitable)
+	packetData := types.NewPacketDataCommit(txID, txIndex, isCommitable)
 	return channel.NewPacket(
-		packetData,
+		packetData.GetBytes(),
 		seq,
 		sourcePort,
 		sourceChannel,
 		destinationPort,
 		destinationChannel,
+		packetData.GetTimeoutHeight(),
 	)
 }
 
@@ -330,16 +334,18 @@ func (k Keeper) SendAckCommitPacket(
 	destinationPort,
 	destinationChannel string,
 ) error {
-	return k.sendPacket(ctx, types.NewPacketDataAckCommit(txID, txIndex), sourcePort, sourceChannel, destinationPort, destinationChannel)
+	data := types.NewPacketDataAckCommit(txID, txIndex)
+	return k.sendPacket(ctx, data.GetBytes(), sourcePort, sourceChannel, destinationPort, destinationChannel, data.GetTimeoutHeight())
 }
 
 func (k Keeper) sendPacket(
 	ctx sdk.Context,
-	data exported.PacketDataI,
+	data []byte,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
+	timeout uint64,
 ) error {
 	// get the next sequence
 	seq, found := k.channelKeeper.GetNextSequenceSend(ctx, sourcePort, sourceChannel)
@@ -353,8 +359,13 @@ func (k Keeper) sendPacket(
 		sourceChannel,
 		destinationPort,
 		destinationChannel,
+		timeout,
 	)
-	return k.channelKeeper.SendPacket(ctx, packet)
+	channelCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(sourcePort, sourceChannel))
+	if !ok {
+		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
+	}
+	return k.channelKeeper.SendPacket(ctx, channelCap, packet)
 }
 
 func (k Keeper) ReceiveAckPacket(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) error {
