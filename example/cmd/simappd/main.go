@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/datachainlab/cross/example/simapp"
 	app "github.com/datachainlab/cross/example/simapp"
 	appcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/spf13/cobra"
@@ -107,19 +108,19 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 
 func exportAppStateAndTMValidators(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
-) (json.RawMessage, []tmtypes.GenesisValidator, error) {
+) (json.RawMessage, []tmtypes.GenesisValidator, *abci.ConsensusParams, error) {
 
+	var simApp *simapp.SimApp
 	if height != -1 {
-		gapp := app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), getContractHandler(viper.GetString(flagContractMode)), app.DefaultAnteHandlerProvider)
-		err := gapp.LoadHeight(height)
+		simApp = app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), getContractHandler(viper.GetString(flagContractMode)), app.DefaultAnteHandlerProvider)
+		err := simApp.LoadHeight(height)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+	} else {
+		simApp = app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), app.DefaultContractHandlerProvider, app.DefaultAnteHandlerProvider)
 	}
-
-	gapp := app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), app.DefaultContractHandlerProvider, app.DefaultAnteHandlerProvider)
-	return gapp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+	return simApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }
 
 func getContractHandler(mode string) app.ContractHandlerProvider {

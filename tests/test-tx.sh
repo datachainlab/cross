@@ -54,8 +54,8 @@ sleep ${WAIT_NEW_BLOCK}
 
 ### TRAIN_CHAIN receives the PacketDataPrepare
 CLIENT_ID=$(${RELAYER_CMD} paths show path01 --json | jq -r '.dst["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${TRAIN_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${TRAIN_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${TRAIN_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${TRAIN_CHAIN} ibczeroclient | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${CO_HOME} relayer relay \
   --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER1} --yes \
   ${INCLUDED_AT} ${SRC01_PORT} ${SRC01_CHAN} 1 ${DST01_PORT} ${DST01_CHAN} > ./data/packet0.json
@@ -65,8 +65,8 @@ ${NODE_CLI} tx --home ${TRAIN_HOME} broadcast ./data/packet0-signed.json --broad
 
 ### HOTEL_CHAIN receives the PacketDataPrepare
 CLIENT_ID=$(${RELAYER_CMD} paths show path02 --json | jq -r '.dst["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${HOTEL_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${HOTEL_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${HOTEL_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${HOTEL_CHAIN} ibczeroclient | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${CO_HOME} relayer relay \
   --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER2} --yes \
   ${INCLUDED_AT} ${SRC02_PORT} ${SRC02_CHAN} 1 ${DST02_PORT} ${DST02_CHAN} > ./data/packet1.json
@@ -78,8 +78,8 @@ sleep ${WAIT_NEW_BLOCK}
 
 ### Coordinator receives PacketDataPrepareResult from TRAIN_CHAIN
 CLIENT_ID=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${CO_CHAIN} ${TRAIN_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${CO_CHAIN} ${TRAIN_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${TRAIN_HOME} relayer relay \
   --from ${RELAYER1} --keyring-backend=test --chain-id ${TRAIN_CHAIN} --relayer-address=${RELAYER0} --yes \
   ${INCLUDED_AT} ${DST01_PORT} ${DST01_CHAN} 1 ${SRC01_PORT} ${SRC01_CHAN} > ./data/packet2.json
@@ -89,8 +89,8 @@ ${NODE_CLI} tx --home ${CO_HOME} broadcast ./data/packet2-signed.json --broadcas
 
 ### Coordinator receives PacketDataPrepareResult from HOTEL_CHAIN
 CLIENT_ID=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${CO_CHAIN} ${HOTEL_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${CO_CHAIN} ${HOTEL_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${HOTEL_HOME} relayer relay \
   --from ${RELAYER2} --keyring-backend=test --chain-id ${HOTEL_CHAIN} --relayer-address=${RELAYER0} --yes \
   ${INCLUDED_AT} ${DST02_PORT} ${DST02_CHAN} 1 ${SRC02_PORT} ${SRC02_CHAN} > ./data/packet3.json
@@ -102,8 +102,8 @@ sleep ${WAIT_NEW_BLOCK}
 
 ### TRAIN_CHAIN receives PacketDataCommit from coordinator
 CLIENT_ID=$(${RELAYER_CMD} paths show path01 --json | jq -r '.dst["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${TRAIN_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${TRAIN_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${TRAIN_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${TRAIN_CHAIN} ibczeroclient | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${CO_HOME} relayer relay \
   --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER1} --yes \
   ${INCLUDED_AT} ${SRC01_PORT} ${SRC01_CHAN} 2 ${DST01_PORT} ${DST01_CHAN} > ./data/packet4.json
@@ -113,8 +113,8 @@ ${NODE_CLI} tx --home ${TRAIN_HOME} broadcast ./data/packet4-signed.json --broad
 
 ### HOTEL_CHAIN receives PacketDataCommit from coordinator
 CLIENT_ID=$(${RELAYER_CMD} paths show path02 --json | jq -r '.dst["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${HOTEL_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${HOTEL_CHAIN} ibczeroclient | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${HOTEL_CHAIN} ${CO_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${HOTEL_CHAIN} ibczeroclient | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${CO_HOME} relayer relay \
   --from ${RELAYER0} --keyring-backend=test --chain-id ${CO_CHAIN} --relayer-address=${RELAYER2} --yes \
   ${INCLUDED_AT} ${SRC02_PORT} ${SRC02_CHAN} 2 ${DST02_PORT} ${DST02_CHAN} > ./data/packet5.json
@@ -126,8 +126,8 @@ sleep ${WAIT_NEW_BLOCK}
 
 ### Coordinator receives PacketDataAckCommit from TRAIN_CHAIN
 CLIENT_ID=$(${RELAYER_CMD} paths show path01 --json | jq -r '.src["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${CO_CHAIN} ${TRAIN_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${CO_CHAIN} ${TRAIN_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${TRAIN_HOME} relayer relay \
   --from ${RELAYER1} --keyring-backend=test --chain-id ${TRAIN_CHAIN} --relayer-address=${RELAYER0} --yes \
   ${INCLUDED_AT} ${DST01_PORT} ${DST01_CHAN} 2 ${SRC01_PORT} ${SRC01_CHAN} > ./data/packet6.json
@@ -137,8 +137,8 @@ ${NODE_CLI} tx --home ${CO_HOME} broadcast ./data/packet6-signed.json --broadcas
 
 ### Coordinator receives PacketDataAckCommit from HOTEL_CHAIN
 CLIENT_ID=$(${RELAYER_CMD} paths show path02 --json | jq -r '.src["client-id"]')
-${RELAYER_CMD} transactions raw update-client ${CO_CHAIN} ${HOTEL_CHAIN} ${CLIENT_ID}
-INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.LastHeader.SignedHeader.header.height')
+${RELAYER_CMD} transact raw update-client ${CO_CHAIN} ${HOTEL_CHAIN} ${CLIENT_ID}
+INCLUDED_AT=$(${RELAYER_CMD} query client ${CO_CHAIN} ${CLIENT_ID} | jq -r '.client_state.value.last_header.SignedHeader.header.height')
 ${NODE_CLI} tx --home ${HOTEL_HOME} relayer relay \
   --from ${RELAYER2} --keyring-backend=test --chain-id ${HOTEL_CHAIN} --relayer-address=${RELAYER0} --yes \
   ${INCLUDED_AT} ${DST02_PORT} ${DST02_CHAN} 2 ${SRC02_PORT} ${SRC02_CHAN} > ./data/packet7.json

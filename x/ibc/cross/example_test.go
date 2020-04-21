@@ -64,7 +64,6 @@ func createMnemonics(kb keyring.Keyring, names ...string) ([]keyring.Info, error
 
 func getAnteHandler(app *simapp.SimApp) sdk.AnteHandler {
 	ak := app.AccountKeeper
-	supplyKeeper := app.SupplyKeeper
 	sigGasConsumer := ante.DefaultSigVerificationGasConsumer
 	ibcKeeper := app.IBCKeeper
 	return sdk.ChainAnteDecorators(
@@ -75,7 +74,7 @@ func getAnteHandler(app *simapp.SimApp) sdk.AnteHandler {
 		ante.NewConsumeGasForTxSizeDecorator(ak),
 		ante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
 		ante.NewValidateSigCountDecorator(ak),
-		ante.NewDeductFeeDecorator(ak, supplyKeeper),
+		ante.NewDeductFeeDecorator(ak, app.BankKeeper),
 		ante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 		ante.NewSigVerificationDecorator(ak),
 		ante.NewIncrementSequenceDecorator(ak),
