@@ -16,12 +16,14 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	clientexported "github.com/cosmos/cosmos-sdk/x/ibc/02-client/exported"
 	connection "github.com/cosmos/cosmos-sdk/x/ibc/03-connection"
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
 	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint/types"
+	localhost "github.com/cosmos/cosmos-sdk/x/ibc/09-localhost/types"
 	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
 	ibcante "github.com/cosmos/cosmos-sdk/x/ibc/ante"
 	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
@@ -113,36 +115,39 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		sdk.NewDecCoins(),
 	).WithKeybase(kb)
 
-	app0 := suite.createApp("app0", simapp.DefaultContractHandlerProvider, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc}) // coordinator node
-	app1 := suite.createApp("app1", simappcontract.TrainReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
-	app2 := suite.createApp("app2", simappcontract.HotelReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
+	trainApp := suite.createApp("train", simappcontract.TrainReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
+	hotelApp := suite.createApp("hotel", simappcontract.HotelReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
 
-	ch0to1 := cross.NewChannelInfo(cross.RouterKey, "testchannelzeroone") // app0 -> app1
-	ch1to0 := cross.NewChannelInfo(cross.RouterKey, "testchannelonezero") // app1 -> app
-	ch0to2 := cross.NewChannelInfo(cross.RouterKey, "testchannelzerotwo") // app0 -> app2
-	ch2to0 := cross.NewChannelInfo(cross.RouterKey, "testchanneltwozero") // app2 -> app0
+	ch0to1 := cross.NewChannelInfo(cross.RouterKey, "testchannelzeroone") // coordinator -> train
+	ch1to0 := cross.NewChannelInfo(cross.RouterKey, "testchannelonezero") // train -> coordinator
+	ch0to2 := cross.NewChannelInfo(cross.RouterKey, "testchannelzerotwo") // coordinator -> hotel
+	ch2to0 := cross.NewChannelInfo(cross.RouterKey, "testchanneltwozero") // hotel -> coordinator
 
 	suite.openChannels(
-		app1.chainID,
-		app0.chainID+app1.chainID,
+		clientexported.ClientTypeLocalHost,
+		trainApp.chainID+trainApp.chainID,
 		ch0to1,
-		app0,
+		trainApp,
 
-		app0.chainID,
-		app1.chainID+app0.chainID,
+		clientexported.ClientTypeLocalHost,
+		trainApp.chainID+trainApp.chainID,
 		ch1to0,
-		app1,
+		trainApp,
+
+		true,
 	)
 	suite.openChannels(
-		app2.chainID,
-		app0.chainID+app2.chainID,
+		hotelApp.chainID,
+		trainApp.chainID+hotelApp.chainID,
 		ch0to2,
-		app0,
+		trainApp,
 
-		app0.chainID,
-		app2.chainID+app1.chainID,
+		trainApp.chainID,
+		hotelApp.chainID+trainApp.chainID,
 		ch2to0,
-		app2,
+		hotelApp,
+
+		false,
 	)
 
 	trainCall := contract.NewContractCallInfo(simappcontract.TrainContractID, simappcontract.ReserveFnName, [][]byte{contract.ToBytes(int32(1))})
@@ -167,39 +172,39 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		var nonce uint64 = 1
 		msg := cross.NewMsgInitiate(
 			signer0Info.GetAddress(),
-			app0.chainID,
+			trainApp.chainID,
 			tss,
 			256,
 			nonce,
 		)
 		suite.NoError(msg.ValidateBasic())
-		txID = cross.MakeTxID(app0.ctx, msg)
+		txID = cross.MakeTxID(trainApp.ctx, msg)
 		stdTx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, nil, "")
 		for i, signer := range []string{signer0, signer1, signer2} {
-			stdTx, err = txBuilder.WithChainID(app0.chainID).WithAccountNumber(uint64(i)).SignStdTx(signer, clientkeys.DefaultKeyPass, stdTx, true)
+			stdTx, err = txBuilder.WithChainID(trainApp.chainID).WithAccountNumber(uint64(i)).SignStdTx(signer, clientkeys.DefaultKeyPass, stdTx, true)
 			if err != nil {
 				suite.FailNow(err.Error())
 			}
 		}
-		txBytes, err := txBuilder.WithChainID(app0.chainID).TxEncoder()(stdTx)
+		txBytes, err := txBuilder.WithChainID(trainApp.chainID).TxEncoder()(stdTx)
 		if err != nil {
 			suite.FailNow(err.Error())
 		}
 
-		res := app0.app.DeliverTx(abci.RequestDeliverTx{Tx: txBytes})
+		res := trainApp.app.DeliverTx(abci.RequestDeliverTx{Tx: txBytes})
 		if !suite.True(res.IsOK()) {
 			suite.FailNow(res.String())
 			return
 		}
 
-		suite.nextBlock(app0)
+		suite.nextBlock(trainApp)
 	}
 
 	{ // update client
-		apps := []*appContext{app1, app2}
+		apps := []*appContext{hotelApp}
 		for _, app := range apps {
-			suite.updateClient(app0, app.chainID, app)
-			suite.updateClient(app, app0.chainID, app0)
+			suite.updateClient(trainApp, app.chainID, app)
+			suite.updateClient(app, trainApp.chainID, trainApp)
 		}
 	}
 
@@ -217,7 +222,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // execute Hotel contract on app2
@@ -230,7 +235,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, trainApp, hotelApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	// doConfirm
@@ -244,7 +249,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
@@ -256,13 +261,13 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, hotelApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 
-		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
+		ci, ok := trainApp.app.CrossKeeper.GetCoordinator(trainApp.ctx, txID)
 		suite.True(ok)
 		suite.Equal(cross.CO_DECISION_COMMIT, ci.Decision)
 
-		suite.updateClient(app1, app0.chainID, app0)
+		suite.updateClient(trainApp, trainApp.chainID, trainApp)
 	}
 
 	packetSeq++
@@ -282,7 +287,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		commitPacketTx0 = channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(commitPacketTx0, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(commitPacketTx0, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 	{ // execute to commit on app2
 		data := cross.NewPacketDataCommit(
@@ -293,7 +298,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		commitPacketTx1 = channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(commitPacketTx1, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(commitPacketTx1, trainApp, hotelApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	// Receive an Ack packet
@@ -303,8 +308,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
-		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
+		suite.buildMsgAndDoRelay(packet, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
+		ci, ok := trainApp.app.CrossKeeper.GetCoordinator(trainApp.ctx, txID)
 		suite.True(ok)
 		suite.False(ci.IsReceivedALLAcks())
 	}
@@ -313,16 +318,22 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight())
-		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(packet, hotelApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 
-		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
+		ci, ok := trainApp.app.CrossKeeper.GetCoordinator(trainApp.ctx, txID)
 		suite.True(ok)
 		suite.True(ci.IsReceivedALLAcks())
 	}
 }
 
 func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer keyring.Info, txBuilder authtypes.TxBuilder, seq uint64) {
-	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
+	var clientID string
+	if sender.chainID == receiver.chainID {
+		clientID = clientexported.ClientTypeLocalHost
+	} else {
+		clientID = sender.chainID
+	}
+	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, clientID)
 	suite.True(ok)
 	res := sender.app.Query(abci.RequestQuery{
 		Path:   "store/ibc/key",
@@ -420,6 +431,26 @@ func (suite *ExampleTestSuite) createClient(actx *appContext, clientID string, d
 	suite.nextBlock(actx)
 }
 
+func (suite *ExampleTestSuite) createLocalClient(actx *appContext) {
+	// suite.nextBlock(actx)
+	h := abci.Header{ChainID: actx.ctx.ChainID(), Height: actx.app.LastBlockHeight() + 1}
+	actx.app.BeginBlock(abci.RequestBeginBlock{Header: h})
+	actx.ctx = actx.app.BaseApp.NewContext(false, h)
+	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
+	header := tendermint.CreateTestHeader(actx.chainID, actx.ctx.BlockHeight(), now, actx.valSet, actx.signers)
+	// NOTE: localhost never refer this state
+	consensusState := header.ConsensusState()
+
+	localHostClient := localhost.NewClientState(
+		actx.app.IBCKeeper.ClientKeeper.ClientStore(actx.ctx, clientexported.ClientTypeLocalHost),
+		actx.ctx.ChainID(),
+		actx.ctx.BlockHeight(),
+	)
+	_, err := actx.app.IBCKeeper.ClientKeeper.CreateClient(actx.ctx, localHostClient, consensusState)
+	suite.NoError(err)
+	suite.nextBlock(actx)
+}
+
 func (suite *ExampleTestSuite) updateClient(actx *appContext, clientID string, dst *appContext) {
 	// always commit and begin a new block on updateClient
 	dst.app.Commit()
@@ -497,12 +528,17 @@ func (suite *ExampleTestSuite) createClients(
 	srcapp *appContext,
 	dstClientID string, // clientID of srcapp
 	dstapp *appContext,
+	isLoopback bool,
 ) {
-	suite.createClient(srcapp, srcClientID, dstapp)
-	suite.createClient(dstapp, dstClientID, srcapp)
-
-	srcapp.app.IBCKeeper.ClientKeeper.GetClientConsensusState(srcapp.ctx, srcClientID, 1)
-	dstapp.app.IBCKeeper.ClientKeeper.GetClientConsensusState(dstapp.ctx, dstClientID, 1)
+	if isLoopback {
+		if srcClientID != dstClientID || srcClientID != clientexported.Localhost.String() {
+			panic("loopback client must be localhost")
+		}
+		suite.createLocalClient(srcapp)
+	} else {
+		suite.createClient(srcapp, srcClientID, dstapp)
+		suite.createClient(dstapp, dstClientID, srcapp)
+	}
 }
 
 func (suite *ExampleTestSuite) createConnections(
@@ -543,8 +579,10 @@ func (suite *ExampleTestSuite) openChannels(
 	dstConnectionID string, // id of the connection with srcapp
 	dstc cross.ChannelInfo, // dst's channel with srcapp
 	dstapp *appContext,
+
+	isLoopback bool,
 ) {
-	suite.createClients(srcClientID, srcapp, dstClientID, dstapp)
+	suite.createClients(srcClientID, srcapp, dstClientID, dstapp, isLoopback)
 	suite.createConnections(srcClientID, srcConnectionID, srcapp, dstClientID, dstConnectionID, dstapp)
 	suite.createChannels(srcConnectionID, srcapp, srcc, dstConnectionID, dstapp, dstc)
 }
