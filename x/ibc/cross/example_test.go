@@ -335,16 +335,20 @@ func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, se
 	}
 	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, clientID)
 	suite.True(ok)
+	height := state.GetLatestHeight()
+	if clientID == clientexported.ClientTypeLocalHost {
+		height -= 1
+	}
 	res := sender.app.Query(abci.RequestQuery{
 		Path:   "store/ibc/key",
 		Data:   ibctypes.KeyPacketCommitment(packet.GetSourcePort(), packet.GetSourceChannel(), seq),
-		Height: int64(state.GetLatestHeight()),
+		Height: int64(height),
 		Prove:  true,
 	})
 	suite.True(res.IsOK())
 	proof := commitment.MerkleProof{Proof: res.Proof}
 
-	msg := channeltypes.NewMsgPacket(packet, proof, uint64(state.GetLatestHeight()), relayer.GetAddress())
+	msg := channeltypes.NewMsgPacket(packet, proof, uint64(height), relayer.GetAddress())
 	if err := suite.doRelay(msg, sender, receiver, relayer, txBuilder); err != nil {
 		suite.FailNow(err.Error())
 	}
@@ -432,21 +436,16 @@ func (suite *ExampleTestSuite) createClient(actx *appContext, clientID string, d
 }
 
 func (suite *ExampleTestSuite) createLocalClient(actx *appContext) {
-	// suite.nextBlock(actx)
 	h := abci.Header{ChainID: actx.ctx.ChainID(), Height: actx.app.LastBlockHeight() + 1}
 	actx.app.BeginBlock(abci.RequestBeginBlock{Header: h})
 	actx.ctx = actx.app.BaseApp.NewContext(false, h)
-	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
-	header := tendermint.CreateTestHeader(actx.chainID, actx.ctx.BlockHeight(), now, actx.valSet, actx.signers)
-	// NOTE: localhost never refer this state
-	consensusState := header.ConsensusState()
 
 	localHostClient := localhost.NewClientState(
 		actx.app.IBCKeeper.ClientKeeper.ClientStore(actx.ctx, clientexported.ClientTypeLocalHost),
 		actx.ctx.ChainID(),
 		actx.ctx.BlockHeight(),
 	)
-	_, err := actx.app.IBCKeeper.ClientKeeper.CreateClient(actx.ctx, localHostClient, consensusState)
+	_, err := actx.app.IBCKeeper.ClientKeeper.CreateClient(actx.ctx, localHostClient, nil)
 	suite.NoError(err)
 	suite.nextBlock(actx)
 }
