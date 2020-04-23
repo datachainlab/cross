@@ -37,6 +37,7 @@ const (
 const (
 	trustingPeriod time.Duration = time.Hour * 24 * 7 * 2
 	ubdPeriod      time.Duration = time.Hour * 24 * 7 * 3
+	maxClockDrift  time.Duration = time.Second * 10
 )
 
 func (suite *KeeperTestSuite) createClient(actx *appContext, clientID string) {
@@ -51,12 +52,7 @@ func (suite *KeeperTestSuite) createClient(actx *appContext, clientID string) {
 	header := tendermint.CreateTestHeader(actx.chainID, 1, now, actx.valSet, actx.signers)
 	consensusState := header.ConsensusState()
 
-	// consensusState := tendermint.ConsensusState{
-	// 	Root:         commitment.NewRoot(commitID.Hash),
-	// 	ValidatorSet: actx.valSet,
-	// }
-
-	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, header)
+	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, maxClockDrift, header)
 	if err != nil {
 		panic(err)
 	}
@@ -698,7 +694,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 }
 
 func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, data cross.PacketDataPrepareResult, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
-	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight())
+	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 	canMulticast, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareResultPacket(actx.ctx, packet, data)
 	if err != nil {
 		return false, false, err
@@ -739,7 +735,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	suite.NotNil(packetCommitment)
 
 	data := types.NewPacketDataPrepareResult(txID, txIndex, cross.PREPARE_STATUS_OK)
-	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight())
+	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 	suite.Equal(
 		packetCommitment,
 		channeltypes.CommitPacket(packet),
