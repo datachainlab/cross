@@ -221,7 +221,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		)
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight())
+			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(packet, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
@@ -234,7 +234,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		)
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight())
+			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(packet, trainApp, hotelApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
@@ -248,7 +248,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		)
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight())
+			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(packet, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
@@ -260,7 +260,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		)
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight())
+			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(packet, hotelApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 
 		ci, ok := trainApp.app.CrossKeeper.GetCoordinator(trainApp.ctx, txID)
@@ -286,7 +286,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		)
 		commitPacketTx0 = channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight())
+			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(commitPacketTx0, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 	{ // execute to commit on app2
@@ -297,7 +297,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		)
 		commitPacketTx1 = channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight())
+			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(commitPacketTx1, trainApp, hotelApp, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
@@ -307,7 +307,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		data := cross.NewPacketDataAckCommit(txID, 0)
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight())
+			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(packet, trainApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 		ci, ok := trainApp.app.CrossKeeper.GetCoordinator(trainApp.ctx, txID)
 		suite.True(ok)
@@ -317,7 +317,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		data := cross.NewPacketDataAckCommit(txID, 1)
 		packet := channeltypes.NewPacket(
 			data.GetBytes(),
-			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight())
+			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 		suite.buildMsgAndDoRelay(packet, hotelApp, trainApp, txID, relayer0Info, txBuilder, packetSeq)
 
 		ci, ok := trainApp.app.CrossKeeper.GetCoordinator(trainApp.ctx, txID)
@@ -421,7 +421,7 @@ func (suite *ExampleTestSuite) createClient(actx *appContext, clientID string, d
 
 	header := tendermint.CreateTestHeader(dst.chainID, dst.ctx.BlockHeight()-1, now, dst.valSet, dst.signers)
 	consensusState := header.ConsensusState()
-	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, header)
+	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, maxClockDrift, header)
 	if err != nil {
 		panic(err)
 	}
@@ -467,7 +467,7 @@ func (suite *ExampleTestSuite) updateClient(actx *appContext, clientID string, d
 		Root: commitment.NewMerkleRoot(commitID.Hash),
 	}
 	preheader := tendermint.CreateTestHeader(dst.chainID, height-1, now, dst.valSet, dst.signers)
-	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, preheader)
+	clientState, err := tendermint.Initialize(clientID, trustingPeriod, ubdPeriod, maxClockDrift, preheader)
 	if err != nil {
 		panic(err)
 	}
@@ -608,7 +608,11 @@ func (suite *ExampleTestSuite) createAppWithHeader(
 	app := simapp.SetupWithGenesisAccounts(header.ChainID, contractHanderProvider, anteHandlerProvider, genAccs, balances...)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	privVal := tmtypes.NewMockPV()
-	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
+	pub, err := privVal.GetPubKey()
+	if err != nil {
+		panic(err)
+	}
+	validator := tmtypes.NewValidator(pub, 1)
 	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
 	signers := []tmtypes.PrivValidator{privVal}
 

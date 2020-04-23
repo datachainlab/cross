@@ -101,7 +101,11 @@ func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header) *appContex
 	app := simapp.Setup(isCheckTx)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	privVal := tmtypes.NewMockPV()
-	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
+	pub, err := privVal.GetPubKey()
+	if err != nil {
+		panic(err)
+	}
+	validator := tmtypes.NewValidator(pub, 1)
 	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
 	signers := []tmtypes.PrivValidator{privVal}
 
