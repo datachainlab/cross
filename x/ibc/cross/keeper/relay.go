@@ -45,6 +45,7 @@ func (k Keeper) MulticastPreparePacket(
 			s.Port, s.Channel,
 			c.Counterparty.PortID, c.Counterparty.ChannelID,
 			data.GetTimeoutHeight(),
+			data.GetTimeoutTimestamp(),
 		)
 		if err != nil {
 			return types.TxID{}, err
@@ -80,6 +81,7 @@ func (k Keeper) CreatePreparePacket(
 		destinationPort,
 		destinationChannel,
 		packetData.GetTimeoutHeight(),
+		packetData.GetTimeoutTimestamp(),
 	)
 	return packet
 }
@@ -110,6 +112,7 @@ func (k Keeper) PrepareTransaction(
 		destinationPort, destinationChannel,
 		sourcePort, sourceChannel,
 		packetData.GetTimeoutHeight(),
+		packetData.GetTimeoutTimestamp(),
 	); err != nil {
 		return err
 	}
@@ -265,6 +268,7 @@ func (k Keeper) CreateCommitPacket(
 		destinationPort,
 		destinationChannel,
 		packetData.GetTimeoutHeight(),
+		0,
 	)
 }
 
@@ -335,7 +339,7 @@ func (k Keeper) SendAckCommitPacket(
 	destinationChannel string,
 ) error {
 	data := types.NewPacketDataAckCommit(txID, txIndex)
-	return k.sendPacket(ctx, data.GetBytes(), sourcePort, sourceChannel, destinationPort, destinationChannel, data.GetTimeoutHeight())
+	return k.sendPacket(ctx, data.GetBytes(), sourcePort, sourceChannel, destinationPort, destinationChannel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
 }
 
 func (k Keeper) sendPacket(
@@ -345,7 +349,8 @@ func (k Keeper) sendPacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	timeout uint64,
+	timeoutHeight uint64,
+	timeoutTimestamp uint64,
 ) error {
 	// get the next sequence
 	seq, found := k.channelKeeper.GetNextSequenceSend(ctx, sourcePort, sourceChannel)
@@ -359,7 +364,8 @@ func (k Keeper) sendPacket(
 		sourceChannel,
 		destinationPort,
 		destinationChannel,
-		timeout,
+		timeoutHeight,
+		timeoutTimestamp,
 	)
 	channelCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(sourcePort, sourceChannel))
 	if !ok {

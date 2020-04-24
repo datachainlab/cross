@@ -15,6 +15,7 @@ type PacketData interface {
 	ValidateBasic() error
 	GetBytes() []byte
 	GetTimeoutHeight() uint64
+	GetTimeoutTimestamp() uint64
 	Type() string
 }
 
@@ -46,6 +47,10 @@ func (p PacketDataPrepare) GetTimeoutHeight() uint64 {
 	return math.MaxUint64
 }
 
+func (p PacketDataPrepare) GetTimeoutTimestamp() uint64 {
+	return 0
+}
+
 func (p PacketDataPrepare) Type() string {
 	return TypePrepare
 }
@@ -72,6 +77,10 @@ func (p PacketDataPrepareResult) GetBytes() []byte {
 
 func (p PacketDataPrepareResult) GetTimeoutHeight() uint64 {
 	return math.MaxUint64
+}
+
+func (p PacketDataPrepareResult) GetTimeoutTimestamp() uint64 {
+	return 0
 }
 
 func (p PacketDataPrepareResult) Type() string {
@@ -106,6 +115,10 @@ func (p PacketDataCommit) GetTimeoutHeight() uint64 {
 	return math.MaxUint64
 }
 
+func (p PacketDataCommit) GetTimeoutTimestamp() uint64 {
+	return 0
+}
+
 func (p PacketDataCommit) Type() string {
 	return TypeCommit
 }
@@ -131,6 +144,10 @@ func (p PacketDataAckCommit) GetBytes() []byte {
 
 func (p PacketDataAckCommit) GetTimeoutHeight() uint64 {
 	return math.MaxUint64
+}
+
+func (p PacketDataAckCommit) GetTimeoutTimestamp() uint64 {
+	return 0
 }
 
 func (p PacketDataAckCommit) Type() string {

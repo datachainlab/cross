@@ -40,8 +40,11 @@ func (suite *HandlerTestSuite) SetupTest() {
 	suite.app = app
 
 	privVal := tmtypes.NewMockPV()
-
-	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
+	pub, err := privVal.GetPubKey()
+	if err != nil {
+		panic(err)
+	}
+	validator := tmtypes.NewValidator(pub, 1)
 	suite.valSet = tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
 }
 

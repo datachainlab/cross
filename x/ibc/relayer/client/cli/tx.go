@@ -76,7 +76,7 @@ func GetRelayPacket(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			packet := channeltypes.NewPacket(packetData.GetBytes(), uint64(srcSeq), srcPort, srcChannel, dstPort, dstChannel, packetData.GetTimeoutHeight())
+			packet := channeltypes.NewPacket(packetData.GetBytes(), uint64(srcSeq), srcPort, srcChannel, dstPort, dstChannel, packetData.GetTimeoutHeight(), 0)
 			cliCtx.Height = int64(height - 1)
 			res, err := cliCtx.QueryABCI(abci.RequestQuery{
 				Path:   "store/ibc/key",

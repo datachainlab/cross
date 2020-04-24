@@ -61,6 +61,7 @@ func (suite *HandlerTestSuite) SetupTest() {
 const (
 	trustingPeriod time.Duration = time.Hour * 24 * 7 * 2
 	ubdPeriod      time.Duration = time.Hour * 24 * 7 * 3
+	maxClockDrift  time.Duration = time.Second * 10
 )
 
 func (suite *HandlerTestSuite) createClient() {
@@ -71,7 +72,11 @@ func (suite *HandlerTestSuite) createClient() {
 	suite.ctx = suite.app.BaseApp.NewContext(false, abci.Header{})
 
 	privVal := tmtypes.NewMockPV()
-	validator := tmtypes.NewValidator(privVal.GetPubKey(), 1)
+	pub, err := privVal.GetPubKey()
+	if err != nil {
+		panic(err)
+	}
+	validator := tmtypes.NewValidator(pub, 1)
 	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
 	signers := []tmtypes.PrivValidator{privVal}
 	now := time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)
@@ -80,7 +85,7 @@ func (suite *HandlerTestSuite) createClient() {
 	consensusState := header.ConsensusState()
 
 	// create client
-	clientState, err := tendermint.Initialize(testClient, trustingPeriod, ubdPeriod, header)
+	clientState, err := tendermint.Initialize(testClient, trustingPeriod, ubdPeriod, maxClockDrift, header)
 	if err != nil {
 		panic(err)
 	}
