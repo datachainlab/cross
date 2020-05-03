@@ -35,43 +35,43 @@ const (
 
 // nolint
 var (
-	NewKeeper                  = keeper.NewKeeper
-	NewQuerier                 = keeper.NewQuerier
-	MakeTxID                   = keeper.MakeTxID
-	MakeStoreTransactionID     = keeper.MakeStoreTransactionID
-	ModuleCdc                  = types.ModuleCdc
-	RegisterCodec              = types.RegisterCodec
-	SignersFromContext         = types.SignersFromContext
-	WithSigners                = types.WithSigners
-	NewMsgInitiate             = types.NewMsgInitiate
-	NewContractTransaction     = types.NewContractTransaction
-	NewChannelInfo             = types.NewChannelInfo
-	NewPacketDataPrepare       = types.NewPacketDataPrepare
-	NewPacketDataPrepareResult = types.NewPacketDataPrepareResult
-	NewPacketDataCommit        = types.NewPacketDataCommit
-	NewPacketDataAckCommit     = types.NewPacketDataAckCommit
+	NewKeeper                       = keeper.NewKeeper
+	NewQuerier                      = keeper.NewQuerier
+	MakeTxID                        = keeper.MakeTxID
+	MakeStoreTransactionID          = keeper.MakeStoreTransactionID
+	ModuleCdc                       = types.ModuleCdc
+	RegisterCodec                   = types.RegisterCodec
+	SignersFromContext              = types.SignersFromContext
+	WithSigners                     = types.WithSigners
+	NewMsgInitiate                  = types.NewMsgInitiate
+	NewContractTransaction          = types.NewContractTransaction
+	NewChannelInfo                  = types.NewChannelInfo
+	NewPacketDataPrepare            = types.NewPacketDataPrepare
+	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement
+	NewPacketDataCommit             = types.NewPacketDataCommit
+	NewPacketCommitAcknowledgement  = types.NewPacketCommitAcknowledgement
 )
 
 // nolint
 type (
-	Keeper                  = keeper.Keeper
-	ContractHandler         = types.ContractHandler
-	ContractHandlerResult   = types.ContractHandlerResult
-	MsgInitiate             = types.MsgInitiate
-	PacketData              = types.PacketData
-	PacketDataPrepare       = types.PacketDataPrepare
-	PacketDataPrepareResult = types.PacketDataPrepareResult
-	PacketDataCommit        = types.PacketDataCommit
-	PacketDataAckCommit     = types.PacketDataAckCommit
-	OP                      = types.OP
-	OPs                     = types.OPs
-	State                   = types.State
-	Store                   = types.Store
-	Committer               = types.Committer
-	ChannelInfo             = types.ChannelInfo
-	ContractTransaction     = types.ContractTransaction
-	ContractTransactions    = types.ContractTransactions
-	ContractCallResult      = types.ContractCallResult
-	TxID                    = types.TxID
-	TxIndex                 = types.TxIndex
+	Keeper                       = keeper.Keeper
+	ContractHandler              = types.ContractHandler
+	ContractHandlerResult        = types.ContractHandlerResult
+	MsgInitiate                  = types.MsgInitiate
+	PacketData                   = types.PacketData
+	PacketDataPrepare            = types.PacketDataPrepare
+	PacketPrepareAcknowledgement = types.PacketPrepareAcknowledgement
+	PacketDataCommit             = types.PacketDataCommit
+	PacketCommitAcknowledgement  = types.PacketCommitAcknowledgement
+	OP                           = types.OP
+	OPs                          = types.OPs
+	State                        = types.State
+	Store                        = types.Store
+	Committer                    = types.Committer
+	ChannelInfo                  = types.ChannelInfo
+	ContractTransaction          = types.ContractTransaction
+	ContractTransactions         = types.ContractTransactions
+	ContractCallResult           = types.ContractCallResult
+	TxID                         = types.TxID
+	TxIndex                      = types.TxIndex
 )

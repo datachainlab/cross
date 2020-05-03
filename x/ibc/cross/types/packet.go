@@ -19,6 +19,12 @@ type PacketData interface {
 	Type() string
 }
 
+type PacketAcknowledgement interface {
+	ValidateBasic() error
+	GetBytes() []byte
+	Type() string
+}
+
 var _ PacketData = (*PacketDataPrepare)(nil)
 
 type PacketDataPrepare struct {
@@ -55,39 +61,29 @@ func (p PacketDataPrepare) Type() string {
 	return TypePrepare
 }
 
-var _ PacketData = (*PacketDataPrepareResult)(nil)
+var _ PacketAcknowledgement = (*PacketPrepareAcknowledgement)(nil)
 
-type PacketDataPrepareResult struct {
-	TxID    TxID
-	TxIndex TxIndex
-	Status  uint8
+type PacketPrepareAcknowledgement struct {
+	Status uint8
 }
 
-func NewPacketDataPrepareResult(txID TxID, txIndex TxIndex, status uint8) PacketDataPrepareResult {
-	return PacketDataPrepareResult{TxID: txID, TxIndex: txIndex, Status: status}
+func NewPacketPrepareAcknowledgement(status uint8) PacketPrepareAcknowledgement {
+	return PacketPrepareAcknowledgement{Status: status}
 }
 
-func (p PacketDataPrepareResult) ValidateBasic() error {
+func (p PacketPrepareAcknowledgement) ValidateBasic() error {
 	return nil
 }
 
-func (p PacketDataPrepareResult) GetBytes() []byte {
+func (p PacketPrepareAcknowledgement) GetBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
 }
 
-func (p PacketDataPrepareResult) GetTimeoutHeight() uint64 {
-	return math.MaxUint64
-}
-
-func (p PacketDataPrepareResult) GetTimeoutTimestamp() uint64 {
-	return 0
-}
-
-func (p PacketDataPrepareResult) Type() string {
+func (p PacketPrepareAcknowledgement) Type() string {
 	return TypePrepareResult
 }
 
-func (p PacketDataPrepareResult) IsOK() bool {
+func (p PacketPrepareAcknowledgement) IsOK() bool {
 	return p.Status == PREPARE_STATUS_OK
 }
 
@@ -123,33 +119,22 @@ func (p PacketDataCommit) Type() string {
 	return TypeCommit
 }
 
-var _ PacketData = (*PacketDataAckCommit)(nil)
+var _ PacketAcknowledgement = (*PacketCommitAcknowledgement)(nil)
 
-type PacketDataAckCommit struct {
-	TxID    TxID
-	TxIndex TxIndex
+type PacketCommitAcknowledgement struct{}
+
+func NewPacketCommitAcknowledgement() PacketCommitAcknowledgement {
+	return PacketCommitAcknowledgement{}
 }
 
-func NewPacketDataAckCommit(txID TxID, txIndex TxIndex) PacketDataAckCommit {
-	return PacketDataAckCommit{TxID: txID, TxIndex: txIndex}
-}
-
-func (p PacketDataAckCommit) ValidateBasic() error {
+func (p PacketCommitAcknowledgement) ValidateBasic() error {
 	return nil
 }
 
-func (p PacketDataAckCommit) GetBytes() []byte {
+func (p PacketCommitAcknowledgement) GetBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
 }
 
-func (p PacketDataAckCommit) GetTimeoutHeight() uint64 {
-	return math.MaxUint64
-}
-
-func (p PacketDataAckCommit) GetTimeoutTimestamp() uint64 {
-	return 0
-}
-
-func (p PacketDataAckCommit) Type() string {
+func (p PacketCommitAcknowledgement) Type() string {
 	return TypeAckCommit
 }
