@@ -211,56 +211,22 @@ func (k Keeper) MulticastCommitPacket(
 		if !found {
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, c.Channel)
 		}
-		// get the next sequence
-		seq, found := k.channelKeeper.GetNextSequenceSend(ctx, c.Port, c.Channel)
-		if !found {
-			return channel.ErrSequenceSendNotFound
-		}
-		channelCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(c.Port, c.Channel))
-		if !ok {
-			return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
-		}
-		packet := k.CreateCommitPacket(
+		data := types.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
+		if err := k.sendPacket(
 			ctx,
-			seq,
+			data.GetBytes(),
 			c.Port,
 			c.Channel,
 			ch.GetCounterparty().GetPortID(),
 			ch.GetCounterparty().GetChannelID(),
-			txID,
-			types.TxIndex(id),
-			isCommittable,
-		)
-		if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
+			data.GetTimeoutHeight(),
+			data.GetTimeoutTimestamp(),
+		); err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func (k Keeper) CreateCommitPacket(
-	ctx sdk.Context,
-	seq uint64,
-	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
-	txID types.TxID,
-	txIndex types.TxIndex,
-	isCommitable bool,
-) channel.Packet {
-	packetData := types.NewPacketDataCommit(txID, txIndex, isCommitable)
-	return channel.NewPacket(
-		packetData.GetBytes(),
-		seq,
-		sourcePort,
-		sourceChannel,
-		destinationPort,
-		destinationChannel,
-		packetData.GetTimeoutHeight(),
-		0,
-	)
 }
 
 func (k Keeper) ReceiveCommitPacket(
@@ -365,7 +331,7 @@ func (k Keeper) ReceiveAckPacket(ctx sdk.Context, txID types.TxID, txIndex types
 }
 
 // PacketExecuted defines a wrapper function for the channel Keeper's function
-// in order to expose it to the ICS20 transfer handler.
+// in order to expose it to the cross handler.
 // Keeper retreives channel capability and passes it into channel keeper for authentication
 func (k Keeper) PacketExecuted(ctx sdk.Context, packet channelexported.PacketI, acknowledgement []byte) error {
 	chanCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(packet.GetDestPort(), packet.GetDestChannel()))
