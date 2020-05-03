@@ -38,14 +38,10 @@ func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketRec
 	}
 }
 
-type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Packet, acknowledgement []byte) (*sdk.Result, error)
+type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error)
 
 func NewPacketAcknowledgementReceiver(keeper Keeper) PacketAcknowledgementReceiver {
-	return func(ctx sdk.Context, packet channeltypes.Packet, acknowledgement []byte) (*sdk.Result, error) {
-		var ack types.PacketAcknowledgement
-		if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
-		}
+	return func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error) {
 		var data PacketData
 		if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
@@ -105,7 +101,7 @@ Steps:
 - If packet status is 'OK' and we haven't confirmed all packets yet, we wait for next packet receiving.
 */
 func handlePacketPrepareAcknowledgement(ctx sdk.Context, k Keeper, packet channeltypes.Packet, ack PacketPrepareAcknowledgement, data PacketDataPrepare) (*sdk.Result, error) {
-	canMulticast, isCommitable, err := k.ReceivePrepareAcknowledgement(ctx, packet.DestinationPort, packet.DestinationChannel, ack, data.TxID, data.TxIndex)
+	canMulticast, isCommitable, err := k.ReceivePrepareAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, data.TxID, data.TxIndex)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedRecievePrepareResult, err.Error())
 	}
