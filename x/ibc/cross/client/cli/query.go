@@ -21,7 +21,9 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
-	cmd.AddCommand(flags.PostCommands(GetCoordinatorStatus(cdc))...)
+	cmd.AddCommand(
+		flags.PostCommands(GetCoordinatorStatus(cdc), GetUnacknowledgedPackets(cdc))...,
+	)
 	return cmd
 }
 
@@ -54,6 +56,34 @@ func GetCoordinatorStatus(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			cdc.MustUnmarshalBinaryLengthPrefixed(res, &response)
+			fmt.Println(string(cdc.MustMarshalJSON(response)))
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func GetUnacknowledgedPackets(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "unacknowledged-packets",
+		Short: "get all unacknowledged packets",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+
+			req := types.QueryUnacknowledgedPacketsRequest{}
+			bz, err := cdc.MarshalBinaryLengthPrefixed(req)
+			if err != nil {
+				return err
+			}
+			route := fmt.Sprintf("custom/%s/%s", types.ModuleName, types.QueryUnacknowledgedPackets)
+			res, _, err := cliCtx.QueryWithData(route, bz)
+			if err != nil {
+				return err
+			}
+			var response types.QueryUnacknowledgedPacketsResponse
 			cdc.MustUnmarshalBinaryLengthPrefixed(res, &response)
 			fmt.Println(string(cdc.MustMarshalJSON(response)))
 			return nil

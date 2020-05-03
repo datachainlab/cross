@@ -35,6 +35,7 @@ const (
 	KeyCoordinatorPrefix uint8 = iota
 	KeyTxPrefix
 	KeyContractResultPrefix
+	KeyUnacknowledgedPacketPrefix
 )
 
 // KeyPrefixBytes return the key prefix bytes from a URL string format
@@ -66,5 +67,12 @@ func KeyContractResult(txID TxID, txIndex TxIndex) []byte {
 			txID[:]...,
 		),
 		txIndex,
+	)
+}
+
+func KeyUnacknowledgedPacket(sourcePort, sourceChannel string, seq uint64) []byte {
+	return append(
+		KeyPrefixBytes(KeyUnacknowledgedPacketPrefix),
+		[]byte(fmt.Sprintf("%v/%v/%v", sourcePort, sourceChannel, seq))...,
 	)
 }

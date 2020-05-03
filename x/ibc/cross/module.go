@@ -259,6 +259,7 @@ func (am AppModule) OnAcknowledgementPacket(
 	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
 	}
+	am.keeper.RemoveUnacknowledgedPacket(ctx, packet.SourcePort, packet.SourceChannel, packet.Sequence)
 	return am.packetAcknowledgementReceiver(ctx, packet, ack)
 }
 

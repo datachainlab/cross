@@ -315,7 +315,17 @@ func (k Keeper) sendPacket(
 	if !ok {
 		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
-	return k.channelKeeper.SendPacket(ctx, channelCap, packet)
+
+	if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
+		return err
+	}
+
+	k.SetUnacknowledgedPacket(ctx, sourcePort, sourceChannel, seq)
+	return nil
+}
+
+func makePacketKey(port, channel string, seq uint64) string {
+	return fmt.Sprintf("packet/%v/%v/%v", port, channel, seq)
 }
 
 func (k Keeper) ReceiveAckPacket(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) error {
