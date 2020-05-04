@@ -12,14 +12,14 @@ Each contract state transition is performed in two phases, "Prepare" and "Commit
 
 This phase is initiated by receiving a PreparePacket from the coordinator. 
 
-The participant who receives a packet executes a smart contract according to contract call information written to PacketData. If successful, take the operations out of Store and make sure they match the operations in PacketData. If any of these processes fail, PreparedResultPacket is sent to the coordinator with "Failed" set to prepare status without writing anything to Store. If all processes are successful, operations are saved in Store and get a Lock for each key. When writing operations are performed on the State, the exclusive lock is obtained, and when read operations are performed, the shared lock is obtained. Finally, PreparedResultPacket is sent to the coordinator with "OK" set to prepare status.
+The participant who receives a packet executes a smart contract according to contract call information written to PacketData. If successful, take the operations out of Store and make sure they match the operations in PacketData. If any of these processes fail, PacketPrepareAcknowledgement is sent to the coordinator with "Failed" set to status without writing anything to Store. If all processes are successful, operations are saved in Store and get a Lock for each key. When writing operations are performed on the State, the exclusive lock is obtained, and when read operations are performed, the shared lock is obtained. Finally, PacketPrepareAcknowledgement is sent to the coordinator with "OK" set to status.
 
 ### Commit phase
 
 This phase is initiated by receiving a CommitPacket from the coordinator.
 
-If the status of CommitPacket is "Commit", it first applies(commits) the operation saved in Prepare to state, then releases the acquired Lock, and finally returns the Ack packet to the coordinator.
-If the status of packet is "Abort", it first discards the operation saved in Prepare phase, then releases the acquired Lock, and finally returns the Ack packet to the coordinator.
+If the status of CommitPacket is "Commit", it first applies(commits) the operation saved in Prepare to state, then releases the acquired Lock, and finally returns PacketCommitAcknowledgement to the coordinator.
+If the status of packet is "Abort", it first discards the operation saved in Prepare phase, then releases the acquired Lock, and finally returns PacketCommitAcknowledgement to the coordinator.
 
 That's all the execution flow for the Contract.
 

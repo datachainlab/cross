@@ -206,6 +206,10 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	var packetSeq uint64 = 1
 
 	// doPrepare
+	var (
+		preparePacketTx0 channeltypes.Packet
+		preparePacketTx1 channeltypes.Packet
+	)
 
 	{ // execute Train contract on app1
 		data := cross.NewPacketDataPrepare(
@@ -214,10 +218,10 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			0,
 			tss[0],
 		)
-		packet := channeltypes.NewPacket(
+		preparePacketTx0 = channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight(), 0)
-		suite.buildMsgAndDoRelay(packet, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(preparePacketTx0, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // execute Hotel contract on app2
@@ -227,36 +231,26 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			1,
 			tss[1],
 		)
-		packet := channeltypes.NewPacket(
+		preparePacketTx1 = channeltypes.NewPacket(
 			data.GetBytes(),
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight(), 0)
-		suite.buildMsgAndDoRelay(packet, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildMsgAndDoRelay(preparePacketTx1, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	// doConfirm
 
 	{ // app0 receives PacketPrepareResult from app1
-		data := cross.NewPacketDataPrepareResult(
-			txID,
-			0,
+		ack := cross.NewPacketPrepareAcknowledgement(
 			cross.PREPARE_STATUS_OK,
 		)
-		packet := channeltypes.NewPacket(
-			data.GetBytes(),
-			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight(), 0)
-		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
-		data := cross.NewPacketDataPrepareResult(
-			txID,
-			1,
+		ack := cross.NewPacketPrepareAcknowledgement(
 			cross.PREPARE_STATUS_OK,
 		)
-		packet := channeltypes.NewPacket(
-			data.GetBytes(),
-			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight(), 0)
-		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
+		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 		suite.True(ok)
@@ -299,22 +293,15 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	// Receive an Ack packet
 
 	{ // app1
-		data := cross.NewPacketDataAckCommit(txID, 0)
-		packet := channeltypes.NewPacket(
-			data.GetBytes(),
-			packetSeq, ch1to0.Port, ch1to0.Channel, ch0to1.Port, ch0to1.Channel, data.GetTimeoutHeight(), 0)
-		suite.buildMsgAndDoRelay(packet, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
+		ack := cross.NewPacketCommitAcknowledgement()
+		suite.buildAckMsgAndDoRelay(ack.GetBytes(), commitPacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 		suite.True(ok)
 		suite.False(ci.IsReceivedALLAcks())
 	}
 	{ // app2
-		data := cross.NewPacketDataAckCommit(txID, 1)
-		packet := channeltypes.NewPacket(
-			data.GetBytes(),
-			packetSeq, ch2to0.Port, ch2to0.Channel, ch0to2.Port, ch0to2.Channel, data.GetTimeoutHeight(), 0)
-		suite.buildMsgAndDoRelay(packet, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
-
+		ack := cross.NewPacketCommitAcknowledgement()
+		suite.buildAckMsgAndDoRelay(ack.GetBytes(), commitPacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 		suite.True(ok)
 		suite.True(ci.IsReceivedALLAcks())
@@ -334,6 +321,24 @@ func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, se
 	proof := commitment.MerkleProof{Proof: res.Proof}
 
 	msg := channeltypes.NewMsgPacket(packet, proof, uint64(state.GetLatestHeight()), relayer.GetAddress())
+	if err := suite.doRelay(msg, sender, receiver, relayer, txBuilder); err != nil {
+		suite.FailNow(err.Error())
+	}
+}
+
+func (suite *ExampleTestSuite) buildAckMsgAndDoRelay(ack []byte, packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer keyring.Info, txBuilder authtypes.TxBuilder, seq uint64) {
+	state, ok := receiver.app.IBCKeeper.ClientKeeper.GetClientState(receiver.ctx, sender.chainID)
+	suite.True(ok)
+	res := sender.app.Query(abci.RequestQuery{
+		Path:   "store/ibc/key",
+		Data:   ibctypes.KeyPacketAcknowledgement(packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence()),
+		Height: int64(state.GetLatestHeight()),
+		Prove:  true,
+	})
+	suite.True(res.IsOK())
+	proof := commitment.MerkleProof{Proof: res.Proof}
+
+	msg := channeltypes.NewMsgAcknowledgement(packet, ack, proof, uint64(state.GetLatestHeight()), relayer.GetAddress())
 	if err := suite.doRelay(msg, sender, receiver, relayer, txBuilder); err != nil {
 		suite.FailNow(err.Error())
 	}

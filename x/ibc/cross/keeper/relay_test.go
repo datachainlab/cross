@@ -18,7 +18,6 @@ import (
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
 	tendermint "github.com/cosmos/cosmos-sdk/x/ibc/07-tendermint/types"
 	commitmentexported "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/exported"
 	commitment "github.com/cosmos/cosmos-sdk/x/ibc/23-commitment/types"
@@ -430,7 +429,7 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// ensure that coordinator decides 'abort'
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_FAILED), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -438,11 +437,11 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// ensure that coordinator decides 'abort'
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 1, cross.PREPARE_STATUS_FAILED), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 1, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -450,15 +449,15 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// ensure that coordinator decides 'abort' (ordered sequence number)
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 1, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 1, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 2, cross.PREPARE_STATUS_FAILED), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 2, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -466,15 +465,15 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// ensure that coordinator decides 'abort' (unordered sequence number)
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 2, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 1, cross.PREPARE_STATUS_FAILED), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 1, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -482,11 +481,11 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// ensure that contractTransaction ID conflict occurs
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch2to0, ch0to2, nextSeqSend)
 		suite.Error(err)
 	}
 	// invalid transactionID
@@ -494,27 +493,27 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 		capp, _ := app0.Cache()
 		var invalidTxID types.TxID
 		copy(invalidTxID[:], tmhash.Sum(txID[:]))
-		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(invalidTxID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), invalidTxID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// invalid transactionIndex
 	{
 		capp, _ := app0.Cache()
-		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 3, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 3, ch1to0, ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// ensure that coordinator doesn't execute to multicast more than once
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 1, cross.PREPARE_STATUS_FAILED), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 1, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 2, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
@@ -522,27 +521,27 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// ensure that coordinator doesn't receive a result of same contract call
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// ensure that coordinator decides 'commit' (unordered sequence number)
 	{
 		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 2, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 1, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 1, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.True(isCommitable)
@@ -550,17 +549,17 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 	// ensure that coordinator decides 'commit' (ordered sequence number)
 	{
 		capp, writer := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 0, cross.PREPARE_STATUS_OK), ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 1, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 1, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketDataPrepareResult(txID, 2, cross.PREPARE_STATUS_OK), ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.True(isCommitable)
@@ -693,27 +692,24 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	suite.NoError(err)
 }
 
-func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, data cross.PacketDataPrepareResult, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
-	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
-	canMulticast, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareResultPacket(actx.ctx, packet, data)
+func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, ack cross.PacketPrepareAcknowledgement, txID cross.TxID, txIndex cross.TxIndex, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
+	canMulticast, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareAcknowledgement(actx.ctx, dst.Port, dst.Channel, ack, txID, txIndex)
 	if err != nil {
 		return false, false, err
 	}
 	if canMulticast {
-		return canMulticast, isCommitable, actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, data.TxID, isCommitable)
+		return canMulticast, isCommitable, actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, txID, isCommitable)
 	} else {
 		return canMulticast, isCommitable, nil
 	}
 }
 
 func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64) {
-	var err error
-
 	relayer := sdk.AccAddress("relayer1")
 	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, ts)
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = cross.WithSigners(ctx, ts.Signers)
-	err = actx.app.CrossKeeper.PrepareTransaction(
+	status, err := actx.app.CrossKeeper.PrepareTransaction(
 		ctx,
 		contractHandler,
 		dst.Port,
@@ -723,23 +719,12 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 		packetData,
 	)
 	suite.NoError(err)
+	suite.Equal(cross.PREPARE_STATUS_OK, status)
 	tx, ok := actx.app.CrossKeeper.GetTx(ctx, txID, txIndex)
 	if suite.True(ok) {
 		suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
 	}
-	newNextSeqSend, found := actx.app.IBCKeeper.ChannelKeeper.GetNextSequenceSend(ctx, src.Port, src.Channel)
-	suite.True(found)
-	suite.Equal(nextseq+1, newNextSeqSend)
 
-	packetCommitment := actx.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(ctx, src.Port, src.Channel, nextseq)
-	suite.NotNil(packetCommitment)
-
-	data := types.NewPacketDataPrepareResult(txID, txIndex, cross.PREPARE_STATUS_OK)
-	packet := channeltypes.NewPacket(data.GetBytes(), nextseq, src.Port, src.Channel, dst.Port, dst.Channel, data.GetTimeoutHeight(), data.GetTimeoutTimestamp())
-	suite.Equal(
-		packetCommitment,
-		channeltypes.CommitPacket(packet),
-	)
 	writer()
 }
 

@@ -77,18 +77,20 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // AppModule struct
 type AppModule struct {
 	AppModuleBasic
-	keeper          Keeper
-	packetReceiver  PacketReceiver
-	contractHandler ContractHandler
+	keeper                        Keeper
+	packetReceiver                PacketReceiver
+	packetAcknowledgementReceiver PacketAcknowledgementReceiver
+	contractHandler               ContractHandler
 }
 
 // NewAppModule creates a new AppModule Object
 func NewAppModule(k Keeper, contractHandler ContractHandler) AppModule {
 	return AppModule{
-		AppModuleBasic:  AppModuleBasic{},
-		keeper:          k,
-		packetReceiver:  NewPacketReceiver(k, contractHandler),
-		contractHandler: contractHandler,
+		AppModuleBasic:                AppModuleBasic{},
+		keeper:                        k,
+		packetReceiver:                NewPacketReceiver(k, contractHandler),
+		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(k),
+		contractHandler:               contractHandler,
 	}
 }
 
@@ -251,9 +253,14 @@ func (am AppModule) OnRecvPacket(
 func (am AppModule) OnAcknowledgementPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
-	acknowledment []byte,
+	acknowledgement []byte,
 ) (*sdk.Result, error) {
-	return nil, nil
+	var ack types.PacketAcknowledgement
+	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
+	}
+	am.keeper.RemoveUnacknowledgedPacket(ctx, packet.SourcePort, packet.SourceChannel, packet.Sequence)
+	return am.packetAcknowledgementReceiver(ctx, packet, ack)
 }
 
 func (am AppModule) OnTimeoutPacket(

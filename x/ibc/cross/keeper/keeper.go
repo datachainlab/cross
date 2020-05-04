@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -137,6 +138,30 @@ func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex type
 func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.KeyContractResult(txID, txIndex))
+}
+
+func (k Keeper) SetUnacknowledgedPacket(ctx sdk.Context, sourcePort, sourceChannel string, seq uint64) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.KeyUnacknowledgedPacket(sourcePort, sourceChannel, seq), []byte{0})
+}
+
+func (k Keeper) RemoveUnacknowledgedPacket(ctx sdk.Context, sourcePort, sourceChannel string, seq uint64) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.KeyUnacknowledgedPacket(sourcePort, sourceChannel, seq))
+}
+
+func (k Keeper) IterateUnacknowledgedPackets(ctx sdk.Context, cb func(key []byte) bool) {
+	store := ctx.KVStore(k.storeKey)
+	prefix := types.KeyPrefixBytes(types.KeyUnacknowledgedPacketPrefix)
+	iterator := sdk.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		key := iterator.Key()
+		key = []byte(strings.TrimPrefix(string(key), string(prefix)))
+		if cb(key) {
+			break
+		}
+	}
 }
 
 // BindPort defines a wrapper function for the ort Keeper's function in

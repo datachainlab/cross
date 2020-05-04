@@ -16,6 +16,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		switch path[0] {
 		case types.QueryCoordinatorStatus:
 			return queryCoordinatorStatus(ctx, keeper, req)
+		case types.QueryUnacknowledgedPackets:
+			return queryUnacknowledgedPackets(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown IBC %s query endpoint", types.ModuleName)
 		}
@@ -35,6 +37,22 @@ func queryCoordinatorStatus(ctx sdk.Context, k Keeper, req abci.RequestQuery) ([
 		TxID:            query.TxID,
 		Completed:       ci.IsReceivedALLAcks(),
 		CoordinatorInfo: *ci,
+	}
+	return k.cdc.MarshalBinaryLengthPrefixed(res)
+}
+
+func queryUnacknowledgedPackets(ctx sdk.Context, k Keeper) ([]byte, error) {
+	packets := []types.UnacknowledgedPacket{}
+	k.IterateUnacknowledgedPackets(ctx, func(key []byte) bool {
+		p, err := types.ParseUnacknowledgedPacketKey(key)
+		if err != nil {
+			panic(err)
+		}
+		packets = append(packets, *p)
+		return false
+	})
+	res := types.QueryUnacknowledgedPacketsResponse{
+		Packets: packets,
 	}
 	return k.cdc.MarshalBinaryLengthPrefixed(res)
 }
