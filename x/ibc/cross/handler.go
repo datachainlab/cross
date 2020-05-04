@@ -83,7 +83,6 @@ func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler Contract
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
-	// Send a Prepared Packet to coordinator (reply to source channel)
 	ack := types.NewPacketPrepareAcknowledgement(status)
 	if err := k.PacketExecuted(ctx, packet, ack.GetBytes()); err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
@@ -135,7 +134,7 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 }
 
 func handlePacketCommitAcknowledgement(ctx sdk.Context, k Keeper, packet channeltypes.Packet, ack PacketCommitAcknowledgement, data PacketDataCommit) (*sdk.Result, error) {
-	err := k.ReceiveAckPacket(ctx, data.TxID, data.TxIndex)
+	err := k.PacketCommitAcknowledgement(ctx, data.TxID, data.TxIndex)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveAckCommitPacket, err.Error())
 	}

@@ -328,7 +328,7 @@ func makePacketKey(port, channel string, seq uint64) string {
 	return fmt.Sprintf("packet/%v/%v/%v", port, channel, seq)
 }
 
-func (k Keeper) ReceiveAckPacket(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) error {
+func (k Keeper) PacketCommitAcknowledgement(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) error {
 	ci, err := k.EnsureCoordinatorStatus(ctx, txID, types.CO_STATUS_DECIDED)
 	if err != nil {
 		return err
