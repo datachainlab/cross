@@ -9,7 +9,7 @@ echo "RELAYER_DIR is ${RELAYER_DIR}"
 cd ${RELAYER_DIR}
 git clone https://github.com/datachainlab/relayer
 cd ./relayer
-git checkout cross
+git checkout v10.0.1
 echo "Building Relayer..."
 make build
 
