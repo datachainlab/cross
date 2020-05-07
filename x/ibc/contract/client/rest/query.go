@@ -22,6 +22,14 @@ func QueryContractCallRequestHandlerFn(ctx context.CLIContext) http.HandlerFunc 
 		if !rest.ReadRESTReq(w, r, ctx.Codec, &req) {
 			return
 		}
+		var returnResult bool
+		v := r.FormValue("result")
+		if v == "true" {
+			returnResult = true
+		} else {
+			returnResult = false
+		}
+
 		ctx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, ctx, r)
 		if !ok {
 			return
@@ -61,6 +69,10 @@ func QueryContractCallRequestHandlerFn(ctx context.CLIContext) http.HandlerFunc 
 		ctx.Codec.MustUnmarshalJSON(result.Data, &response)
 
 		ctx = ctx.WithHeight(height)
-		rest.PostProcessResponse(w, ctx, response)
+		if returnResult {
+			rest.PostProcessResponse(w, ctx, result)
+		} else {
+			rest.PostProcessResponse(w, ctx, response)
+		}
 	}
 }
