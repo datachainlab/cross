@@ -69,7 +69,7 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 				nil,
 				ci.Bytes(),
 			)
-			bz, err := cdc.MarshalBinaryLengthPrefixed(msg)
+			bz, err := cdc.MarshalJSON(msg)
 			if err != nil {
 				return err
 			}
@@ -79,17 +79,17 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			var (
-				ops    cross.OPs
-				result sdk.Result
+				response types.ContractCallResponse
+				result   sdk.Result
 			)
-			cdc.MustUnmarshalBinaryLengthPrefixed(res, &result)
-			cdc.MustUnmarshalBinaryLengthPrefixed(result.Data, &ops)
+			cdc.MustUnmarshalJSON(res, &result)
+			cdc.MustUnmarshalJSON(result.Data, &response)
 			callResult := cross.ContractCallResult{
 				ChainID:  cliCtx.ChainID,
 				Height:   height,
 				Signers:  []sdk.AccAddress{cliCtx.GetFromAddress()},
 				Contract: ci.Bytes(),
-				OPs:      ops,
+				OPs:      response.OPs,
 			}
 			bz, err = cdc.MarshalJSON(callResult)
 			if err != nil {

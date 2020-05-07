@@ -4,6 +4,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
 )
 
@@ -21,6 +22,6 @@ func (k Keeper) GetContractStateStore(ctx sdk.Context, id []byte) sdk.KVStore {
 	return prefix.NewStore(st, id)
 }
 
-func (k Keeper) SerializeOPs(ops cross.OPs) ([]byte, error) {
-	return k.cdc.MarshalBinaryLengthPrefixed(ops)
+func (k Keeper) MakeContractCallResponseData(rv []byte, ops cross.OPs) ([]byte, error) {
+	return k.cdc.MarshalJSON(types.ContractCallResponse{ReturnValue: rv, OPs: ops})
 }
