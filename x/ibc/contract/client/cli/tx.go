@@ -44,7 +44,7 @@ func CallTxCmd(cdc *codec.Codec) *cobra.Command {
 			var cargs [][]byte
 			for _, a := range args[2:] {
 				if strings.HasPrefix(a, "0x") {
-					b, err := hex.DecodeString(a)
+					b, err := hex.DecodeString(a[2:])
 					if err != nil {
 						return err
 					}
