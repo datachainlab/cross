@@ -6,9 +6,9 @@ import (
 )
 
 type ContractCallInfo struct {
-	ID     string
-	Method string
-	Args   [][]byte
+	ID     string   `json:"id"`
+	Method string   `json:"method"`
+	Args   [][]byte `json:"args"`
 }
 
 func NewContractCallInfo(id, method string, args [][]byte) ContractCallInfo {
@@ -40,11 +40,6 @@ func DecodeContractSignature(bz []byte) (*ContractCallInfo, error) {
 	return &c, nil
 }
 
-type ContractResponse struct {
-	ReturnValue []byte
-	OPs         cross.OPs
-}
-
 var _ cross.ContractHandlerResult = (*ContractHandlerResult)(nil)
 
 type ContractHandlerResult struct {
@@ -62,4 +57,9 @@ func (r ContractHandlerResult) GetEvents() sdk.Events {
 
 func NewContractHandlerResult(data []byte, events sdk.Events) ContractHandlerResult {
 	return ContractHandlerResult{Data: data, Events: events}
+}
+
+type ContractCallResponse struct {
+	ReturnValue []byte    `json:"return_value"`
+	OPs         cross.OPs `json:"ops"`
 }

@@ -22,12 +22,12 @@ func NewQuerier(handler sdk.Handler, keeper Keeper, contractHandler cross.Contra
 
 func querySimulation(ctx sdk.Context, handler sdk.Handler, k Keeper, req abci.RequestQuery) ([]byte, error) {
 	var msg types.MsgContractCall
-	if err := k.cdc.UnmarshalBinaryLengthPrefixed(req.Data, &msg); err != nil {
+	if err := k.cdc.UnmarshalJSON(req.Data, &msg); err != nil {
 		return nil, err
 	}
 	res, err := handler(ctx, msg)
 	if err != nil {
 		return nil, err
 	}
-	return k.cdc.MarshalBinaryLengthPrefixed(res)
+	return k.cdc.MarshalJSON(res)
 }

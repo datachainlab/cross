@@ -7,6 +7,5 @@ import (
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
 func RegisterRoutes(ctx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/cross/coordinator/{tx_id}", QueryCoordinatorStatusHandlerFn(ctx)).Methods("GET")
-	r.HandleFunc("/cross/unackpackets", QueryUnacknowledgedPacketsHandlerFn(ctx)).Methods("GET")
+	r.HandleFunc("/cross/contract/call", QueryContractCallRequestHandlerFn(ctx)).Methods("POST")
 }

@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/datachainlab/cross/x/ibc/contract/client/cli"
+	"github.com/datachainlab/cross/x/ibc/contract/client/rest"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/gorilla/mux"
@@ -55,7 +56,7 @@ func (AppModuleBasic) ValidateGenesis(m codec.JSONMarshaler, bz json.RawMessage)
 
 // RegisterRESTRoutes returns rest routes
 func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
-	// rest.RegisterRoutes(ctx, rtr, StoreKey)
+	rest.RegisterRoutes(ctx, rtr)
 }
 
 // GetQueryCmd returns the root query command of this module

@@ -54,6 +54,15 @@ func (bz HexByteArray32) String() string {
 	return strings.ToUpper(hex.EncodeToString(bz[:]))
 }
 
+func (bz *HexByteArray32) FromString(s string) error {
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		return err
+	}
+	copy(bz[:], b)
+	return nil
+}
+
 func (bz HexByteArray32) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'p':

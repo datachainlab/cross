@@ -5,7 +5,7 @@ import sdk "github.com/cosmos/cosmos-sdk/types"
 var _ sdk.Msg = (*MsgContractCall)(nil)
 
 type MsgContractCall struct {
-	Sender   sdk.AccAddress
+	Sender   sdk.AccAddress   `json:"sender" yaml:"sender"`
 	Signers  []sdk.AccAddress `json:"signers" yaml:"signers"`
 	Contract []byte           `json:"contract" yaml:"contract"`
 }

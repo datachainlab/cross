@@ -12,13 +12,13 @@ const (
 )
 
 type (
-	Keeper           = keeper.Keeper
-	Method           = keeper.Method
-	StateProvider    = keeper.StateProvider
-	Context          = keeper.Context
-	Contract         = keeper.Contract
-	MsgContractCall  = types.MsgContractCall
-	ContractResponse = types.ContractResponse
+	Keeper               = keeper.Keeper
+	Method               = keeper.Method
+	StateProvider        = keeper.StateProvider
+	Context              = keeper.Context
+	Contract             = keeper.Contract
+	MsgContractCall      = types.MsgContractCall
+	ContractCallResponse = types.ContractCallResponse
 )
 
 var (
