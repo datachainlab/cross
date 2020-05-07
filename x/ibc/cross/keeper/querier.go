@@ -26,19 +26,19 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 
 func queryCoordinatorStatus(ctx sdk.Context, k Keeper, req abci.RequestQuery) ([]byte, error) {
 	var query types.QueryCoordinatorStatusRequest
-	if err := k.cdc.UnmarshalBinaryLengthPrefixed(req.Data, &query); err != nil {
+	if err := k.cdc.UnmarshalJSON(req.Data, &query); err != nil {
 		return nil, err
 	}
 	ci, ok := k.GetCoordinator(ctx, query.TxID)
 	if !ok {
-		return nil, sdkerrors.Wrapf(types.ErrCoordinatorNotFound, fmt.Sprintf("Coordinator for TxID '%X' not found", query.TxID))
+		return nil, sdkerrors.Wrapf(types.ErrCoordinatorNotFound, fmt.Sprintf("TxID '%X' not found", query.TxID))
 	}
 	res := types.QueryCoordinatorStatusResponse{
 		TxID:            query.TxID,
 		Completed:       ci.IsReceivedALLAcks(),
 		CoordinatorInfo: *ci,
 	}
-	return k.cdc.MarshalBinaryLengthPrefixed(res)
+	return k.cdc.MarshalJSON(res)
 }
 
 func queryUnacknowledgedPackets(ctx sdk.Context, k Keeper) ([]byte, error) {
@@ -54,5 +54,5 @@ func queryUnacknowledgedPackets(ctx sdk.Context, k Keeper) ([]byte, error) {
 	res := types.QueryUnacknowledgedPacketsResponse{
 		Packets: packets,
 	}
-	return k.cdc.MarshalBinaryLengthPrefixed(res)
+	return k.cdc.MarshalJSON(res)
 }

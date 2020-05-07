@@ -47,16 +47,12 @@ func GetCoordinatorStatus(cdc *codec.Codec) *cobra.Command {
 			}
 			copy(txID[:], bz)
 			req := types.QueryCoordinatorStatusRequest{TxID: txID}
-			bz, err = cdc.MarshalBinaryLengthPrefixed(req)
-			if err != nil {
-				return err
-			}
 			route := fmt.Sprintf("custom/%s/%s", types.ModuleName, types.QueryCoordinatorStatus)
-			res, _, err := cliCtx.QueryWithData(route, bz)
+			res, _, err := cliCtx.QueryWithData(route, cdc.MustMarshalJSON(req))
 			if err != nil {
 				return err
 			}
-			cdc.MustUnmarshalBinaryLengthPrefixed(res, &response)
+			cdc.MustUnmarshalJSON(res, &response)
 			fmt.Println(string(cdc.MustMarshalJSON(response)))
 			return nil
 		},
@@ -74,17 +70,13 @@ func GetUnacknowledgedPackets(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 
 			req := types.QueryUnacknowledgedPacketsRequest{}
-			bz, err := cdc.MarshalBinaryLengthPrefixed(req)
-			if err != nil {
-				return err
-			}
 			route := fmt.Sprintf("custom/%s/%s", types.ModuleName, types.QueryUnacknowledgedPackets)
-			res, _, err := cliCtx.QueryWithData(route, bz)
+			res, _, err := cliCtx.QueryWithData(route, cdc.MustMarshalJSON(req))
 			if err != nil {
 				return err
 			}
 			var response types.QueryUnacknowledgedPacketsResponse
-			cdc.MustUnmarshalBinaryLengthPrefixed(res, &response)
+			cdc.MustUnmarshalJSON(res, &response)
 			fmt.Println(string(cdc.MustMarshalJSON(response)))
 			return nil
 		},

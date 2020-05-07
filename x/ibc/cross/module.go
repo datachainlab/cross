@@ -61,7 +61,7 @@ func (AppModuleBasic) ValidateGenesis(m codec.JSONMarshaler, bz json.RawMessage)
 
 // RegisterRESTRoutes returns rest routes
 func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
-	rest.RegisterRoutes(ctx, rtr, QuerierRoute)
+	rest.RegisterRoutes(ctx, rtr)
 }
 
 // GetQueryCmd returns the root query command of this module

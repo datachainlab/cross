@@ -1,18 +1,12 @@
 package rest
 
 import (
-	"github.com/gorilla/mux"
-
 	"github.com/cosmos/cosmos-sdk/client/context"
-)
-
-const (
-// RestChannelID = "channel-id"
-// RestPortID    = "port-id"
+	"github.com/gorilla/mux"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
-func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute string) {
-	// registerQueryRoutes(cliCtx, r, queryRoute)
-	// registerTxRoutes(cliCtx, r)
+func RegisterRoutes(ctx context.CLIContext, r *mux.Router) {
+	r.HandleFunc("/cross/coordinator/{tx_id}", QueryCoordinatorStatusHandlerFn(ctx)).Methods("GET")
+	r.HandleFunc("/cross/unackpackets", QueryUnacknowledgedPacketsHandlerFn(ctx)).Methods("GET")
 }
