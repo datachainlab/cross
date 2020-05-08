@@ -22,6 +22,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	srvconfig "github.com/cosmos/cosmos-sdk/server/config"
@@ -41,6 +42,7 @@ var (
 	flagNodeDaemonHome    = "node-daemon-home"
 	flagNodeCLIHome       = "node-cli-home"
 	flagStartingIPAddress = "starting-ip-address"
+	flagMnemonic          = "mnemonic"
 )
 
 // get cmd to initialize all files for tendermint testnet and application
@@ -94,6 +96,7 @@ Example:
 		server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", sdk.DefaultBondDenom),
 		"Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01photino,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
+	cmd.Flags().String(flagMnemonic, "", "Mnemonic phrase for a key of genesis account")
 
 	return cmd
 }
@@ -175,16 +178,32 @@ func InitTestnet(
 			return err
 		}
 
-		keyPass := clientkeys.DefaultKeyPass
-		addr, secret, err := server.GenerateSaveCoinKey(kb, nodeDirName, keyPass, true)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
+		var addr sdk.AccAddress
+		var secret string
+		if ms := viper.GetString(flagMnemonic); ms != "" {
+			_, err := kb.Key(nodeDirName)
+			if err == nil {
+				err = kb.Delete(nodeDirName)
+				if err != nil {
+					return fmt.Errorf(
+						"failed to overwrite key")
+				}
+			}
+			info, err := kb.NewAccount(nodeDirName, ms, keyring.DefaultBIP39Passphrase, sdk.FullFundraiserPath, hd.Secp256k1)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
+			addr, secret = sdk.AccAddress(info.GetPubKey().Address()), ms
+		} else {
+			addr, secret, err = server.GenerateSaveCoinKey(kb, nodeDirName, keyring.DefaultBIP39Passphrase, true)
+			if err != nil {
+				_ = os.RemoveAll(outputDir)
+				return err
+			}
 		}
 
-		info := map[string]string{"secret": secret}
-
-		cliPrint, err := json.Marshal(info)
+		cliPrint, err := json.Marshal(map[string]string{"secret": secret})
 		if err != nil {
 			return err
 		}
@@ -297,13 +316,6 @@ func initGenFiles(
 		}
 	}
 	return nil
-}
-
-func genBalToBal(bals []bank.Balance) (out []bank.Balance) {
-	for _, bal := range bals {
-		out = append(out, bank.Balance{Address: bal.GetAddress(), Coins: bal.GetCoins()})
-	}
-	return
 }
 
 func collectGenFiles(
