@@ -151,6 +151,12 @@ func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.St
 			},
 		},
 		{
+			Name: "must-fail",
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
+				return nil, errors.New("failed to call contract")
+			},
+		},
+		{
 			Name: "test-balance",
 			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				coin, err := parseCoin(ctx, 0, 1)
@@ -310,117 +316,124 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 	}
 }
 
-func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
-	initiator := sdk.AccAddress("initiator")
+func (suite *KeeperTestSuite) SetupTest() {
+	suite.initiator = sdk.AccAddress("initiator")
+	suite.signer1 = sdk.AccAddress("signer1")
 
-	app0 := suite.createApp("app0") // coordinator node
+	suite.app0 = suite.createApp("app0") // coordinator node
+	suite.app1 = suite.createApp("app1")
 
-	app1 := suite.createApp("app1")
-	signer1 := sdk.AccAddress("signer1")
+	suite.chd1 = suite.createContractHandler(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey), "c1")
+
+	suite.app2 = suite.createApp("app2")
+	suite.signer2 = sdk.AccAddress("signer2")
+	suite.signer3 = sdk.AccAddress("signer3")
+
+	suite.chd2 = suite.createContractHandler(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey), "c2")
+
+	suite.ch0to1 = cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
+	suite.ch1to0 = cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
+	suite.ch0to2 = cross.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
+	suite.ch2to0 = cross.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
+}
+
+func (suite *KeeperTestSuite) openAllChannels() {
+	suite.openChannels(
+		suite.app1.chainID,
+		suite.app0.chainID+suite.app1.chainID,
+		suite.ch0to1,
+		suite.app0,
+
+		suite.app0.chainID,
+		suite.app1.chainID+suite.app0.chainID,
+		suite.ch1to0,
+		suite.app1,
+	)
+
+	suite.openChannels(
+		suite.app2.chainID,
+		suite.app0.chainID+suite.app2.chainID,
+		suite.ch0to2,
+		suite.app0,
+
+		suite.app0.chainID,
+		suite.app2.chainID+suite.app1.chainID,
+		suite.ch2to0,
+		suite.app2,
+	)
+}
+
+func (suite *KeeperTestSuite) TestRelay() {
 	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
-	chd1 := suite.createContractHandler(app1.cdc, app1.app.GetKey(cross.StoreKey), "c1")
-
-	app2 := suite.createApp("app2")
-	signer2 := sdk.AccAddress("signer2")
-	signer3 := sdk.AccAddress("signer3")
 	// app2 has multiple contract calls
 	ci2 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
 	ci3 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("tthree"), []byte("40")})
-	chd2 := suite.createContractHandler(app2.cdc, app2.app.GetKey(cross.StoreKey), "c2")
-
-	ch0to1 := cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
-	ch1to0 := cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
-	ch0to2 := cross.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
-	ch2to0 := cross.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
 
 	var err error
 	var nonce uint64 = 1
 	var tss = []cross.ContractTransaction{
 		cross.NewContractTransaction(
-			ch0to1,
-			[]sdk.AccAddress{signer1},
+			suite.ch0to1,
+			[]sdk.AccAddress{suite.signer1},
 			ci1.Bytes(),
-			[]cross.OP{lock.Write{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
+			[]cross.OP{lock.Write{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 		),
 		cross.NewContractTransaction(
-			ch0to2,
-			[]sdk.AccAddress{signer2},
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer2},
 			ci2.Bytes(),
-			[]cross.OP{lock.Write{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
+			[]cross.OP{lock.Write{K: suite.signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
 		),
 		cross.NewContractTransaction(
-			ch0to2,
-			[]sdk.AccAddress{signer3},
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer3},
 			ci3.Bytes(),
-			[]cross.OP{lock.Write{K: signer3, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tthree", 40)})}},
+			[]cross.OP{lock.Write{K: suite.signer3, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tthree", 40)})}},
 		),
 	}
 
 	msg := cross.NewMsgInitiate(
-		initiator,
-		app0.chainID,
+		suite.initiator,
+		suite.app0.chainID,
 		tss,
 		256,
 		nonce,
 	)
-	_, err = app0.app.CrossKeeper.MulticastPreparePacket(
-		app0.ctx,
-		initiator,
+	_, err = suite.app0.app.CrossKeeper.MulticastPreparePacket(
+		suite.app0.ctx,
+		suite.initiator,
 		msg,
 		msg.ContractTransactions,
 	)
 	suite.Error(err) // channel does not exist
 
 	// Try to open a channel and connection between app0 and app1, app2
+	suite.openAllChannels()
 
-	suite.openChannels(
-		app1.chainID,
-		app0.chainID+app1.chainID,
-		ch0to1,
-		app0,
-
-		app0.chainID,
-		app1.chainID+app0.chainID,
-		ch1to0,
-		app1,
-	)
-
-	suite.openChannels(
-		app2.chainID,
-		app0.chainID+app2.chainID,
-		ch0to2,
-		app0,
-
-		app0.chainID,
-		app2.chainID+app1.chainID,
-		ch2to0,
-		app2,
-	)
-
-	txID, err := app0.app.CrossKeeper.MulticastPreparePacket(
-		app0.ctx,
-		initiator,
+	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+		suite.app0.ctx,
+		suite.initiator,
 		msg,
 		msg.ContractTransactions,
 	)
 	suite.NoError(err) // successfully executed
 
-	ci, found := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
+	ci, found := suite.app0.app.CrossKeeper.GetCoordinator(suite.app0.ctx, txID)
 	if suite.True(found) {
 		suite.Equal(ci.Status, cross.CO_STATUS_INIT)
 	}
 
 	nextSeqSend := uint64(1)
-	packetCommitment := app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to1.Port, ch0to1.Channel, nextSeqSend)
+	packetCommitment := suite.app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(suite.app0.ctx, suite.ch0to1.Port, suite.ch0to1.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
-	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend)
+	packetCommitment = suite.app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(suite.app0.ctx, suite.ch0to2.Port, suite.ch0to2.Channel, nextSeqSend)
 	suite.NotNil(packetCommitment)
-	packetCommitment = app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(app0.ctx, ch0to2.Port, ch0to2.Channel, nextSeqSend+1)
+	packetCommitment = suite.app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(suite.app0.ctx, suite.ch0to2.Port, suite.ch0to2.Channel, nextSeqSend+1)
 	suite.NotNil(packetCommitment)
 
-	suite.testPreparePacket(app1, ch1to0, ch0to1, txID, 0, chd1, tss[0], nextSeqSend)
-	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 1, chd2, tss[1], nextSeqSend)
-	suite.testPreparePacket(app2, ch2to0, ch0to2, txID, 2, chd2, tss[2], nextSeqSend+1)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, tss[2], nextSeqSend+1, cross.PREPARE_RESULT_OK)
 
 	// Tests for Confirm step
 
@@ -428,138 +441,138 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 
 	// ensure that coordinator decides 'abort'
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
 	}
 	// ensure that coordinator decides 'abort'
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 1, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
 	}
 	// ensure that coordinator decides 'abort' (ordered sequence number)
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 1, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 2, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
 	}
 	// ensure that coordinator decides 'abort' (unordered sequence number)
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 1, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
 	}
 	// ensure that contractTransaction ID conflict occurs
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.Error(err)
 	}
 	// invalid transactionID
 	{
-		capp, _ := app0.Cache()
+		capp, _ := suite.app0.Cache()
 		var invalidTxID types.TxID
 		copy(invalidTxID[:], tmhash.Sum(txID[:]))
-		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), invalidTxID, 0, ch1to0, ch0to1, nextSeqSend)
+		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), invalidTxID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// invalid transactionIndex
 	{
-		capp, _ := app0.Cache()
-		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 3, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		_, _, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 3, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// ensure that coordinator doesn't execute to multicast more than once
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_FAILED), txID, 1, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 	}
 	// ensure that coordinator doesn't receive a result of same contract call
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// ensure that coordinator decides 'commit' (unordered sequence number)
 	{
-		capp, _ := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, _ := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 1, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.True(isCommitable)
 	}
 	// ensure that coordinator decides 'commit' (ordered sequence number)
 	{
-		capp, writer := app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 0, ch1to0, ch0to1, nextSeqSend)
+		capp, writer := suite.app0.Cache()
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 1, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_STATUS_OK), txID, 2, ch2to0, ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.True(isCommitable)
@@ -569,10 +582,28 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 
 	// ensure that each participants execute to commit or abort
 	{
+		// In a1, execute to abort
+		{
+			capp, _ := suite.app1.Cache()
+			suite.testAbortPacket(&capp, suite.chd1, suite.ch0to1, suite.ch1to0, cross.NewPacketDataCommit(txID, 0, false), suite.signer1)
+		}
+
+		// In a2-0, execute to abort
+		{
+			capp, _ := suite.app2.Cache()
+			suite.testAbortPacket(&capp, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, false), suite.signer2)
+		}
+
+		// In a2-1, execute to abort
+		{
+			capp, _ := suite.app2.Cache()
+			suite.testAbortPacket(&capp, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 2, false), suite.signer3)
+		}
+
 		// In a1, execute to commit
 		{
-			capp, _ := app1.Cache()
-			suite.testCommitPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(txID, 0, true), signer1, func(res cross.ContractHandlerResult) {
+			capp, writer := suite.app1.Cache()
+			suite.testCommitPacket(&capp, suite.chd1, suite.ch0to1, suite.ch1to0, cross.NewPacketDataCommit(txID, 0, true), suite.signer1, func(res cross.ContractHandlerResult) {
 				coin := sdk.NewCoin("tone", sdk.NewInt(80))
 				expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
 				suite.Equal(expectedEvent, res.GetEvents()[0])
@@ -582,12 +613,13 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 				}
 				suite.Equal(bz, res.GetData())
 			})
+			writer()
 		}
 
 		// In a2-0, execute to commit
 		{
-			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(txID, 1, true), signer2, func(res cross.ContractHandlerResult) {
+			capp, _ := suite.app2.Cache()
+			suite.testCommitPacket(&capp, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, true), suite.signer2, func(res cross.ContractHandlerResult) {
 				coin := sdk.NewCoin("ttwo", sdk.NewInt(60))
 				expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
 				suite.Equal(expectedEvent, res.GetEvents()[0])
@@ -601,8 +633,8 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 
 		// In a2-1, execute to commit
 		{
-			capp, _ := app2.Cache()
-			suite.testCommitPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(txID, 2, true), signer3, func(res cross.ContractHandlerResult) {
+			capp, writer := suite.app2.Cache()
+			suite.testCommitPacket(&capp, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 2, true), suite.signer3, func(res cross.ContractHandlerResult) {
 				coin := sdk.NewCoin("tthree", sdk.NewInt(40))
 				expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
 				suite.Equal(expectedEvent, res.GetEvents()[0])
@@ -612,26 +644,192 @@ func (suite *KeeperTestSuite) TestAtomicCommitFlow() {
 				}
 				suite.Equal(bz, res.GetData())
 			})
-		}
-
-		// In a1, execute to abort
-		{
-			capp, _ := app1.Cache()
-			suite.testAbortPacket(&capp, chd1, ch0to1, ch1to0, cross.NewPacketDataCommit(txID, 0, false), signer1)
-		}
-
-		// In a2-0, execute to abort
-		{
-			capp, _ := app2.Cache()
-			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(txID, 1, false), signer2)
-		}
-
-		// In a2-1, execute to abort
-		{
-			capp, _ := app2.Cache()
-			suite.testAbortPacket(&capp, chd2, ch0to2, ch2to0, cross.NewPacketDataCommit(txID, 2, false), signer3)
+			writer()
 		}
 	}
+}
+
+func (suite *KeeperTestSuite) TestAbort1() {
+	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
+	ci2 := contract.NewContractCallInfo("c2", "must-fail", nil)
+
+	var err error
+	var nonce uint64 = 1
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
+			suite.ch0to1,
+			[]sdk.AccAddress{suite.signer1},
+			ci1.Bytes(),
+			[]cross.OP{lock.Write{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
+		),
+		cross.NewContractTransaction(
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer2},
+			ci2.Bytes(),
+			[]cross.OP{},
+		),
+	}
+
+	suite.openAllChannels()
+	msg := cross.NewMsgInitiate(
+		suite.initiator,
+		suite.app0.chainID,
+		tss,
+		256,
+		nonce,
+	)
+	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+		suite.app0.ctx,
+		suite.initiator,
+		msg,
+		msg.ContractTransactions,
+	)
+	suite.NoError(err)
+
+	var nextSeqSend uint64 = 1
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_FAILED)
+
+	nextSeqSend += 1
+
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	suite.NoError(err)
+	suite.False(canMulticast)
+	suite.False(isCommitable)
+
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	suite.NoError(err)
+	suite.True(canMulticast)
+	suite.False(isCommitable)
+
+	// In a1, execute to abort
+	suite.testAbortPacket(suite.app1, suite.chd1, suite.ch0to1, suite.ch1to0, cross.NewPacketDataCommit(txID, 0, false), suite.signer1)
+
+	// In a2, execute to abort
+	suite.testAbortPacket(suite.app2, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, false), suite.signer2)
+}
+
+func (suite *KeeperTestSuite) TestAbort2() {
+	ci1 := contract.NewContractCallInfo("c1", "must-fail", nil)
+	ci2 := contract.NewContractCallInfo("c2", "must-fail", nil)
+
+	var err error
+	var nonce uint64 = 1
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
+			suite.ch0to1,
+			[]sdk.AccAddress{suite.signer1},
+			ci1.Bytes(),
+			[]cross.OP{},
+		),
+		cross.NewContractTransaction(
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer2},
+			ci2.Bytes(),
+			[]cross.OP{},
+		),
+	}
+
+	suite.openAllChannels()
+	msg := cross.NewMsgInitiate(
+		suite.initiator,
+		suite.app0.chainID,
+		tss,
+		256,
+		nonce,
+	)
+	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+		suite.app0.ctx,
+		suite.initiator,
+		msg,
+		msg.ContractTransactions,
+	)
+	suite.NoError(err)
+
+	var nextSeqSend uint64 = 1
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_FAILED)
+
+	nextSeqSend += 1
+
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	suite.NoError(err)
+	suite.True(canMulticast)
+	suite.False(isCommitable)
+
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	suite.NoError(err)
+	suite.False(canMulticast)
+	suite.False(isCommitable)
+
+	// In a1, execute to abort
+	suite.testAbortPacket(suite.app1, suite.chd1, suite.ch0to1, suite.ch1to0, cross.NewPacketDataCommit(txID, 0, false), suite.signer1)
+
+	// In a2, execute to abort
+	suite.testAbortPacket(suite.app2, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, false), suite.signer2)
+}
+
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64, expectedPrepareResult uint8) {
+	relayer := sdk.AccAddress("relayer1")
+	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, ts)
+	ctx, writer := actx.ctx.CacheContext()
+	ctx = cross.WithSigners(ctx, ts.Signers)
+	result, err := actx.app.CrossKeeper.PrepareTransaction(
+		ctx,
+		contractHandler,
+		dst.Port,
+		dst.Channel,
+		src.Port,
+		src.Channel,
+		packetData,
+	)
+	suite.NoError(err)
+	suite.Equal(expectedPrepareResult, result)
+	tx, ok := actx.app.CrossKeeper.GetTx(ctx, txID, txIndex)
+	if suite.True(ok) {
+		suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
+	}
+	suite.Equal(expectedPrepareResult, tx.PrepareResult)
+
+	writer()
+}
+
+func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, ack cross.PacketPrepareAcknowledgement, txID cross.TxID, txIndex cross.TxIndex, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
+	canMulticast, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareAcknowledgement(actx.ctx, dst.Port, dst.Channel, ack, txID, txIndex)
+	if err != nil {
+		return false, false, err
+	}
+	if canMulticast {
+		return canMulticast, isCommitable, actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, txID, isCommitable)
+	} else {
+		return canMulticast, isCommitable, nil
+	}
+}
+
+func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
+	_, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+	if !suite.NoError(err) {
+		return
+	}
+	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID, packet.TxIndex)
+	if !suite.True(found) {
+		return
+	}
+	suite.Equal(cross.TX_STATUS_ABORT, tx.Status)
+
+	ci, err := contract.DecodeContractSignature(tx.Contract)
+	if !suite.NoError(err) {
+		return
+	}
+	contractInfo := contract.NewContractCallInfo(ci.ID, "test-not-issued", [][]byte{})
+	bz, err := contract.EncodeContractSignature(contractInfo)
+	if !suite.NoError(err) {
+		return
+	}
+	actx2, _ := actx.Cache()
+	ctx := cross.WithSigners(actx2.ctx, []sdk.AccAddress{txSigner})
+	_, _, err = contractHandler.Handle(ctx, bz)
+	suite.NoError(err)
 }
 
 func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress, checkResult func(cross.ContractHandlerResult)) {
@@ -662,70 +860,10 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	if !suite.NoError(err) {
 		return
 	}
-	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
+	actx2, _ := actx.Cache()
+	ctx := cross.WithSigners(actx2.ctx, []sdk.AccAddress{txSigner})
 	_, _, err = contractHandler.Handle(ctx, bz)
 	suite.NoError(err)
-}
-
-func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
-	_, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
-	if !suite.NoError(err) {
-		return
-	}
-	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID, packet.TxIndex)
-	if !suite.True(found) {
-		return
-	}
-	suite.Equal(cross.TX_STATUS_ABORT, tx.Status)
-
-	ci, err := contract.DecodeContractSignature(tx.Contract)
-	if !suite.NoError(err) {
-		return
-	}
-	contractInfo := contract.NewContractCallInfo(ci.ID, "test-not-issued", [][]byte{})
-	bz, err := contract.EncodeContractSignature(contractInfo)
-	if !suite.NoError(err) {
-		return
-	}
-	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
-	_, _, err = contractHandler.Handle(ctx, bz)
-	suite.NoError(err)
-}
-
-func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, ack cross.PacketPrepareAcknowledgement, txID cross.TxID, txIndex cross.TxIndex, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
-	canMulticast, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareAcknowledgement(actx.ctx, dst.Port, dst.Channel, ack, txID, txIndex)
-	if err != nil {
-		return false, false, err
-	}
-	if canMulticast {
-		return canMulticast, isCommitable, actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, txID, isCommitable)
-	} else {
-		return canMulticast, isCommitable, nil
-	}
-}
-
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64) {
-	relayer := sdk.AccAddress("relayer1")
-	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, ts)
-	ctx, writer := actx.ctx.CacheContext()
-	ctx = cross.WithSigners(ctx, ts.Signers)
-	status, err := actx.app.CrossKeeper.PrepareTransaction(
-		ctx,
-		contractHandler,
-		dst.Port,
-		dst.Channel,
-		src.Port,
-		src.Channel,
-		packetData,
-	)
-	suite.NoError(err)
-	suite.Equal(cross.PREPARE_STATUS_OK, status)
-	tx, ok := actx.app.CrossKeeper.GetTx(ctx, txID, txIndex)
-	if suite.True(ok) {
-		suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
-	}
-
-	writer()
 }
 
 func parseCoin(ctx contract.Context, denomIdx, amountIdx int) (sdk.Coin, error) {

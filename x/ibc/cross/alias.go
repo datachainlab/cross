@@ -24,8 +24,8 @@ const (
 	TX_STATUS_COMMIT  = types.TX_STATUS_COMMIT
 	TX_STATUS_ABORT   = types.TX_STATUS_ABORT
 
-	PREPARE_STATUS_FAILED = types.PREPARE_STATUS_FAILED
-	PREPARE_STATUS_OK     = types.PREPARE_STATUS_OK
+	PREPARE_RESULT_FAILED = types.PREPARE_RESULT_FAILED
+	PREPARE_RESULT_OK     = types.PREPARE_RESULT_OK
 
 	TypeInitiate      = types.TypeInitiate
 	TypePrepare       = types.TypePrepare

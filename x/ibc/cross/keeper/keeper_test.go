@@ -8,6 +8,7 @@ import (
 	connectionexported "github.com/cosmos/cosmos-sdk/x/ibc/03-connection/exported"
 	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/datachainlab/cross/example/simapp"
+	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -16,6 +17,22 @@ import (
 
 type KeeperTestSuite struct {
 	suite.Suite
+	initiator sdk.AccAddress
+	signer1   sdk.AccAddress
+	signer2   sdk.AccAddress
+	signer3   sdk.AccAddress
+
+	app0 *appContext
+	app1 *appContext
+	app2 *appContext
+
+	chd1 cross.ContractHandler
+	chd2 cross.ContractHandler
+
+	ch0to1 cross.ChannelInfo
+	ch1to0 cross.ChannelInfo
+	ch0to2 cross.ChannelInfo
+	ch2to0 cross.ChannelInfo
 }
 
 func (suite *KeeperTestSuite) SetupSuite() {}
