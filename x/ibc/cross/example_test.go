@@ -241,14 +241,14 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 
 	{ // app0 receives PacketPrepareResult from app1
 		ack := cross.NewPacketPrepareAcknowledgement(
-			cross.PREPARE_STATUS_OK,
+			cross.PREPARE_RESULT_OK,
 		)
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
 		ack := cross.NewPacketPrepareAcknowledgement(
-			cross.PREPARE_STATUS_OK,
+			cross.PREPARE_RESULT_OK,
 		)
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 

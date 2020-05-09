@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	PREPARE_STATUS_OK uint8 = iota + 1
-	PREPARE_STATUS_FAILED
+	PREPARE_RESULT_OK uint8 = iota + 1
+	PREPARE_RESULT_FAILED
 )
 
 type PacketData interface {
@@ -84,7 +84,7 @@ func (p PacketPrepareAcknowledgement) Type() string {
 }
 
 func (p PacketPrepareAcknowledgement) IsOK() bool {
-	return p.Status == PREPARE_STATUS_OK
+	return p.Status == PREPARE_RESULT_OK
 }
 
 var _ PacketData = (*PacketDataCommit)(nil)

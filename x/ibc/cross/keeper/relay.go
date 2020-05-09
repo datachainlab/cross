@@ -100,9 +100,9 @@ func (k Keeper) PrepareTransaction(
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
-	status := types.PREPARE_STATUS_OK
+	result := types.PREPARE_RESULT_OK
 	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data); err != nil {
-		status = types.PREPARE_STATUS_FAILED
+		result = types.PREPARE_RESULT_FAILED
 	}
 
 	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
@@ -112,9 +112,9 @@ func (k Keeper) PrepareTransaction(
 	hops := c.GetConnectionHops()
 	connID := hops[len(hops)-1]
 
-	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, connID, data.ContractTransaction.Contract)
+	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, result, connID, data.ContractTransaction.Contract)
 	k.SetTx(ctx, data.TxID, data.TxIndex, txinfo)
-	return status, nil
+	return result, nil
 }
 
 func (k Keeper) prepareTransaction(
@@ -172,10 +172,10 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 	}
 
 	if co.Status == types.CO_STATUS_INIT {
-		if ack.Status == types.PREPARE_STATUS_FAILED {
+		if ack.Status == types.PREPARE_RESULT_FAILED {
 			co.Status = types.CO_STATUS_DECIDED
 			co.Decision = types.CO_DECISION_ABORT
-		} else if ack.Status == types.PREPARE_STATUS_OK {
+		} else if ack.Status == types.PREPARE_RESULT_OK {
 			if co.IsCompleted() {
 				co.Status = types.CO_STATUS_DECIDED
 				co.Decision = types.CO_DECISION_COMMIT
@@ -257,11 +257,8 @@ func (k Keeper) ReceiveCommitPacket(
 	if err != nil {
 		return nil, err
 	}
-	res, ok := k.GetContractResult(ctx, data.TxID, data.TxIndex)
-	if !ok {
-		return nil, fmt.Errorf("Can't find the execution result of contract handler")
-	}
 
+	var res types.ContractHandlerResult
 	var status uint8
 	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if data.IsCommittable {
@@ -269,10 +266,20 @@ func (k Keeper) ReceiveCommitPacket(
 			return nil, err
 		}
 		status = types.TX_STATUS_COMMIT
-		res = contractHandler.OnCommit(ctx, res)
+		r, ok := k.GetContractResult(ctx, data.TxID, data.TxIndex)
+		if !ok {
+			return nil, fmt.Errorf("Can't find the execution result of contract handler")
+		}
+		res = contractHandler.OnCommit(ctx, r)
 	} else {
-		if err := state.Discard(id); err != nil {
-			return nil, err
+		if tx.PrepareResult == types.PREPARE_RESULT_OK {
+			if err := state.Discard(id); err != nil {
+				return nil, err
+			}
+		} else if tx.PrepareResult == types.PREPARE_RESULT_FAILED {
+			// nop
+		} else {
+			panic("unreachable")
 		}
 		status = types.TX_STATUS_ABORT
 		res = types.ContractHandlerAbortResult{}

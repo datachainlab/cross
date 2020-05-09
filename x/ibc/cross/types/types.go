@@ -107,13 +107,14 @@ const (
 )
 
 type TxInfo struct {
-	Status                  uint8
-	CoordinatorConnectionID string
-	Contract                []byte
+	Status                  uint8  `json:"status" yaml:"status"`
+	PrepareResult           uint8  `json:"prepare_result" yaml:"prepare_result"`
+	CoordinatorConnectionID string `json:"coordinator_connection_id" yaml:"coordinator_connection_id"`
+	Contract                []byte `json:"contract" yaml:"contract"`
 }
 
-func NewTxInfo(status uint8, coordinatorConnectionID string, contract []byte) TxInfo {
-	return TxInfo{Status: status, CoordinatorConnectionID: coordinatorConnectionID, Contract: contract}
+func NewTxInfo(status, prepareResult uint8, coordinatorConnectionID string, contract []byte) TxInfo {
+	return TxInfo{Status: status, PrepareResult: prepareResult, CoordinatorConnectionID: coordinatorConnectionID, Contract: contract}
 }
 
 type ContractCallResult struct {
