@@ -22,6 +22,8 @@ func GetOPManager(tp cross.StateConstraintType) (OPManager, error) {
 		return newReadOPManager(), nil
 	case cross.PostStateConstraint:
 		return newWriteOPManager(), nil
+	case cross.NoStateConstraint:
+		return newNoOPManager(), nil
 	default:
 		return nil, fmt.Errorf("unknown type '%v'", tp)
 	}
@@ -150,4 +152,22 @@ func (m writeOPManager) OPs() cross.OPs {
 		}
 	}
 	return ops
+}
+
+type noOPManager struct {
+	commonOPManager
+}
+
+var _ OPManager = (*noOPManager)(nil)
+
+func newNoOPManager() *noOPManager {
+	return &noOPManager{
+		commonOPManager: newCommonOPManager(),
+	}
+}
+
+func (m *noOPManager) AddRead(k, v []byte) {}
+
+func (m noOPManager) OPs() cross.OPs {
+	return cross.OPs{}
 }

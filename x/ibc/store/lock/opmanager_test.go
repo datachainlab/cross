@@ -115,6 +115,37 @@ func TestOPManager(t *testing.T) {
 			[]LockOP{W("k2", "v2"), W("k1", "v1-1")},
 			cross.OPs{W("k2", "v2"), W("k1", "v1-1")},
 		},
+		// Test for NoStateConstraint
+		{
+			cross.NoStateConstraint,
+			[]OP{},
+			[]LockOP{},
+			cross.OPs{},
+		},
+		{
+			cross.NoStateConstraint,
+			[]OP{R("k1", "v1")},
+			[]LockOP{},
+			cross.OPs{},
+		},
+		{
+			cross.NoStateConstraint,
+			[]OP{R("k1", "v1"), W("k1", "v1-1")},
+			[]LockOP{W("k1", "v1-1")},
+			cross.OPs{},
+		},
+		{
+			cross.NoStateConstraint,
+			[]OP{R("k1", "v1"), W("k2", "v2")},
+			[]LockOP{W("k2", "v2")},
+			cross.OPs{},
+		},
+		{
+			cross.NoStateConstraint,
+			[]OP{R("k1", "v1"), W("k2", "v2"), W("k1", "v1-1")},
+			[]LockOP{W("k2", "v2"), W("k1", "v1-1")},
+			cross.OPs{},
+		},
 		// Test for OP
 		{
 			cross.ExactMatchStateConstraint,
