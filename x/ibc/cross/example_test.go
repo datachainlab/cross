@@ -153,8 +153,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			ch0to1,
 			[]sdk.AccAddress{signer1Info.GetAddress()},
 			trainCall.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{
 					lock.ReadValueOP{K: simappcontract.MakeSeatKey(1), V: nil},
 					lock.WriteOP{K: simappcontract.MakeSeatKey(1), V: signer1Info.GetAddress()},
@@ -165,8 +165,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			ch0to2,
 			[]sdk.AccAddress{signer2Info.GetAddress()},
 			hotelCall.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{
 					lock.ReadValueOP{K: simappcontract.MakeRoomKey(8), V: nil},
 					lock.WriteOP{K: simappcontract.MakeRoomKey(8), V: signer2Info.GetAddress()},

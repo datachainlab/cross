@@ -28,8 +28,8 @@ type (
 )
 
 type ContractHandler interface {
-	GetState(ctx sdk.Context, tp StateConditionType, callInfo ContractCallInfo) (State, error)
-	Handle(ctx sdk.Context, tp StateConditionType, callInfo ContractCallInfo) (State, ContractHandlerResult, error)
+	GetState(ctx sdk.Context, tp StateConstraintType, callInfo ContractCallInfo) (State, error)
+	Handle(ctx sdk.Context, tp StateConstraintType, callInfo ContractCallInfo) (State, ContractHandlerResult, error)
 	OnCommit(ctx sdk.Context, result ContractHandlerResult) ContractHandlerResult
 }
 
@@ -118,11 +118,11 @@ func NewTxInfo(status, prepareResult uint8, coordinatorConnectionID string, cont
 }
 
 type ContractCallResult struct {
-	ChainID        string           `json:"chain_id" yaml:"chain_id"`
-	Height         int64            `json:"height" yaml:"height"`
-	Signers        []sdk.AccAddress `json:"signers" yaml:"signers"`
-	CallInfo       ContractCallInfo `json:"call_info" yaml:"call_info"`
-	StateCondition StateCondition   `json:"state_condition" yaml:"state_condition"`
+	ChainID         string           `json:"chain_id" yaml:"chain_id"`
+	Height          int64            `json:"height" yaml:"height"`
+	Signers         []sdk.AccAddress `json:"signers" yaml:"signers"`
+	CallInfo        ContractCallInfo `json:"call_info" yaml:"call_info"`
+	StateConstraint StateConstraint  `json:"state_constraint" yaml:"state_constraint"`
 }
 
 func (r ContractCallResult) String() string {

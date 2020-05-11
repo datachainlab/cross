@@ -132,9 +132,9 @@ type OP interface {
 	Type() uint8
 }
 
-func GetOPManager(tp cross.StateConditionType) (OPManager, error) {
+func GetOPManager(tp cross.StateConstraintType) (OPManager, error) {
 	switch tp {
-	case cross.ExactStateCondition:
+	case cross.ExactMatchStateConstraint:
 		return newExactOPManager(), nil
 	default:
 		return nil, fmt.Errorf("unknown type '%v'", tp)

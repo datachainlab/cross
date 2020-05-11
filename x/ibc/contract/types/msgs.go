@@ -8,18 +8,18 @@ import (
 var _ sdk.Msg = (*MsgContractCall)(nil)
 
 type MsgContractCall struct {
-	Sender             sdk.AccAddress           `json:"sender" yaml:"sender"`
-	Signers            []sdk.AccAddress         `json:"signers" yaml:"signers"`
-	CallInfo           cross.ContractCallInfo   `json:"call_info" yaml:"call_info"`
-	StateConditionType cross.StateConditionType `json:"state_condition_type" yaml:"state_condition_type"`
+	Sender              sdk.AccAddress            `json:"sender" yaml:"sender"`
+	Signers             []sdk.AccAddress          `json:"signers" yaml:"signers"`
+	CallInfo            cross.ContractCallInfo    `json:"call_info" yaml:"call_info"`
+	StateConstraintType cross.StateConstraintType `json:"state_constraint_type" yaml:"state_constraint_type"`
 }
 
-func NewMsgContractCall(sender sdk.AccAddress, signers []sdk.AccAddress, callInfo cross.ContractCallInfo, scType cross.StateConditionType) MsgContractCall {
+func NewMsgContractCall(sender sdk.AccAddress, signers []sdk.AccAddress, callInfo cross.ContractCallInfo, scType cross.StateConstraintType) MsgContractCall {
 	return MsgContractCall{
-		Sender:             sender,
-		Signers:            signers,
-		CallInfo:           callInfo,
-		StateConditionType: scType,
+		Sender:              sender,
+		Signers:             signers,
+		CallInfo:            callInfo,
+		StateConstraintType: scType,
 	}
 }
 

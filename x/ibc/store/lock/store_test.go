@@ -25,7 +25,7 @@ func TestStore(t *testing.T) {
 
 		k0, v0 := []byte("k0"), []byte("v0")
 		{
-			st := NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+			st := NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 			st.Set(k0, v0)
 			assert.Equal(st.OPs(), cross.OPs{
 				WriteOP{k0, v0},
@@ -37,7 +37,7 @@ func TestStore(t *testing.T) {
 			cms.Commit()
 
 			{ // In other tx, try to access locked entry, but it will be failed
-				st = NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+				st = NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 				assert.Panics(func() {
 					st.Get(k0)
 				})
@@ -51,44 +51,44 @@ func TestStore(t *testing.T) {
 		}
 
 		{
-			st := NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+			st := NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 			assert.Equal(v0, st.Get(k0))
 		}
 
 		v1 := []byte("v1")
 		{
-			st := NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+			st := NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 			st.Set(k0, v1)
 			assert.NoError(st.Precommit(txID1))
 			cms.Commit()
 			assert.NoError(st.Commit(txID1))
 			cms.Commit()
 
-			st = NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+			st = NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 			assert.Equal(v1, st.Get(k0))
 		}
 
 		{
-			st := NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+			st := NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 			st.Delete(k0)
 			assert.NoError(st.Precommit(txID2))
 			cms.Commit()
 			assert.NoError(st.Commit(txID2))
 			cms.Commit()
-			st = NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+			st = NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 			assert.True(st.Get(k0) == nil)
 		}
 
 		k1 := []byte("k1")
 		{
-			st := NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+			st := NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 			st.Get(k0)
 			st.Set(k1, v1)
 			assert.NoError(st.Precommit(txID2))
 			cms.Commit()
 
 			{
-				st = NewStore(cms.GetKVStore(stk), cross.ExactStateCondition)
+				st = NewStore(cms.GetKVStore(stk), cross.ExactMatchStateConstraint)
 				assert.NotPanics(func() {
 					st.Get(k0)
 				})

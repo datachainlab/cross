@@ -127,7 +127,7 @@ func (k Keeper) prepareTransaction(
 	destinationChannel string,
 	data types.PacketDataPrepare,
 ) error {
-	cond := data.ContractTransaction.StateCondition
+	cond := data.ContractTransaction.StateConstraint
 	store, res, err := contractHandler.Handle(
 		types.WithSigners(ctx, data.ContractTransaction.Signers),
 		cond.Type,
@@ -256,7 +256,7 @@ func (k Keeper) ReceiveCommitPacket(
 		return nil, fmt.Errorf("expected coordinatorConnectionID is %v, but got %v", tx.CoordinatorConnectionID, connID)
 	}
 
-	state, err := contractHandler.GetState(ctx, types.NoStateCondition, tx.ContractCallInfo)
+	state, err := contractHandler.GetState(ctx, types.NoStateConstraint, tx.ContractCallInfo)
 	if err != nil {
 		return nil, err
 	}

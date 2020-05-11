@@ -32,10 +32,10 @@ const (
 	TypePrepareResult = types.TypePrepareResult
 	TypeCommit        = types.TypeCommit
 
-	NoStateCondition    = types.NoStateCondition
-	ExactStateCondition = types.ExactStateCondition
-	PreStateCondition   = types.PreStateCondition
-	PostStateCondition  = types.PostStateCondition
+	NoStateConstraint         = types.NoStateConstraint
+	ExactMatchStateConstraint = types.ExactMatchStateConstraint
+	PreStateConstraint        = types.PreStateConstraint
+	PostStateConstraint       = types.PostStateConstraint
 )
 
 // nolint
@@ -50,7 +50,7 @@ var (
 	WithSigners                     = types.WithSigners
 	NewMsgInitiate                  = types.NewMsgInitiate
 	NewContractTransaction          = types.NewContractTransaction
-	NewStateCondition               = types.NewStateCondition
+	NewStateConstraint              = types.NewStateConstraint
 	NewChannelInfo                  = types.NewChannelInfo
 	NewPacketDataPrepare            = types.NewPacketDataPrepare
 	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement
@@ -80,8 +80,8 @@ type (
 	ContractTransactions         = types.ContractTransactions
 	ContractCallResult           = types.ContractCallResult
 	ContractCallInfo             = types.ContractCallInfo
-	StateCondition               = types.StateCondition
-	StateConditionType           = types.StateConditionType
+	StateConstraint              = types.StateConstraint
+	StateConstraintType          = types.StateConstraintType
 	TxID                         = types.TxID
 	TxIndex                      = types.TxIndex
 )

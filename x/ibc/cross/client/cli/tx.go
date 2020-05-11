@@ -66,9 +66,9 @@ func GetCreateMsgInitiateCmd(cdc *codec.Codec) *cobra.Command {
 						Channel: parts[0],
 						Port:    parts[1],
 					},
-					Signers:        res.Signers,
-					CallInfo:       res.CallInfo,
-					StateCondition: res.StateCondition,
+					Signers:         res.Signers,
+					CallInfo:        res.CallInfo,
+					StateConstraint: res.StateConstraint,
 				}
 				txs = append(txs, tx)
 			}

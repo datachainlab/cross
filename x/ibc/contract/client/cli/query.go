@@ -64,7 +64,7 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 				args[1],
 				cargs,
 			)
-			scType := cross.ExactStateCondition
+			scType := cross.ExactMatchStateConstraint
 			msg := types.NewMsgContractCall(
 				cliCtx.GetFromAddress(),
 				nil,
@@ -87,11 +87,11 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 			cdc.MustUnmarshalJSON(res, &result)
 			cdc.MustUnmarshalJSON(result.Data, &response)
 			callResult := cross.ContractCallResult{
-				ChainID:        cliCtx.ChainID,
-				Height:         height,
-				Signers:        []sdk.AccAddress{cliCtx.GetFromAddress()},
-				CallInfo:       ci.Bytes(),
-				StateCondition: cross.NewStateCondition(scType, response.OPs),
+				ChainID:         cliCtx.ChainID,
+				Height:          height,
+				Signers:         []sdk.AccAddress{cliCtx.GetFromAddress()},
+				CallInfo:        ci.Bytes(),
+				StateConstraint: cross.NewStateConstraint(scType, response.OPs),
 			}
 			bz, err = cdc.MarshalJSON(callResult)
 			if err != nil {

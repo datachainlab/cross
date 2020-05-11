@@ -39,7 +39,7 @@ type Contract interface {
 	CallMethod(ctx Context, store cross.Store, method string) ([]byte, error)
 }
 
-type StateProvider = func(sdk.KVStore, cross.StateConditionType) cross.State
+type StateProvider = func(sdk.KVStore, cross.StateConstraintType) cross.State
 
 type contractHandler struct {
 	keeper        Keeper
@@ -53,7 +53,7 @@ func NewContractHandler(k Keeper, stateProvider StateProvider) *contractHandler 
 	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider}
 }
 
-func (h *contractHandler) Handle(ctx sdk.Context, tp cross.StateConditionType, callInfo cross.ContractCallInfo) (state cross.State, res cross.ContractHandlerResult, err error) {
+func (h *contractHandler) Handle(ctx sdk.Context, tp cross.StateConstraintType, callInfo cross.ContractCallInfo) (state cross.State, res cross.ContractHandlerResult, err error) {
 	info, err := types.DecodeContractSignature(callInfo)
 	if err != nil {
 		return nil, nil, err
@@ -88,7 +88,7 @@ func (h *contractHandler) Handle(ctx sdk.Context, tp cross.StateConditionType, c
 	return st, types.NewContractHandlerResult(v, c.EventManager().Events()), nil
 }
 
-func (h *contractHandler) GetState(ctx sdk.Context, tp cross.StateConditionType, callInfo cross.ContractCallInfo) (cross.State, error) {
+func (h *contractHandler) GetState(ctx sdk.Context, tp cross.StateConstraintType, callInfo cross.ContractCallInfo) (cross.State, error) {
 	info, err := types.DecodeContractSignature(callInfo)
 	if err != nil {
 		return nil, err

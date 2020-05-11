@@ -21,7 +21,7 @@ func NewHandler(k Keeper, contractHandler cross.ContractHandler) sdk.Handler {
 
 func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contractHandler cross.ContractHandler) (*sdk.Result, error) {
 	ctx = cross.WithSigners(ctx, msg.GetSigners())
-	state, res, err := contractHandler.Handle(ctx, msg.StateConditionType, msg.CallInfo)
+	state, res, err := contractHandler.Handle(ctx, msg.StateConstraintType, msg.CallInfo)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedContractHandle, err.Error())
 	}

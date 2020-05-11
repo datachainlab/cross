@@ -129,8 +129,8 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 }
 
 func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.StoreKey, cid string) cross.ContractHandler {
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(cdc, stk), func(kvs sdk.KVStore, tp cross.StateConditionType) cross.State {
-		return lock.NewStore(kvs, cross.ExactStateCondition)
+	contractHandler := contract.NewContractHandler(contract.NewKeeper(cdc, stk), func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
+		return lock.NewStore(kvs, cross.ExactMatchStateConstraint)
 	})
 	c := contract.NewContract([]contract.Method{
 		{
@@ -207,8 +207,8 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			ch0to1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{lock.WriteOP{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 			),
 		),
@@ -216,8 +216,8 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			ch0to2,
 			[]sdk.AccAddress{signer2},
 			ci2.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{lock.WriteOP{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
 			),
 		),
@@ -381,8 +381,8 @@ func (suite *KeeperTestSuite) TestRelay() {
 			suite.ch0to1,
 			[]sdk.AccAddress{suite.signer1},
 			ci1.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{
 					lock.ReadValueOP{K: suite.signer1, V: nil},
 					lock.WriteOP{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})},
@@ -393,8 +393,8 @@ func (suite *KeeperTestSuite) TestRelay() {
 			suite.ch0to2,
 			[]sdk.AccAddress{suite.signer2},
 			ci2.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{
 					lock.ReadValueOP{K: suite.signer2, V: nil},
 					lock.WriteOP{K: suite.signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})},
@@ -405,8 +405,8 @@ func (suite *KeeperTestSuite) TestRelay() {
 			suite.ch0to2,
 			[]sdk.AccAddress{suite.signer3},
 			ci3.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{
 					lock.ReadValueOP{K: suite.signer3, V: nil},
 					lock.WriteOP{K: suite.signer3, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tthree", 40)})},
@@ -683,8 +683,8 @@ func (suite *KeeperTestSuite) TestAbort1() {
 			suite.ch0to1,
 			[]sdk.AccAddress{suite.signer1},
 			ci1.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{
 					lock.ReadValueOP{K: suite.signer1, V: nil},
 					lock.WriteOP{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})},
@@ -695,8 +695,8 @@ func (suite *KeeperTestSuite) TestAbort1() {
 			suite.ch0to2,
 			[]sdk.AccAddress{suite.signer2},
 			ci2.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
 		),
@@ -752,8 +752,8 @@ func (suite *KeeperTestSuite) TestAbort2() {
 			suite.ch0to1,
 			[]sdk.AccAddress{suite.signer1},
 			ci1.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
 		),
@@ -761,8 +761,8 @@ func (suite *KeeperTestSuite) TestAbort2() {
 			suite.ch0to2,
 			[]sdk.AccAddress{suite.signer2},
 			ci2.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
 		),
@@ -855,7 +855,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	}
 	suite.Equal(cross.TX_STATUS_ABORT, tx.Status)
 	// ensure that the state is expected
-	_, err = contractHandler.GetState(actx.ctx, cross.NoStateCondition, tx.ContractCallInfo)
+	_, err = contractHandler.GetState(actx.ctx, cross.NoStateConstraint, tx.ContractCallInfo)
 	if !suite.NoError(err) {
 		return
 	}
@@ -870,7 +870,7 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	}
 	actx2, _ := actx.Cache()
 	ctx := cross.WithSigners(actx2.ctx, []sdk.AccAddress{txSigner})
-	_, _, err = contractHandler.Handle(ctx, cross.ExactStateCondition, bz)
+	_, _, err = contractHandler.Handle(ctx, cross.ExactMatchStateConstraint, bz)
 	suite.NoError(err)
 }
 
@@ -886,7 +886,7 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	}
 	suite.Equal(cross.TX_STATUS_COMMIT, tx.Status)
 	// ensure that the state is expected
-	_, err = contractHandler.GetState(actx.ctx, cross.ExactStateCondition, tx.ContractCallInfo)
+	_, err = contractHandler.GetState(actx.ctx, cross.ExactMatchStateConstraint, tx.ContractCallInfo)
 	if !suite.NoError(err) {
 		return
 	}
@@ -903,7 +903,7 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 		return
 	}
 	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
-	_, _, err = contractHandler.Handle(ctx, cross.ExactStateCondition, bz)
+	_, _, err = contractHandler.Handle(ctx, cross.ExactMatchStateConstraint, bz)
 	suite.NoError(err)
 }
 

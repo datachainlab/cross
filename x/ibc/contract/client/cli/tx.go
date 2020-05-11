@@ -63,7 +63,7 @@ func CallTxCmd(cdc *codec.Codec) *cobra.Command {
 				cliCtx.GetFromAddress(),
 				nil,
 				ci.Bytes(),
-				cross.NoStateCondition,
+				cross.NoStateConstraint,
 			)
 			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},

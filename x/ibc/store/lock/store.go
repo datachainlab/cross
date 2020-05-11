@@ -29,7 +29,7 @@ type Store struct {
 	opmgr OPManager
 }
 
-func NewStore(kvs sdk.KVStore, tp cross.StateConditionType) Store {
+func NewStore(kvs sdk.KVStore, tp cross.StateConstraintType) Store {
 	main := prefix.NewStore(kvs, []byte{MainStorePrefix})
 	txs := prefix.NewStore(kvs, []byte{TxStorePrefix})
 	locks := prefix.NewStore(kvs, []byte{LockStorePrefix})

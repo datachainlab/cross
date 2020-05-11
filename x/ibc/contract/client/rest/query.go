@@ -51,7 +51,7 @@ func QueryContractCallRequestHandlerFn(ctx context.CLIContext) http.HandlerFunc 
 			addr,
 			signers,
 			req.CallInfo.Bytes(),
-			cross.ExactStateCondition,
+			cross.ExactMatchStateConstraint,
 		)
 		bz, err := ctx.Codec.MarshalJSON(msg)
 		if rest.CheckBadRequestError(w, err) {

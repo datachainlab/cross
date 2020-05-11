@@ -182,8 +182,8 @@ func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
 			src0,
 			[]sdk.AccAddress{signer0},
 			ci0.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
 		),
@@ -191,8 +191,8 @@ func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
 			src1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
-			cross.NewStateCondition(
-				cross.ExactStateCondition,
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
 		),

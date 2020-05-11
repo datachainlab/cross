@@ -88,38 +88,38 @@ func (c ChannelInfo) ValidateBasic() error {
 type ContractCallInfo []byte
 
 type ContractTransaction struct {
-	Source         ChannelInfo      `json:"source" yaml:"source"`
-	Signers        []sdk.AccAddress `json:"signers" yaml:"signers"`
-	CallInfo       ContractCallInfo `json:"call_info" yaml:"call_info"`
-	StateCondition StateCondition   `json:"state_condition" yaml:"state_condition"`
+	Source          ChannelInfo      `json:"source" yaml:"source"`
+	Signers         []sdk.AccAddress `json:"signers" yaml:"signers"`
+	CallInfo        ContractCallInfo `json:"call_info" yaml:"call_info"`
+	StateConstraint StateConstraint  `json:"state_constraint" yaml:"state_constraint"`
 }
 
-type StateConditionType = uint8
+type StateConstraintType = uint8
 
 const (
-	NoStateCondition StateConditionType = iota
-	ExactStateCondition
-	PreStateCondition
-	PostStateCondition
+	NoStateConstraint StateConstraintType = iota
+	ExactMatchStateConstraint
+	PreStateConstraint
+	PostStateConstraint
 )
 
-type StateCondition struct {
-	Type StateConditionType `json:"type" yaml:"type"`
-	OPs  OPs                `json:"ops" yaml:"ops"`
+type StateConstraint struct {
+	Type StateConstraintType `json:"type" yaml:"type"`
+	OPs  OPs                 `json:"ops" yaml:"ops"`
 }
 
-func NewStateCondition(tp StateConditionType, ops OPs) StateCondition {
-	return StateCondition{Type: tp, OPs: ops}
+func NewStateConstraint(tp StateConstraintType, ops OPs) StateConstraint {
+	return StateConstraint{Type: tp, OPs: ops}
 }
 
 type ContractTransactions = []ContractTransaction
 
-func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo ContractCallInfo, cond StateCondition) ContractTransaction {
+func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo ContractCallInfo, cond StateConstraint) ContractTransaction {
 	return ContractTransaction{
-		Source:         src,
-		Signers:        signers,
-		CallInfo:       callInfo,
-		StateCondition: cond,
+		Source:          src,
+		Signers:         signers,
+		CallInfo:        callInfo,
+		StateConstraint: cond,
 	}
 }
 
