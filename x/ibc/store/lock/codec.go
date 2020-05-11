@@ -21,6 +21,5 @@ func RegisterCodec(cdc *codec.Codec) {
 
 func RegisterOPCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(ReadOP{}, "store/lock/ReadOP", nil)
-	cdc.RegisterConcrete(ReadValueOP{}, "store/lock/ReadValueOP", nil)
 	cdc.RegisterConcrete(WriteOP{}, "store/lock/WriteOP", nil)
 }

@@ -156,7 +156,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			cross.NewStateConstraint(
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{
-					lock.ReadValueOP{K: simappcontract.MakeSeatKey(1), V: nil},
+					lock.ReadOP{K: simappcontract.MakeSeatKey(1), V: nil},
 					lock.WriteOP{K: simappcontract.MakeSeatKey(1), V: signer1Info.GetAddress()},
 				},
 			),
@@ -168,7 +168,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			cross.NewStateConstraint(
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{
-					lock.ReadValueOP{K: simappcontract.MakeRoomKey(8), V: nil},
+					lock.ReadOP{K: simappcontract.MakeRoomKey(8), V: nil},
 					lock.WriteOP{K: simappcontract.MakeRoomKey(8), V: signer2Info.GetAddress()},
 				},
 			),

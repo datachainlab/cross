@@ -32,10 +32,15 @@ var _ OP = (*ReadOP)(nil)
 
 type ReadOP struct {
 	K []byte
+	V []byte
 }
 
 func (r ReadOP) Key() []byte {
 	return r.K
+}
+
+func (r ReadOP) Value() []byte {
+	return r.V
 }
 
 func (r ReadOP) Type() uint8 {
@@ -47,40 +52,11 @@ func (r ReadOP) Equal(cop cross.OP) bool {
 	if r.Type() != op.Type() {
 		return false
 	}
-	return bytes.Equal(r.K, op.(ReadOP).Key())
+	return bytes.Equal(r.K, op.(ReadOP).Key()) && bytes.Equal(r.V, op.(ReadOP).Value())
 }
 
 func (r ReadOP) String() string {
-	return fmt.Sprintf("Read{%X}", r.K)
-}
-
-type ReadValueOP struct {
-	K []byte
-	V []byte
-}
-
-func (r ReadValueOP) Key() []byte {
-	return r.K
-}
-
-func (r ReadValueOP) Value() []byte {
-	return r.V
-}
-
-func (r ReadValueOP) Type() uint8 {
-	return OP_TYPE_READ
-}
-
-func (r ReadValueOP) Equal(cop cross.OP) bool {
-	op := cop.(OP)
-	if r.Type() != op.Type() {
-		return false
-	}
-	return bytes.Equal(r.K, op.(ReadValueOP).Key()) && bytes.Equal(r.V, op.(ReadValueOP).Value())
-}
-
-func (r ReadValueOP) String() string {
-	return fmt.Sprintf("ReadValue{%X %X}", r.K, r.V)
+	return fmt.Sprintf("ReadOP{%X %X}", r.K, r.V)
 }
 
 var (
@@ -122,5 +98,5 @@ func (w WriteOP) ApplyTo(kvs sdk.KVStore) {
 }
 
 func (w WriteOP) String() string {
-	return fmt.Sprintf("Write{%X %X}", w.K, w.V)
+	return fmt.Sprintf("WriteOP{%X %X}", w.K, w.V)
 }

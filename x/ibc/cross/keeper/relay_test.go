@@ -384,7 +384,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 			cross.NewStateConstraint(
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{
-					lock.ReadValueOP{K: suite.signer1, V: nil},
+					lock.ReadOP{K: suite.signer1, V: nil},
 					lock.WriteOP{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})},
 				},
 			),
@@ -396,7 +396,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 			cross.NewStateConstraint(
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{
-					lock.ReadValueOP{K: suite.signer2, V: nil},
+					lock.ReadOP{K: suite.signer2, V: nil},
 					lock.WriteOP{K: suite.signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})},
 				},
 			),
@@ -408,7 +408,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 			cross.NewStateConstraint(
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{
-					lock.ReadValueOP{K: suite.signer3, V: nil},
+					lock.ReadOP{K: suite.signer3, V: nil},
 					lock.WriteOP{K: suite.signer3, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tthree", 40)})},
 				},
 			),
@@ -686,7 +686,7 @@ func (suite *KeeperTestSuite) TestAbort1() {
 			cross.NewStateConstraint(
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{
-					lock.ReadValueOP{K: suite.signer1, V: nil},
+					lock.ReadOP{K: suite.signer1, V: nil},
 					lock.WriteOP{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})},
 				},
 			),
