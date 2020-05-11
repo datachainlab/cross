@@ -130,7 +130,7 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 
 func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.StoreKey, cid string) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(contract.NewKeeper(cdc, stk), func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
-		return lock.NewStore(kvs, cross.ExactMatchStateConstraint)
+		return lock.NewStore(kvs, tp)
 	})
 	c := contract.NewContract([]contract.Method{
 		{

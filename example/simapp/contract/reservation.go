@@ -17,7 +17,7 @@ const (
 
 func HotelReservationContractHandler(k contract.Keeper) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore, tp cross.StateConstraintType) cross.State {
-		return lock.NewStore(store, cross.ExactMatchStateConstraint)
+		return lock.NewStore(store, tp)
 	})
 
 	contractHandler.AddRoute(HotelContractID, GetHotelContract())
@@ -26,7 +26,7 @@ func HotelReservationContractHandler(k contract.Keeper) cross.ContractHandler {
 
 func TrainReservationContractHandler(k contract.Keeper) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore, tp cross.StateConstraintType) cross.State {
-		return lock.NewStore(store, cross.ExactMatchStateConstraint)
+		return lock.NewStore(store, tp)
 	})
 
 	contractHandler.AddRoute(TrainContractID, GetTrainContract())
