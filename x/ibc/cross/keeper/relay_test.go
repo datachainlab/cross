@@ -807,6 +807,134 @@ func (suite *KeeperTestSuite) TestAbort2() {
 	suite.testAbortPacket(suite.app2, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, false), suite.signer2)
 }
 
+func (suite *KeeperTestSuite) TestStateConstraint() {
+	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
+	// app2 has multiple contract calls
+	ci2 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
+	ci3 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("tthree"), []byte("40")})
+
+	var err error
+	var nonce uint64 = 1
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
+			suite.ch0to1,
+			[]sdk.AccAddress{suite.signer1},
+			ci1.Bytes(),
+			cross.NewStateConstraint(
+				cross.PreStateConstraint,
+				[]cross.OP{
+					lock.ReadOP{K: suite.signer1, V: nil},
+				},
+			),
+		),
+		cross.NewContractTransaction(
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer2},
+			ci2.Bytes(),
+			cross.NewStateConstraint(
+				cross.PostStateConstraint,
+				[]cross.OP{
+					lock.WriteOP{K: suite.signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})},
+				},
+			),
+		),
+		cross.NewContractTransaction(
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer3},
+			ci3.Bytes(),
+			cross.NewStateConstraint(
+				cross.NoStateConstraint,
+				[]cross.OP{},
+			),
+		),
+	}
+
+	suite.openAllChannels()
+	msg := cross.NewMsgInitiate(
+		suite.initiator,
+		suite.app0.chainID,
+		tss,
+		256,
+		nonce,
+	)
+	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+		suite.app0.ctx,
+		suite.initiator,
+		msg,
+		msg.ContractTransactions,
+	)
+	suite.NoError(err)
+
+	var nextSeqSend uint64 = 1
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, tss[2], nextSeqSend+1, cross.PREPARE_RESULT_OK)
+
+	nextSeqSend += 1
+
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	suite.NoError(err)
+	suite.False(canMulticast)
+	suite.False(isCommitable)
+
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	suite.NoError(err)
+	suite.False(canMulticast)
+	suite.False(isCommitable)
+
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	suite.NoError(err)
+	suite.True(canMulticast)
+	suite.True(isCommitable)
+
+	// In a1, execute to commit
+	{
+		capp, writer := suite.app1.Cache()
+		suite.testCommitPacket(&capp, suite.chd1, suite.ch0to1, suite.ch1to0, cross.NewPacketDataCommit(txID, 0, true), suite.signer1, func(res cross.ContractHandlerResult) {
+			coin := sdk.NewCoin("tone", sdk.NewInt(80))
+			expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
+			suite.Equal(expectedEvent, res.GetEvents()[0])
+			bz, err := coin.Marshal()
+			if err != nil {
+				suite.FailNow(err.Error())
+			}
+			suite.Equal(bz, res.GetData())
+		})
+		writer()
+	}
+
+	// In a2-0, execute to commit
+	{
+		capp, _ := suite.app2.Cache()
+		suite.testCommitPacket(&capp, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, true), suite.signer2, func(res cross.ContractHandlerResult) {
+			coin := sdk.NewCoin("ttwo", sdk.NewInt(60))
+			expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
+			suite.Equal(expectedEvent, res.GetEvents()[0])
+			bz, err := coin.Marshal()
+			if err != nil {
+				suite.FailNow(err.Error())
+			}
+			suite.Equal(bz, res.GetData())
+		})
+	}
+
+	// In a2-1, execute to commit
+	{
+		capp, writer := suite.app2.Cache()
+		suite.testCommitPacket(&capp, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 2, true), suite.signer3, func(res cross.ContractHandlerResult) {
+			coin := sdk.NewCoin("tthree", sdk.NewInt(40))
+			expectedEvent := sdk.NewEvent("issue", sdk.NewAttribute("coin", coin.String()))
+			suite.Equal(expectedEvent, res.GetEvents()[0])
+			bz, err := coin.Marshal()
+			if err != nil {
+				suite.FailNow(err.Error())
+			}
+			suite.Equal(bz, res.GetData())
+		})
+		writer()
+	}
+}
+
 func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64, expectedPrepareResult uint8) {
 	relayer := sdk.AccAddress("relayer1")
 	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, ts)
