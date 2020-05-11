@@ -37,7 +37,8 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 	const (
-		flagSave = "save"
+		flagStateConstraintType = "state-constraint"
+		flagSave                = "save"
 	)
 
 	cmd := &cobra.Command{
@@ -64,7 +65,7 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 				args[1],
 				cargs,
 			)
-			scType := cross.ExactMatchStateConstraint
+			scType := uint8(viper.GetUint(flagStateConstraintType))
 			msg := types.NewMsgContractCall(
 				cliCtx.GetFromAddress(),
 				nil,
@@ -102,6 +103,7 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 	cmd = flags.PostCommands(cmd)[0]
+	cmd.Flags().Uint8(flagStateConstraintType, cross.ExactMatchStateConstraint, "state constraint type")
 	cmd.Flags().String(flagSave, "", "Save a result to this file")
 	cmd.MarkFlagRequired(flags.FlagFrom)
 	cmd.MarkFlagRequired(flagSave)
