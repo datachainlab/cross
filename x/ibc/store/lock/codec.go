@@ -15,10 +15,12 @@ func init() {
 
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*OP)(nil), nil)
+	cdc.RegisterInterface((*LockOP)(nil), nil)
 	RegisterOPCodec(cdc)
 }
 
 func RegisterOPCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(Read{}, "store/lock/Read", nil)
-	cdc.RegisterConcrete(Write{}, "store/lock/Write", nil)
+	cdc.RegisterConcrete(ReadOP{}, "store/lock/ReadOP", nil)
+	cdc.RegisterConcrete(ReadValueOP{}, "store/lock/ReadValueOP", nil)
+	cdc.RegisterConcrete(WriteOP{}, "store/lock/WriteOP", nil)
 }

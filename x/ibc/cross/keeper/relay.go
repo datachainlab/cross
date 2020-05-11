@@ -103,16 +103,17 @@ func (k Keeper) PrepareTransaction(
 	result := types.PREPARE_RESULT_OK
 	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data); err != nil {
 		result = types.PREPARE_RESULT_FAILED
+		k.Logger(ctx).Info("failed to prepare transaction", "error", err.Error())
 	}
 
 	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
 	if !found {
-		return 0, errors.New("channel not found")
+		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", destinationPort, destinationChannel)
 	}
 	hops := c.GetConnectionHops()
 	connID := hops[len(hops)-1]
 
-	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, result, connID, data.ContractTransaction.Contract)
+	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, result, connID, data.ContractTransaction.CallInfo)
 	k.SetTx(ctx, data.TxID, data.TxIndex, txinfo)
 	return result, nil
 }
@@ -126,9 +127,11 @@ func (k Keeper) prepareTransaction(
 	destinationChannel string,
 	data types.PacketDataPrepare,
 ) error {
+	cond := data.ContractTransaction.StateCondition
 	store, res, err := contractHandler.Handle(
 		types.WithSigners(ctx, data.ContractTransaction.Signers),
-		data.ContractTransaction.Contract,
+		cond.Type,
+		data.ContractTransaction.CallInfo,
 	)
 	if err != nil {
 		return err
@@ -138,8 +141,8 @@ func (k Keeper) prepareTransaction(
 	if err := store.Precommit(id); err != nil {
 		return err
 	}
-	if ops := store.OPs(); !ops.Equal(data.ContractTransaction.OPs) {
-		return fmt.Errorf("unexpected ops: %v != %v", ops.String(), data.ContractTransaction.OPs.String())
+	if ops := store.OPs(); !ops.Equal(cond.OPs) {
+		return fmt.Errorf("unexpected ops: actual(%v) != declation(%v)", ops.String(), cond.OPs.String())
 	}
 	k.SetContractResult(ctx, data.TxID, data.TxIndex, res)
 	return nil
@@ -253,7 +256,7 @@ func (k Keeper) ReceiveCommitPacket(
 		return nil, fmt.Errorf("expected coordinatorConnectionID is %v, but got %v", tx.CoordinatorConnectionID, connID)
 	}
 
-	state, err := contractHandler.GetState(ctx, tx.Contract)
+	state, err := contractHandler.GetState(ctx, types.NoStateCondition, tx.ContractCallInfo)
 	if err != nil {
 		return nil, err
 	}

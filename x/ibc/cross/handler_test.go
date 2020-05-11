@@ -9,7 +9,6 @@ import (
 	"github.com/datachainlab/cross/example/simapp"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
-	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -163,7 +162,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.
 	return
 }
 
-func (suite *HandlerTestSuite) TestHandleCrossc() {
+func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
 	handler := cross.NewHandler(suite.app.CrossKeeper)
 	coordinator := sdk.AccAddress("coordinator")
 
@@ -183,13 +182,19 @@ func (suite *HandlerTestSuite) TestHandleCrossc() {
 			src0,
 			[]sdk.AccAddress{signer0},
 			ci0.Bytes(),
-			[]cross.OP{lock.Read{}, lock.Write{}},
+			cross.NewStateCondition(
+				cross.ExactStateCondition,
+				[]cross.OP{},
+			),
 		),
 		cross.NewContractTransaction(
 			src1,
 			[]sdk.AccAddress{signer1},
 			ci1.Bytes(),
-			[]cross.OP{lock.Read{}, lock.Write{}},
+			cross.NewStateCondition(
+				cross.ExactStateCondition,
+				[]cross.OP{},
+			),
 		),
 	}
 

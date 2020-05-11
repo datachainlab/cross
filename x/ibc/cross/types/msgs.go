@@ -11,9 +11,9 @@ var _ sdk.Msg = (*MsgInitiate)(nil)
 
 type MsgInitiate struct {
 	Sender               sdk.AccAddress
-	ChainID              string                // chainID of Coordinator node
-	ContractTransactions []ContractTransaction // TODO: sorted by Source?
-	TimeoutHeight        int64                 // Timeout for this msg
+	ChainID              string // chainID of Coordinator node
+	ContractTransactions []ContractTransaction
+	TimeoutHeight        int64 // Timeout for this msg
 	Nonce                uint64
 }
 
@@ -85,22 +85,41 @@ func (c ChannelInfo) ValidateBasic() error {
 	return nil
 }
 
-type ContractTransaction struct {
-	Source ChannelInfo `json:"source" yaml:"source"`
+type ContractCallInfo []byte
 
-	Signers  []sdk.AccAddress `json:"signers" yaml:"signers"`
-	Contract []byte           `json:"contract" yaml:"contract"`
-	OPs      OPs              `json:"ops" yaml:"ops"`
+type ContractTransaction struct {
+	Source         ChannelInfo      `json:"source" yaml:"source"`
+	Signers        []sdk.AccAddress `json:"signers" yaml:"signers"`
+	CallInfo       ContractCallInfo `json:"call_info" yaml:"call_info"`
+	StateCondition StateCondition   `json:"state_condition" yaml:"state_condition"`
+}
+
+type StateConditionType = uint8
+
+const (
+	NoStateCondition StateConditionType = iota
+	ExactStateCondition
+	PreStateCondition
+	PostStateCondition
+)
+
+type StateCondition struct {
+	Type StateConditionType `json:"type" yaml:"type"`
+	OPs  OPs                `json:"ops" yaml:"ops"`
+}
+
+func NewStateCondition(tp StateConditionType, ops OPs) StateCondition {
+	return StateCondition{Type: tp, OPs: ops}
 }
 
 type ContractTransactions = []ContractTransaction
 
-func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, contract []byte, ops []OP) ContractTransaction {
+func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo ContractCallInfo, cond StateCondition) ContractTransaction {
 	return ContractTransaction{
-		Source:   src,
-		Signers:  signers,
-		Contract: contract,
-		OPs:      ops,
+		Source:         src,
+		Signers:        signers,
+		CallInfo:       callInfo,
+		StateCondition: cond,
 	}
 }
 

@@ -14,38 +14,36 @@ const (
 	OP_TYPE_WRITE
 )
 
-const OP_NUM uint8 = 2
-
-type OPs []OP
-
-type OP interface {
+type LockOP interface {
 	cross.OP
 
 	Key() []byte
-	Type() uint8
 	ApplyTo(sdk.KVStore)
 }
 
-type ReadOP interface {
-	OP
+type OPManager interface {
+	AddRead(key, value []byte)
+	AddWrite(key, value []byte)
+	GetUpdatedValue(key []byte) ([]byte, bool)
+	OPs() cross.OPs
+	LockOPs() []LockOP
 }
 
-type WriteOP interface {
-	OP
-	Value() []byte
-}
+var _ OP = (*ReadOP)(nil)
 
-var _ ReadOP = (*Read)(nil)
-
-type Read struct {
+type ReadOP struct {
 	K []byte
 }
 
-func (r Read) Key() []byte {
+func (r ReadOP) Key() []byte {
 	return r.K
 }
 
-func (r Read) Equal(cop cross.OP) bool {
+func (r ReadOP) Type() uint8 {
+	return OP_TYPE_READ
+}
+
+func (r ReadOP) Equal(cop cross.OP) bool {
 	op := cop.(OP)
 	if r.Type() != op.Type() {
 		return false
@@ -53,36 +51,62 @@ func (r Read) Equal(cop cross.OP) bool {
 	return bytes.Equal(r.K, op.(ReadOP).Key())
 }
 
-func (r Read) Type() uint8 {
-	return OP_TYPE_READ
-}
-
-func (r Read) ApplyTo(sdk.KVStore) {}
-
-func (r Read) String() string {
+func (r ReadOP) String() string {
 	return fmt.Sprintf("Read{%X}", r.K)
 }
 
-var _ WriteOP = (*Write)(nil)
-
-type Write struct {
+type ReadValueOP struct {
 	K []byte
 	V []byte
 }
 
-func (w Write) Key() []byte {
+func (r ReadValueOP) Key() []byte {
+	return r.K
+}
+
+func (r ReadValueOP) Value() []byte {
+	return r.V
+}
+
+func (r ReadValueOP) Type() uint8 {
+	return OP_TYPE_READ
+}
+
+func (r ReadValueOP) Equal(cop cross.OP) bool {
+	op := cop.(OP)
+	if r.Type() != op.Type() {
+		return false
+	}
+	return bytes.Equal(r.K, op.(ReadValueOP).Key()) && bytes.Equal(r.V, op.(ReadValueOP).Value())
+}
+
+func (r ReadValueOP) String() string {
+	return fmt.Sprintf("ReadValue{%X %X}", r.K, r.V)
+}
+
+var (
+	_ OP     = (*WriteOP)(nil)
+	_ LockOP = (*WriteOP)(nil)
+)
+
+type WriteOP struct {
+	K []byte
+	V []byte
+}
+
+func (w WriteOP) Key() []byte {
 	return w.K
 }
 
-func (w Write) Value() []byte {
+func (w WriteOP) Value() []byte {
 	return w.V
 }
 
-func (w Write) Type() uint8 {
+func (w WriteOP) Type() uint8 {
 	return OP_TYPE_WRITE
 }
 
-func (w Write) Equal(cop cross.OP) bool {
+func (w WriteOP) Equal(cop cross.OP) bool {
 	op := cop.(OP)
 	if w.Type() != op.Type() {
 		return false
@@ -90,7 +114,7 @@ func (w Write) Equal(cop cross.OP) bool {
 	return bytes.Equal(w.K, op.(WriteOP).Key()) && bytes.Equal(w.V, op.(WriteOP).Value())
 }
 
-func (w Write) ApplyTo(kvs sdk.KVStore) {
+func (w WriteOP) ApplyTo(kvs sdk.KVStore) {
 	if w.V == nil {
 		kvs.Delete(w.K)
 	} else {
@@ -98,45 +122,34 @@ func (w Write) ApplyTo(kvs sdk.KVStore) {
 	}
 }
 
-func (w Write) String() string {
+func (w WriteOP) String() string {
 	return fmt.Sprintf("Write{%X %X}", w.K, w.V)
 }
 
-type OPManager struct {
-	ops     OPs
+type OP interface {
+	cross.OP
+	Key() []byte
+	Type() uint8
+}
+
+func GetOPManager(tp cross.StateConditionType) (OPManager, error) {
+	switch tp {
+	case cross.ExactStateCondition:
+		return newExactOPManager(), nil
+	default:
+		return nil, fmt.Errorf("unknown type '%v'", tp)
+	}
+}
+
+var _ OPManager = (*exactOPManager)(nil)
+
+type exactOPManager struct {
+	ops     []OP
 	changes map[string]uint64
 }
 
-func NewOPManager() *OPManager {
-	return &OPManager{changes: make(map[string]uint64)}
-}
-
-func (m *OPManager) AddOP(op OP) {
-	m.ops = append(m.ops, op)
-	if op.Type() == OP_TYPE_WRITE {
-		m.changes[string(op.Key())] = uint64(len(m.ops) - 1)
-	}
-}
-
-func (m *OPManager) GetLastChange(key []byte) (WriteOP, bool) {
-	idx, ok := m.changes[string(key)]
-	if !ok {
-		return nil, false
-	}
-	return m.ops[idx].(WriteOP), true
-}
-
-func (m *OPManager) OPs() OPs {
-	return OptimizeOPs(m.ops)
-}
-
-func (m *OPManager) COPs() cross.OPs {
-	ops := m.OPs()
-	cops := make(cross.OPs, len(ops))
-	for i, op := range ops {
-		cops[i] = op
-	}
-	return cops
+func newExactOPManager() *exactOPManager {
+	return &exactOPManager{changes: make(map[string]uint64)}
 }
 
 type item struct {
@@ -144,25 +157,47 @@ type item struct {
 	idx uint32
 }
 
-func OptimizeOPs(ops OPs) OPs {
-	m := make(map[string]item)
+func (m *exactOPManager) AddRead(k, v []byte) {
+	m.ops = append(m.ops, ReadValueOP{k, v})
+}
 
-	for i, op := range ops {
-		v, ok := m[string(op.Key())]
-		if !ok {
-			m[string(op.Key())] = item{op.Type(), uint32(i)}
-		} else {
-			if op.Type() >= v.tp {
-				m[string(op.Key())] = item{op.Type(), uint32(i)}
-			}
+func (m *exactOPManager) AddWrite(k, v []byte) {
+	m.ops = append(m.ops, WriteOP{k, v})
+	m.changes[string(k)] = uint64(len(m.ops) - 1)
+}
+
+func (m exactOPManager) GetUpdatedValue(key []byte) ([]byte, bool) {
+	idx, ok := m.changes[string(key)]
+	if !ok {
+		return nil, false
+	}
+	return m.ops[idx].(WriteOP).V, true
+}
+
+func (m exactOPManager) LockOPs() []LockOP {
+	items := make(map[string]item)
+	for i, op := range m.ops {
+		if op.Type() != OP_TYPE_WRITE {
+			continue
+		}
+		items[string(op.Key())] = item{op.Type(), uint32(i)}
+	}
+	ops := make([]LockOP, 0, len(items))
+	for i, op := range m.ops {
+		if op.Type() != OP_TYPE_WRITE {
+			continue
+		}
+		if items[string(op.Key())].idx == uint32(i) {
+			ops = append(ops, op.(WriteOP))
 		}
 	}
+	return ops
+}
 
-	optimized := make([]OP, 0, len(m))
-	for i, op := range ops {
-		if m[string(op.Key())].idx == uint32(i) {
-			optimized = append(optimized, op)
-		}
+func (m exactOPManager) OPs() cross.OPs {
+	ops := make(cross.OPs, 0, len(m.ops))
+	for _, op := range m.ops {
+		ops = append(ops, op)
 	}
-	return optimized
+	return ops
 }

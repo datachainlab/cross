@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/datachainlab/cross/x/ibc/contract/types"
+	"github.com/datachainlab/cross/x/ibc/cross"
 )
 
 type ContractCallReq struct {
@@ -50,6 +51,7 @@ func QueryContractCallRequestHandlerFn(ctx context.CLIContext) http.HandlerFunc 
 			addr,
 			signers,
 			req.CallInfo.Bytes(),
+			cross.ExactStateCondition,
 		)
 		bz, err := ctx.Codec.MarshalJSON(msg)
 		if rest.CheckBadRequestError(w, err) {

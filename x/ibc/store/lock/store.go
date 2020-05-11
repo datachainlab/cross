@@ -26,46 +26,49 @@ type Store struct {
 
 	lockStore lockStore
 
-	opmgr *OPManager
+	opmgr OPManager
 }
 
-func NewStore(kvs sdk.KVStore) Store {
+func NewStore(kvs sdk.KVStore, tp cross.StateConditionType) Store {
 	main := prefix.NewStore(kvs, []byte{MainStorePrefix})
 	txs := prefix.NewStore(kvs, []byte{TxStorePrefix})
 	locks := prefix.NewStore(kvs, []byte{LockStorePrefix})
-
-	return Store{main: main, txs: txs, lockStore: newLockStore(locks), opmgr: NewOPManager()}
+	opmgr, err := GetOPManager(tp)
+	if err != nil {
+		panic(err)
+	}
+	return Store{main: main, txs: txs, lockStore: newLockStore(locks), opmgr: opmgr}
 }
 
 func (s Store) OPs() cross.OPs {
-	return s.opmgr.COPs()
+	return s.opmgr.OPs()
 }
 
 func (s Store) Precommit(id []byte) error {
 	if s.txs.Has(id) {
 		return fmt.Errorf("id '%x' already exists", id)
 	}
-	ops := s.opmgr.OPs()
-	b, err := cdc.MarshalBinaryLengthPrefixed(ops)
+	locks := s.opmgr.LockOPs()
+	bz, err := cdc.MarshalBinaryLengthPrefixed(locks)
 	if err != nil {
 		return err
 	}
-	s.txs.Set(id, b)
+	s.txs.Set(id, bz)
 
-	for _, op := range ops {
-		s.lockStore.Lock(convertTxOPTypeToLockType(op.Type()), op.Key())
+	for _, op := range locks {
+		s.lockStore.Lock(op.Key())
 	}
 
 	return nil
 }
 
 func (s Store) Commit(id []byte) error {
-	b := s.txs.Get(id)
-	if b == nil {
+	bz := s.txs.Get(id)
+	if bz == nil {
 		return fmt.Errorf("id '%x' not found", id)
 	}
-	var ops OPs
-	if err := cdc.UnmarshalBinaryLengthPrefixed(b, &ops); err != nil {
+	var ops []LockOP
+	if err := cdc.UnmarshalBinaryLengthPrefixed(bz, &ops); err != nil {
 		return err
 	}
 	if err := s.apply(ops); err != nil {
@@ -78,26 +81,26 @@ func (s Store) Commit(id []byte) error {
 }
 
 func (s Store) CommitImmediately() error {
-	if err := s.apply(s.opmgr.OPs()); err != nil {
+	if err := s.apply(s.opmgr.LockOPs()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s Store) apply(ops OPs) error {
+func (s Store) apply(ops []LockOP) error {
 	for _, op := range ops {
 		op.ApplyTo(s.main)
 	}
 	return nil
 }
 
-func (s Store) clean(id []byte, ops OPs) error {
+func (s Store) clean(id []byte, ops []LockOP) error {
 	if !s.txs.Has(id) {
 		return fmt.Errorf("id '%x' not found", id)
 	}
 	s.txs.Delete(id)
 	for _, op := range ops {
-		s.lockStore.Unlock(convertTxOPTypeToLockType(op.Type()), op.Key())
+		s.lockStore.Unlock(op.Key())
 	}
 	return nil
 }
@@ -107,42 +110,34 @@ func (s Store) Discard(id []byte) error {
 	if b == nil {
 		return fmt.Errorf("id '%x' not found", id)
 	}
-	var ops OPs
+	var ops []LockOP
 	if err := cdc.UnmarshalBinaryLengthPrefixed(b, &ops); err != nil {
 		return err
 	}
 	return s.clean(id, ops)
 }
 
-func (s Store) isAvailableKey(require uint8, key []byte) bool {
-	if tp, locked := s.lockStore.HasAnyLocked(key); locked {
-		return !IsConflictLock(require, tp)
-	} else {
-		return true
-	}
-}
-
 // Implement KVStore
 
 func (s Store) Get(key []byte) []byte {
-	if !s.isAvailableKey(OP_TYPE_READ, key) {
+	if s.lockStore.IsLocked(key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	op, ok := s.opmgr.GetLastChange(key)
-	s.opmgr.AddOP(Read{key})
+	v, ok := s.opmgr.GetUpdatedValue(key)
+	s.opmgr.AddRead(key, v)
 	if ok {
-		return op.Value()
+		return v
 	} else {
 		return s.main.Get(key)
 	}
 }
 
 func (s Store) Has(key []byte) bool {
-	if !s.isAvailableKey(OP_TYPE_READ, key) {
+	if s.lockStore.IsLocked(key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	_, ok := s.opmgr.GetLastChange(key)
-	s.opmgr.AddOP(Read{key})
+	v, ok := s.opmgr.GetUpdatedValue(key)
+	s.opmgr.AddRead(key, v)
 	if ok {
 		return true
 	} else {
@@ -151,40 +146,15 @@ func (s Store) Has(key []byte) bool {
 }
 
 func (s Store) Set(key, value []byte) {
-	if !s.isAvailableKey(OP_TYPE_WRITE, key) {
+	if s.lockStore.IsLocked(key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	s.opmgr.AddOP(Write{key, value})
+	s.opmgr.AddWrite(key, value)
 }
 
 func (s Store) Delete(key []byte) {
-	if !s.isAvailableKey(OP_TYPE_WRITE, key) {
+	if s.lockStore.IsLocked(key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	s.opmgr.AddOP(Write{key, nil})
-}
-
-func IsConflictLock(require, current uint8) bool {
-	if require == 0 || current == 0 {
-		panic("invalid op type")
-	}
-
-	switch current {
-	case LOCK_TYPE_READ:
-		return require != LOCK_TYPE_READ
-	case LOCK_TYPE_WRITE:
-		return true
-	}
-	panic("unreachable here")
-}
-
-func convertTxOPTypeToLockType(tp uint8) uint8 {
-	switch tp {
-	case OP_TYPE_READ:
-		return LOCK_TYPE_READ
-	case OP_TYPE_WRITE:
-		return LOCK_TYPE_WRITE
-	default:
-		panic("unexpected type")
-	}
+	s.opmgr.AddWrite(key, nil)
 }
