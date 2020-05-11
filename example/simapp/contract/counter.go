@@ -11,8 +11,8 @@ import (
 )
 
 func CounterContractHandlerProvider(k contract.Keeper) cross.ContractHandler {
-	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore) cross.State {
-		return lock.NewStore(store)
+	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore, tp cross.StateConstraintType) cross.State {
+		return lock.NewStore(store, tp)
 	})
 
 	contractHandler.AddRoute(

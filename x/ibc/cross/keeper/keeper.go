@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/capability"
 	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/05-port/types"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // Keeper maintains the link to storage and exposes getter/setter methods for the various parts of the state machine
@@ -35,6 +36,11 @@ func NewKeeper(
 		portKeeper:    portKeeper,
 		scopedKeeper:  scopedKeeper,
 	}
+}
+
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", fmt.Sprintf("cross/%s", types.ModuleName))
 }
 
 func (k Keeper) SetTx(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex, tx types.TxInfo) {

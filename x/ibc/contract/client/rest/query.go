@@ -8,12 +8,18 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/datachainlab/cross/x/ibc/contract/types"
+	"github.com/datachainlab/cross/x/ibc/cross"
 )
 
 type ContractCallReq struct {
-	From     string                 `json:"from"`
-	Signers  []string               `json:"signers"`
-	CallInfo types.ContractCallInfo `json:"call_info"`
+	From                string                 `json:"from"`
+	Signers             []string               `json:"signers"`
+	CallInfo            types.ContractCallInfo `json:"call_info"`
+	StateConstraintType *uint8                 `json:"state_constraint_type,omitempty"`
+}
+
+func (r *ContractCallReq) SetStateConstraintType(tp uint8) {
+	r.StateConstraintType = &tp
 }
 
 func QueryContractCallRequestHandlerFn(ctx context.CLIContext) http.HandlerFunc {
@@ -46,10 +52,17 @@ func QueryContractCallRequestHandlerFn(ctx context.CLIContext) http.HandlerFunc 
 			}
 			signers = append(signers, signer)
 		}
+		var sct uint8
+		if req.StateConstraintType == nil {
+			sct = cross.ExactMatchStateConstraint
+		} else {
+			sct = *req.StateConstraintType
+		}
 		msg := types.NewMsgContractCall(
 			addr,
 			signers,
 			req.CallInfo.Bytes(),
+			sct,
 		)
 		bz, err := ctx.Codec.MarshalJSON(msg)
 		if rest.CheckBadRequestError(w, err) {

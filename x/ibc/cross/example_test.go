@@ -153,13 +153,25 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			ch0to1,
 			[]sdk.AccAddress{signer1Info.GetAddress()},
 			trainCall.Bytes(),
-			[]cross.OP{lock.Write{K: simappcontract.MakeSeatKey(1), V: signer1Info.GetAddress()}},
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
+				[]cross.OP{
+					lock.ReadOP{K: simappcontract.MakeSeatKey(1), V: nil},
+					lock.WriteOP{K: simappcontract.MakeSeatKey(1), V: signer1Info.GetAddress()},
+				},
+			),
 		),
 		cross.NewContractTransaction(
 			ch0to2,
 			[]sdk.AccAddress{signer2Info.GetAddress()},
 			hotelCall.Bytes(),
-			[]cross.OP{lock.Write{K: simappcontract.MakeRoomKey(8), V: signer2Info.GetAddress()}},
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
+				[]cross.OP{
+					lock.ReadOP{K: simappcontract.MakeRoomKey(8), V: nil},
+					lock.WriteOP{K: simappcontract.MakeRoomKey(8), V: signer2Info.GetAddress()},
+				},
+			),
 		),
 	}
 	var txID cross.TxID

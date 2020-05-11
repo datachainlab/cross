@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -12,6 +13,7 @@ import (
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -117,6 +119,22 @@ func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header) *appContex
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
+	ctx = ctx.WithLogger(log.NewTMLogger(os.Stdout))
+	if testing.Verbose() {
+		ctx = ctx.WithLogger(
+			log.NewFilter(
+				ctx.Logger(),
+				log.AllowDebugWith("module", "cross/cross"),
+			),
+		)
+	} else {
+		ctx = ctx.WithLogger(
+			log.NewFilter(
+				ctx.Logger(),
+				log.AllowErrorWith("module", "cross/cross"),
+			),
+		)
+	}
 	privVal := tmtypes.NewMockPV()
 	pub, err := privVal.GetPubKey()
 	if err != nil {
@@ -145,7 +163,7 @@ func updateApp(actx *appContext, n int) {
 	for i := 0; i < n; i++ {
 		actx.app.Commit()
 		actx.app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: actx.ctx.ChainID(), Height: actx.app.LastBlockHeight() + 1}})
-		actx.ctx = actx.app.BaseApp.NewContext(false, abci.Header{ChainID: actx.ctx.ChainID()})
+		actx.ctx = actx.ctx.WithBlockHeader(abci.Header{ChainID: actx.ctx.ChainID()})
 	}
 }
 

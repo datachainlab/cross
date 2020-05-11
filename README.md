@@ -1,4 +1,4 @@
-# Cross
+# Cross Framework
 
 ![](https://github.com/datachainlab/cross/workflows/Test/badge.svg)
 

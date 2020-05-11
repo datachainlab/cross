@@ -28,8 +28,8 @@ type (
 )
 
 type ContractHandler interface {
-	GetState(ctx sdk.Context, contract []byte) (State, error)
-	Handle(ctx sdk.Context, contract []byte) (State, ContractHandlerResult, error)
+	GetState(ctx sdk.Context, tp StateConstraintType, callInfo ContractCallInfo) (State, error)
+	Handle(ctx sdk.Context, tp StateConstraintType, callInfo ContractCallInfo) (State, ContractHandlerResult, error)
 	OnCommit(ctx sdk.Context, result ContractHandlerResult) ContractHandlerResult
 }
 
@@ -110,19 +110,19 @@ type TxInfo struct {
 	Status                  uint8  `json:"status" yaml:"status"`
 	PrepareResult           uint8  `json:"prepare_result" yaml:"prepare_result"`
 	CoordinatorConnectionID string `json:"coordinator_connection_id" yaml:"coordinator_connection_id"`
-	Contract                []byte `json:"contract" yaml:"contract"`
+	ContractCallInfo        []byte `json:"contract_call_info" yaml:"contract_call_info"`
 }
 
-func NewTxInfo(status, prepareResult uint8, coordinatorConnectionID string, contract []byte) TxInfo {
-	return TxInfo{Status: status, PrepareResult: prepareResult, CoordinatorConnectionID: coordinatorConnectionID, Contract: contract}
+func NewTxInfo(status, prepareResult uint8, coordinatorConnectionID string, contractCallInfo []byte) TxInfo {
+	return TxInfo{Status: status, PrepareResult: prepareResult, CoordinatorConnectionID: coordinatorConnectionID, ContractCallInfo: contractCallInfo}
 }
 
 type ContractCallResult struct {
-	ChainID  string           `json:"chain_id" yaml:"chain_id"`
-	Height   int64            `json:"height" yaml:"height"`
-	Signers  []sdk.AccAddress `json:"signers" yaml:"signers"`
-	Contract []byte           `json:"contract" yaml:"contract"`
-	OPs      []OP             `json:"ops" yaml:"ops"`
+	ChainID         string           `json:"chain_id" yaml:"chain_id"`
+	Height          int64            `json:"height" yaml:"height"`
+	Signers         []sdk.AccAddress `json:"signers" yaml:"signers"`
+	CallInfo        ContractCallInfo `json:"call_info" yaml:"call_info"`
+	StateConstraint StateConstraint  `json:"state_constraint" yaml:"state_constraint"`
 }
 
 func (r ContractCallResult) String() string {

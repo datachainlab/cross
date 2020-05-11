@@ -37,7 +37,8 @@ func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 	const (
-		flagSave = "save"
+		flagStateConstraintType = "state-constraint"
+		flagSave                = "save"
 	)
 
 	cmd := &cobra.Command{
@@ -64,10 +65,12 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 				args[1],
 				cargs,
 			)
+			scType := uint8(viper.GetUint(flagStateConstraintType))
 			msg := types.NewMsgContractCall(
 				cliCtx.GetFromAddress(),
 				nil,
 				ci.Bytes(),
+				scType,
 			)
 			bz, err := cdc.MarshalJSON(msg)
 			if err != nil {
@@ -85,11 +88,11 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 			cdc.MustUnmarshalJSON(res, &result)
 			cdc.MustUnmarshalJSON(result.Data, &response)
 			callResult := cross.ContractCallResult{
-				ChainID:  cliCtx.ChainID,
-				Height:   height,
-				Signers:  []sdk.AccAddress{cliCtx.GetFromAddress()},
-				Contract: ci.Bytes(),
-				OPs:      response.OPs,
+				ChainID:         cliCtx.ChainID,
+				Height:          height,
+				Signers:         []sdk.AccAddress{cliCtx.GetFromAddress()},
+				CallInfo:        ci.Bytes(),
+				StateConstraint: cross.NewStateConstraint(scType, response.OPs),
 			}
 			bz, err = cdc.MarshalJSON(callResult)
 			if err != nil {
@@ -100,6 +103,7 @@ func GetContractCallSimulationCmd(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 	cmd = flags.PostCommands(cmd)[0]
+	cmd.Flags().Uint8(flagStateConstraintType, cross.ExactMatchStateConstraint, "state constraint type")
 	cmd.Flags().String(flagSave, "", "Save a result to this file")
 	cmd.MarkFlagRequired(flags.FlagFrom)
 	cmd.MarkFlagRequired(flagSave)

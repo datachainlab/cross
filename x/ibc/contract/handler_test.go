@@ -49,8 +49,8 @@ func (suite *HandlerTestSuite) SetupTest() {
 }
 
 func (suite *HandlerTestSuite) TestHandleContractCall() {
-	contractHandler := contract.NewContractHandler(suite.app.ContractKeeper, func(kvs sdk.KVStore) cross.State {
-		return lock.NewStore(kvs)
+	contractHandler := contract.NewContractHandler(suite.app.ContractKeeper, func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
+		return lock.NewStore(kvs, tp)
 	})
 	var methods []contract.Method
 	methods = append(methods, []contract.Method{
@@ -98,7 +98,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 	// Ensure that validation of handler is correct
 	{
 		{
-			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, nil)
+			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, nil, cross.ExactMatchStateConstraint)
 			_, err := handler(suite.ctx, msg)
 			suite.Require().Error(err)
 		}
@@ -107,7 +107,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 			c := contract.NewContractCallInfo("first", "f0", nil)
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
-			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
+			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			res, err := handler(suite.ctx, msg)
 			suite.Require().NoError(err)
 			suite.Require().NotNil(res, "%+v", res) // successfully executed
@@ -117,7 +117,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 			c := contract.NewContractCallInfo("dummy", "f0", nil)
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
-			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
+			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			_, err = handler(suite.ctx, msg)
 			suite.Require().Error(err)
 		}
@@ -126,7 +126,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 			c := contract.NewContractCallInfo("first", "dummy", nil)
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
-			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
+			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			_, err = handler(suite.ctx, msg)
 			suite.Require().Error(err)
 		}
@@ -145,7 +145,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 			c := contract.NewContractCallInfo("first", "issue", [][]byte{[]byte("tone"), []byte("80")})
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
-			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
+			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			ctx, write := suite.ctx.CacheContext()
 			res, err := handler(ctx, msg)
 			suite.Require().NoError(err)
@@ -158,7 +158,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 			c := contract.NewContractCallInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
-			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz)
+			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			ctx, _ := suite.ctx.CacheContext()
 			res, err := handler(ctx, msg)
 			suite.Require().NoError(err)
@@ -169,7 +169,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 			c := contract.NewContractCallInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
 			bz, err := contract.EncodeContractSignature(c)
 			suite.Require().NoError(err)
-			msg := contract.NewMsgContractCall(acc1, []sdk.AccAddress{acc0}, bz)
+			msg := contract.NewMsgContractCall(acc1, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			ctx, _ := suite.ctx.CacheContext()
 			_, err = handler(ctx, msg)
 			suite.Require().Error(err)

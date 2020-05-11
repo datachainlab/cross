@@ -25,7 +25,7 @@ const (
 )
 
 /*
-GetInitiateTxCmd returns a command that executes to initiate a distributed transaction
+GetCreateMsgInitiateCmd returns a command that executes to initiate a distributed transaction
 This command implemetation follows under some assumptions.
 Assumption:
 	- All keys that are used to create a signature exists on this keychain
@@ -66,9 +66,9 @@ func GetCreateMsgInitiateCmd(cdc *codec.Codec) *cobra.Command {
 						Channel: parts[0],
 						Port:    parts[1],
 					},
-					Signers:  res.Signers,
-					Contract: res.Contract,
-					OPs:      res.OPs,
+					Signers:         res.Signers,
+					CallInfo:        res.CallInfo,
+					StateConstraint: res.StateConstraint,
 				}
 				txs = append(txs, tx)
 			}

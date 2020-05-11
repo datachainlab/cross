@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/datachainlab/cross/x/ibc/contract/types"
+	"github.com/datachainlab/cross/x/ibc/cross"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -62,6 +63,7 @@ func CallTxCmd(cdc *codec.Codec) *cobra.Command {
 				cliCtx.GetFromAddress(),
 				nil,
 				ci.Bytes(),
+				cross.NoStateConstraint,
 			)
 			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},

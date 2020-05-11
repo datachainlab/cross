@@ -11,9 +11,9 @@ var _ sdk.Msg = (*MsgInitiate)(nil)
 
 type MsgInitiate struct {
 	Sender               sdk.AccAddress
-	ChainID              string                // chainID of Coordinator node
-	ContractTransactions []ContractTransaction // TODO: sorted by Source?
-	TimeoutHeight        int64                 // Timeout for this msg
+	ChainID              string // chainID of Coordinator node
+	ContractTransactions []ContractTransaction
+	TimeoutHeight        int64 // Timeout for this msg
 	Nonce                uint64
 }
 
@@ -85,22 +85,41 @@ func (c ChannelInfo) ValidateBasic() error {
 	return nil
 }
 
-type ContractTransaction struct {
-	Source ChannelInfo `json:"source" yaml:"source"`
+type ContractCallInfo []byte
 
-	Signers  []sdk.AccAddress `json:"signers" yaml:"signers"`
-	Contract []byte           `json:"contract" yaml:"contract"`
-	OPs      OPs              `json:"ops" yaml:"ops"`
+type ContractTransaction struct {
+	Source          ChannelInfo      `json:"source" yaml:"source"`
+	Signers         []sdk.AccAddress `json:"signers" yaml:"signers"`
+	CallInfo        ContractCallInfo `json:"call_info" yaml:"call_info"`
+	StateConstraint StateConstraint  `json:"state_constraint" yaml:"state_constraint"`
+}
+
+type StateConstraintType = uint8
+
+const (
+	NoStateConstraint         StateConstraintType = iota // NoStateConstraint indicates that no constraints on the state before and after the precommit is performed
+	ExactMatchStateConstraint                            // ExactMatchStateConstraint indicates the constraint on state state before and after the precommit is performed
+	PreStateConstraint                                   // PreStateConstraint indicates the constraint on state before the precommit is performed
+	PostStateConstraint                                  // PostStateConstraint indicates the constraint on state after the precommit is performed
+)
+
+type StateConstraint struct {
+	Type StateConstraintType `json:"type" yaml:"type"`
+	OPs  OPs                 `json:"ops" yaml:"ops"`
+}
+
+func NewStateConstraint(tp StateConstraintType, ops OPs) StateConstraint {
+	return StateConstraint{Type: tp, OPs: ops}
 }
 
 type ContractTransactions = []ContractTransaction
 
-func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, contract []byte, ops []OP) ContractTransaction {
+func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo ContractCallInfo, cond StateConstraint) ContractTransaction {
 	return ContractTransaction{
-		Source:   src,
-		Signers:  signers,
-		Contract: contract,
-		OPs:      ops,
+		Source:          src,
+		Signers:         signers,
+		CallInfo:        callInfo,
+		StateConstraint: cond,
 	}
 }
 

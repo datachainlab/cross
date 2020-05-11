@@ -24,13 +24,18 @@ const (
 	TX_STATUS_COMMIT  = types.TX_STATUS_COMMIT
 	TX_STATUS_ABORT   = types.TX_STATUS_ABORT
 
-	PREPARE_RESULT_FAILED = types.PREPARE_RESULT_FAILED
 	PREPARE_RESULT_OK     = types.PREPARE_RESULT_OK
+	PREPARE_RESULT_FAILED = types.PREPARE_RESULT_FAILED
 
 	TypeInitiate      = types.TypeInitiate
 	TypePrepare       = types.TypePrepare
 	TypePrepareResult = types.TypePrepareResult
 	TypeCommit        = types.TypeCommit
+
+	NoStateConstraint         = types.NoStateConstraint
+	ExactMatchStateConstraint = types.ExactMatchStateConstraint
+	PreStateConstraint        = types.PreStateConstraint
+	PostStateConstraint       = types.PostStateConstraint
 )
 
 // nolint
@@ -45,6 +50,7 @@ var (
 	WithSigners                     = types.WithSigners
 	NewMsgInitiate                  = types.NewMsgInitiate
 	NewContractTransaction          = types.NewContractTransaction
+	NewStateConstraint              = types.NewStateConstraint
 	NewChannelInfo                  = types.NewChannelInfo
 	NewPacketDataPrepare            = types.NewPacketDataPrepare
 	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement
@@ -73,6 +79,9 @@ type (
 	ContractTransaction          = types.ContractTransaction
 	ContractTransactions         = types.ContractTransactions
 	ContractCallResult           = types.ContractCallResult
+	ContractCallInfo             = types.ContractCallInfo
+	StateConstraint              = types.StateConstraint
+	StateConstraintType          = types.StateConstraintType
 	TxID                         = types.TxID
 	TxIndex                      = types.TxIndex
 )
