@@ -97,10 +97,10 @@ type ContractTransaction struct {
 type StateConstraintType = uint8
 
 const (
-	NoStateConstraint StateConstraintType = iota
-	ExactMatchStateConstraint
-	PreStateConstraint
-	PostStateConstraint
+	NoStateConstraint         StateConstraintType = iota // NoStateConstraint indicates that no constraints on the state before and after the precommit is performed
+	ExactMatchStateConstraint                            // ExactMatchStateConstraint indicates the constraint on state state before and after the precommit is performed
+	PreStateConstraint                                   // PreStateConstraint indicates the constraint on state before the precommit is performed
+	PostStateConstraint                                  // PostStateConstraint indicates the constraint on state after the precommit is performed
 )
 
 type StateConstraint struct {
