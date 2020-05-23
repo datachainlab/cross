@@ -38,9 +38,17 @@ func (msg MsgInitiate) ValidateBasic() error {
 	} else if l > MaxContractTransactoinNum {
 		return fmt.Errorf("The number of ContractTransactions exceeds limit: %v > %v", l, MaxContractTransactoinNum)
 	}
-	for _, st := range msg.ContractTransactions {
+	for id, st := range msg.ContractTransactions {
 		if err := st.ValidateBasic(); err != nil {
 			return err
+		}
+		for _, link := range st.Links {
+			if src := link.SourceIndex(); src == TxIndex(id) {
+				return fmt.Errorf("cyclic reference is unsupported: index=%v", src)
+			} else if src >= TxIndex(len(msg.ContractTransactions)) {
+				return fmt.Errorf("not found index: index=%v", src)
+			} else {
+			} // OK
 		}
 	}
 	return nil
@@ -92,6 +100,24 @@ type ContractTransaction struct {
 	Signers         []sdk.AccAddress `json:"signers" yaml:"signers"`
 	CallInfo        ContractCallInfo `json:"call_info" yaml:"call_info"`
 	StateConstraint StateConstraint  `json:"state_constraint" yaml:"state_constraint"`
+	ReturnValue     []byte           `json:"return_value" yaml:"return_value"`
+	Links           []Link           `json:"links" yaml:"links"`
+}
+
+type ContractTransactionInfo struct {
+	Transaction ContractTransaction `json:"transaction" yaml:"transaction"`
+	LinkObjects []Object            `json:"link_objects" yaml:"link_objects"`
+}
+
+func NewContractTransactionInfo(tx ContractTransaction, linkObjects []Object) ContractTransactionInfo {
+	return ContractTransactionInfo{
+		Transaction: tx,
+		LinkObjects: linkObjects,
+	}
+}
+
+func (ti ContractTransactionInfo) ValidateBasic() error {
+	return ti.ValidateBasic()
 }
 
 type StateConstraintType = uint8

@@ -228,7 +228,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			signer0Info.GetAddress(),
 			txID,
 			0,
-			tss[0],
+			cross.ContractTransactionInfo{Transaction: tss[0]},
 		)
 		preparePacketTx0 = channeltypes.NewPacket(
 			data.GetBytes(),
@@ -241,7 +241,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			signer0Info.GetAddress(),
 			txID,
 			1,
-			tss[1],
+			cross.ContractTransactionInfo{Transaction: tss[1]},
 		)
 		preparePacketTx1 = channeltypes.NewPacket(
 			data.GetBytes(),

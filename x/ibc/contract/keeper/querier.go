@@ -25,9 +25,23 @@ func querySimulation(ctx sdk.Context, handler sdk.Handler, k Keeper, req abci.Re
 	if err := k.cdc.UnmarshalJSON(req.Data, &msg); err != nil {
 		return nil, err
 	}
-	res, err := handler(ctx, msg)
+	res, err := handler(withSimulation(ctx), msg)
 	if err != nil {
 		return nil, err
 	}
 	return k.cdc.MarshalJSON(res)
+}
+
+type simulationKey struct{}
+
+func withSimulation(ctx sdk.Context) sdk.Context {
+	return ctx.WithValue(simulationKey{}, true)
+}
+
+func IsSimulation(ctx sdk.Context) bool {
+	v, ok := ctx.Value(simulationKey{}).(bool)
+	if !ok {
+		return false
+	}
+	return v
 }

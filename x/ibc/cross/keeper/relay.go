@@ -32,59 +32,36 @@ func (k Keeper) MulticastPreparePacket(
 
 	channelInfos := make([]types.ChannelInfo, len(transactions))
 	tss := make([]string, len(transactions))
+	lkr := types.MakeLinker(transactions)
 	for id, t := range transactions {
-		c, found := k.channelKeeper.GetChannel(ctx, t.Source.Port, t.Source.Channel)
+		src := t.Source
+		c, found := k.channelKeeper.GetChannel(ctx, src.Port, src.Channel)
 		if !found {
 			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
 		}
-
-		data := types.NewPacketDataPrepare(sender, txID, types.TxIndex(id), transactions[id])
-		s := transactions[id].Source
-		err := k.sendPacket(
+		objs, err := lkr.Lookup(t.Links)
+		if err != nil {
+			return types.TxID{}, err
+		}
+		data := types.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
+		if err := k.sendPacket(
 			ctx,
 			data.GetBytes(),
-			s.Port, s.Channel,
+			src.Port, src.Channel,
 			c.Counterparty.PortID, c.Counterparty.ChannelID,
 			data.GetTimeoutHeight(),
 			data.GetTimeoutTimestamp(),
-		)
-		if err != nil {
+		); err != nil {
 			return types.TxID{}, err
 		}
 		hops := c.GetConnectionHops()
 		tss[id] = hops[len(hops)-1]
-		channelInfos[id] = types.NewChannelInfo(s.Port, s.Channel)
+		channelInfos[id] = types.NewChannelInfo(src.Port, src.Channel)
 	}
 
 	k.SetCoordinator(ctx, txID, types.NewCoordinatorInfo(types.CO_STATUS_INIT, tss, channelInfos))
 
 	return txID, nil
-}
-
-func (k Keeper) CreatePreparePacket(
-	ctx sdk.Context,
-	seq uint64,
-	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
-	txID types.TxID,
-	txIndex types.TxIndex,
-	transaction types.ContractTransaction,
-	sender sdk.AccAddress,
-) channel.Packet {
-	packetData := types.NewPacketDataPrepare(sender, txID, txIndex, transaction)
-	packet := channel.NewPacket(
-		packetData.GetBytes(),
-		seq,
-		sourcePort,
-		sourceChannel,
-		destinationPort,
-		destinationChannel,
-		packetData.GetTimeoutHeight(),
-		packetData.GetTimeoutTimestamp(),
-	)
-	return packet
 }
 
 func (k Keeper) PrepareTransaction(
@@ -113,7 +90,7 @@ func (k Keeper) PrepareTransaction(
 	hops := c.GetConnectionHops()
 	connID := hops[len(hops)-1]
 
-	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, result, connID, data.ContractTransaction.CallInfo)
+	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, result, connID, data.TxInfo.Transaction.CallInfo)
 	k.SetTx(ctx, data.TxID, data.TxIndex, txinfo)
 	return result, nil
 }
@@ -127,11 +104,16 @@ func (k Keeper) prepareTransaction(
 	destinationChannel string,
 	data types.PacketDataPrepare,
 ) error {
-	cond := data.ContractTransaction.StateConstraint
+	constraint := data.TxInfo.Transaction.StateConstraint
+
+	rs, err := types.MakeResolver(data.TxInfo.LinkObjects)
+	if err != nil {
+		return err
+	}
 	store, res, err := contractHandler.Handle(
-		types.WithSigners(ctx, data.ContractTransaction.Signers),
-		cond.Type,
-		data.ContractTransaction.CallInfo,
+		types.WithSigners(ctx, data.TxInfo.Transaction.Signers),
+		data.TxInfo.Transaction.CallInfo,
+		types.ContractRuntimeInfo{StateConstraintType: constraint.Type, ExternalObjectResolver: rs},
 	)
 	if err != nil {
 		return err
@@ -141,8 +123,8 @@ func (k Keeper) prepareTransaction(
 	if err := store.Precommit(id); err != nil {
 		return err
 	}
-	if ops := store.OPs(); !ops.Equal(cond.OPs) {
-		return fmt.Errorf("unexpected ops: actual(%v) != declation(%v)", ops.String(), cond.OPs.String())
+	if ops := store.OPs(); !ops.Equal(constraint.OPs) {
+		return fmt.Errorf("unexpected ops: actual(%v) != declation(%v)", ops.String(), constraint.OPs.String())
 	}
 	k.SetContractResult(ctx, data.TxID, data.TxIndex, res)
 	return nil
@@ -256,7 +238,7 @@ func (k Keeper) ReceiveCommitPacket(
 		return nil, fmt.Errorf("expected coordinatorConnectionID is %v, but got %v", tx.CoordinatorConnectionID, connID)
 	}
 
-	state, err := contractHandler.GetState(ctx, types.NoStateConstraint, tx.ContractCallInfo)
+	state, err := contractHandler.GetState(ctx, tx.ContractCallInfo, types.ContractRuntimeInfo{StateConstraintType: types.NoStateConstraint})
 	if err != nil {
 		return nil, err
 	}

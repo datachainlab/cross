@@ -90,7 +90,8 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 	}...,
 	)
 	contractHandler.AddRoute("first", contract.NewContract(methods))
-	handler := contract.NewHandler(suite.app.ContractKeeper, contractHandler)
+	router := contract.NewHTTPServerRouter()
+	handler := contract.NewHandler(suite.app.ContractKeeper, contractHandler, router)
 
 	acc0 := sdk.AccAddress("acc0")
 	acc1 := sdk.AccAddress("acc1")
@@ -105,7 +106,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 
 		{
 			c := contract.NewContractCallInfo("first", "f0", nil)
-			bz, err := contract.EncodeContractSignature(c)
+			bz, err := contract.EncodeContractCallInfo(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			res, err := handler(suite.ctx, msg)
@@ -115,7 +116,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 
 		{
 			c := contract.NewContractCallInfo("dummy", "f0", nil)
-			bz, err := contract.EncodeContractSignature(c)
+			bz, err := contract.EncodeContractCallInfo(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			_, err = handler(suite.ctx, msg)
@@ -124,7 +125,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 
 		{
 			c := contract.NewContractCallInfo("first", "dummy", nil)
-			bz, err := contract.EncodeContractSignature(c)
+			bz, err := contract.EncodeContractCallInfo(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			_, err = handler(suite.ctx, msg)
@@ -143,7 +144,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 	{
 		{
 			c := contract.NewContractCallInfo("first", "issue", [][]byte{[]byte("tone"), []byte("80")})
-			bz, err := contract.EncodeContractSignature(c)
+			bz, err := contract.EncodeContractCallInfo(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			ctx, write := suite.ctx.CacheContext()
@@ -156,7 +157,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 
 		{
 			c := contract.NewContractCallInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
-			bz, err := contract.EncodeContractSignature(c)
+			bz, err := contract.EncodeContractCallInfo(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc0, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			ctx, _ := suite.ctx.CacheContext()
@@ -167,7 +168,7 @@ func (suite *HandlerTestSuite) TestHandleContractCall() {
 
 		{
 			c := contract.NewContractCallInfo("first", "test-balance", [][]byte{[]byte("tone"), []byte("80")})
-			bz, err := contract.EncodeContractSignature(c)
+			bz, err := contract.EncodeContractCallInfo(c)
 			suite.Require().NoError(err)
 			msg := contract.NewMsgContractCall(acc1, []sdk.AccAddress{acc0}, bz, cross.ExactMatchStateConstraint)
 			ctx, _ := suite.ctx.CacheContext()

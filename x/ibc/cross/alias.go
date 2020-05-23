@@ -56,6 +56,9 @@ var (
 	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement
 	NewPacketDataCommit             = types.NewPacketDataCommit
 	NewPacketCommitAcknowledgement  = types.NewPacketCommitAcknowledgement
+	MakeObjectKey                   = types.MakeObjectKey
+	MakeResolver                    = types.MakeResolver
+	NewFakeResolver                 = types.NewFakeResolver
 )
 
 // nolint
@@ -78,10 +81,17 @@ type (
 	ChannelInfo                  = types.ChannelInfo
 	ContractTransaction          = types.ContractTransaction
 	ContractTransactions         = types.ContractTransactions
+	ContractTransactionInfo      = types.ContractTransactionInfo
 	ContractCallResult           = types.ContractCallResult
 	ContractCallInfo             = types.ContractCallInfo
+	ContractRuntimeInfo          = types.ContractRuntimeInfo
 	StateConstraint              = types.StateConstraint
 	StateConstraintType          = types.StateConstraintType
 	TxID                         = types.TxID
 	TxIndex                      = types.TxIndex
+	Resolver                     = types.Resolver
+	MapResolver                  = types.MapResolver
+	FakeResolver                 = types.FakeResolver
+	Object                       = types.Object
+	ObjectType                   = types.ObjectType
 )

@@ -368,6 +368,10 @@ func (suite *KeeperTestSuite) openAllChannels() {
 	)
 }
 
+func makeTransactionInfo(tx cross.ContractTransaction, links ...cross.Object) cross.ContractTransactionInfo {
+	return cross.ContractTransactionInfo{Transaction: tx, LinkObjects: links}
+}
+
 func (suite *KeeperTestSuite) TestRelay() {
 	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
 	// app2 has multiple contract calls
@@ -454,9 +458,9 @@ func (suite *KeeperTestSuite) TestRelay() {
 	packetCommitment = suite.app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(suite.app0.ctx, suite.ch0to2.Port, suite.ch0to2.Channel, nextSeqSend+1)
 	suite.NotNil(packetCommitment)
 
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, tss[2], nextSeqSend+1, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, makeTransactionInfo(tss[2]), nextSeqSend+1, cross.PREPARE_RESULT_OK)
 
 	// Tests for Confirm step
 
@@ -719,8 +723,8 @@ func (suite *KeeperTestSuite) TestAbort1() {
 	suite.NoError(err)
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, cross.PREPARE_RESULT_FAILED)
 
 	nextSeqSend += 1
 
@@ -785,8 +789,8 @@ func (suite *KeeperTestSuite) TestAbort2() {
 	suite.NoError(err)
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_FAILED)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, cross.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, cross.PREPARE_RESULT_FAILED)
 
 	nextSeqSend += 1
 
@@ -866,9 +870,9 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 	suite.NoError(err)
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, tss[2], nextSeqSend+1, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, makeTransactionInfo(tss[2]), nextSeqSend+1, cross.PREPARE_RESULT_OK)
 
 	nextSeqSend += 1
 
@@ -935,11 +939,11 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 	}
 }
 
-func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, ts cross.ContractTransaction, nextseq uint64, expectedPrepareResult uint8) {
+func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, txInfo cross.ContractTransactionInfo, nextseq uint64, expectedPrepareResult uint8) {
 	relayer := sdk.AccAddress("relayer1")
-	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, ts)
+	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, txInfo)
 	ctx, writer := actx.ctx.CacheContext()
-	ctx = cross.WithSigners(ctx, ts.Signers)
+	ctx = cross.WithSigners(ctx, txInfo.Transaction.Signers)
 	result, err := actx.app.CrossKeeper.PrepareTransaction(
 		ctx,
 		contractHandler,
@@ -983,22 +987,22 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 	}
 	suite.Equal(cross.TX_STATUS_ABORT, tx.Status)
 	// ensure that the state is expected
-	_, err = contractHandler.GetState(actx.ctx, cross.NoStateConstraint, tx.ContractCallInfo)
+	_, err = contractHandler.GetState(actx.ctx, tx.ContractCallInfo, types.ContractRuntimeInfo{StateConstraintType: cross.NoStateConstraint})
 	if !suite.NoError(err) {
 		return
 	}
-	ci, err := contract.DecodeContractSignature(tx.ContractCallInfo)
+	ci, err := contract.DecodeContractCallInfo(tx.ContractCallInfo)
 	if !suite.NoError(err) {
 		return
 	}
 	contractInfo := contract.NewContractCallInfo(ci.ID, "test-not-issued", [][]byte{})
-	bz, err := contract.EncodeContractSignature(contractInfo)
+	bz, err := contract.EncodeContractCallInfo(contractInfo)
 	if !suite.NoError(err) {
 		return
 	}
 	actx2, _ := actx.Cache()
 	ctx := cross.WithSigners(actx2.ctx, []sdk.AccAddress{txSigner})
-	_, _, err = contractHandler.Handle(ctx, cross.ExactMatchStateConstraint, bz)
+	_, _, err = contractHandler.Handle(ctx, bz, types.ContractRuntimeInfo{StateConstraintType: cross.ExactMatchStateConstraint})
 	suite.NoError(err)
 }
 
@@ -1014,11 +1018,11 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 	}
 	suite.Equal(cross.TX_STATUS_COMMIT, tx.Status)
 	// ensure that the state is expected
-	_, err = contractHandler.GetState(actx.ctx, cross.ExactMatchStateConstraint, tx.ContractCallInfo)
+	_, err = contractHandler.GetState(actx.ctx, tx.ContractCallInfo, types.ContractRuntimeInfo{StateConstraintType: cross.ExactMatchStateConstraint})
 	if !suite.NoError(err) {
 		return
 	}
-	ci, err := contract.DecodeContractSignature(tx.ContractCallInfo)
+	ci, err := contract.DecodeContractCallInfo(tx.ContractCallInfo)
 	if !suite.NoError(err) {
 		return
 	}
@@ -1026,12 +1030,12 @@ func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler
 		ci.Args[0],
 		ci.Args[1],
 	})
-	bz, err := contract.EncodeContractSignature(contractInfo)
+	bz, err := contract.EncodeContractCallInfo(contractInfo)
 	if !suite.NoError(err) {
 		return
 	}
 	ctx := cross.WithSigners(actx.ctx, []sdk.AccAddress{txSigner})
-	_, _, err = contractHandler.Handle(ctx, cross.ExactMatchStateConstraint, bz)
+	_, _, err = contractHandler.Handle(ctx, bz, types.ContractRuntimeInfo{StateConstraintType: cross.ExactMatchStateConstraint})
 	suite.NoError(err)
 }
 

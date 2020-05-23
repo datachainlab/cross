@@ -27,9 +27,14 @@ type (
 	TxIndex = uint8
 )
 
+type ContractRuntimeInfo struct {
+	StateConstraintType    StateConstraintType
+	ExternalObjectResolver Resolver
+}
+
 type ContractHandler interface {
-	GetState(ctx sdk.Context, tp StateConstraintType, callInfo ContractCallInfo) (State, error)
-	Handle(ctx sdk.Context, tp StateConstraintType, callInfo ContractCallInfo) (State, ContractHandlerResult, error)
+	GetState(ctx sdk.Context, callInfo ContractCallInfo, rtInfo ContractRuntimeInfo) (State, error)
+	Handle(ctx sdk.Context, callInfo ContractCallInfo, rtInfo ContractRuntimeInfo) (State, ContractHandlerResult, error)
 	OnCommit(ctx sdk.Context, result ContractHandlerResult) ContractHandlerResult
 }
 

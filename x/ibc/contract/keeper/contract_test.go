@@ -51,8 +51,8 @@ func TestContractHandler(t *testing.T) {
 			[]byte("mycoin"),
 			[]byte("100"),
 		})
-		bz, _ := types.EncodeContractSignature(contractInfo)
-		state, _, err := h.Handle(ctx, cross.NoStateConstraint, bz)
+		bz, _ := types.EncodeContractCallInfo(contractInfo)
+		state, _, err := h.Handle(ctx, bz, cross.ContractRuntimeInfo{StateConstraintType: cross.NoStateConstraint})
 		if err != nil {
 			assert.FailNow(err.Error())
 		}
@@ -66,8 +66,8 @@ func TestContractHandler(t *testing.T) {
 				[]byte("mycoin"),
 				[]byte("100"),
 			})
-			bz, _ := types.EncodeContractSignature(contractInfo)
-			_, _, err := h.Handle(ctx, cross.NoStateConstraint, bz)
+			bz, _ := types.EncodeContractCallInfo(contractInfo)
+			_, _, err := h.Handle(ctx, bz, cross.ContractRuntimeInfo{StateConstraintType: cross.NoStateConstraint})
 			if err == nil {
 				assert.FailNow("expected an error")
 			}
@@ -82,8 +82,8 @@ func TestContractHandler(t *testing.T) {
 				[]byte("mycoin"),
 				[]byte("100"),
 			})
-			bz, _ := types.EncodeContractSignature(contractInfo)
-			_, _, err := h.Handle(ctx, cross.NoStateConstraint, bz)
+			bz, _ := types.EncodeContractCallInfo(contractInfo)
+			_, _, err := h.Handle(ctx, bz, cross.ContractRuntimeInfo{StateConstraintType: cross.NoStateConstraint})
 			if err != nil {
 				assert.FailNow(err.Error())
 			}
@@ -94,8 +94,8 @@ func TestContractHandler(t *testing.T) {
 				[]byte("mycoin2"),
 				[]byte("50"),
 			})
-			bz, _ := types.EncodeContractSignature(contractInfo)
-			state, _, err := h.Handle(ctx, cross.NoStateConstraint, bz)
+			bz, _ := types.EncodeContractCallInfo(contractInfo)
+			state, _, err := h.Handle(ctx, bz, cross.ContractRuntimeInfo{StateConstraintType: cross.NoStateConstraint})
 			if err != nil {
 				assert.FailNow(err.Error())
 			}
@@ -109,8 +109,8 @@ func TestContractHandler(t *testing.T) {
 				[]byte("mycoin2"),
 				[]byte("50"),
 			})
-			bz, _ := types.EncodeContractSignature(contractInfo)
-			_, _, err := h.Handle(ctx, cross.NoStateConstraint, bz)
+			bz, _ := types.EncodeContractCallInfo(contractInfo)
+			_, _, err := h.Handle(ctx, bz, cross.ContractRuntimeInfo{StateConstraintType: cross.NoStateConstraint})
 			if err != nil {
 				assert.FailNow(err.Error())
 			}

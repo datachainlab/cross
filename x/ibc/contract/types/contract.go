@@ -20,18 +20,18 @@ func NewContractCallInfo(id, method string, args [][]byte) ContractCallInfo {
 }
 
 func (ci ContractCallInfo) Bytes() []byte {
-	bz, err := EncodeContractSignature(ci)
+	bz, err := EncodeContractCallInfo(ci)
 	if err != nil {
 		panic(err)
 	}
 	return bz
 }
 
-func EncodeContractSignature(c ContractCallInfo) ([]byte, error) {
+func EncodeContractCallInfo(c ContractCallInfo) ([]byte, error) {
 	return ModuleCdc.MarshalBinaryLengthPrefixed(c)
 }
 
-func DecodeContractSignature(bz []byte) (*ContractCallInfo, error) {
+func DecodeContractCallInfo(bz []byte) (*ContractCallInfo, error) {
 	var c ContractCallInfo
 	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(bz, &c)
 	if err != nil {
