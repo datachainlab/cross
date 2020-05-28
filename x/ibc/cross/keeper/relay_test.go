@@ -184,10 +184,14 @@ func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.St
 			Name: "peg-coin",
 			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
 				sender := ctx.Signers()[0]
-				coin := unmarshalCoins(ctx.Args()[0])
+				_, err := parseCoin(ctx, 0, 1)
+				if err != nil {
+					return nil, err
+				}
 
 				var args = [][]byte{
-					marshalCoins(coin),
+					ctx.Args()[0],
+					ctx.Args()[1],
 				}
 				amount := unmarshalCoins(
 					contract.CallExternalFunc(ctx, contract.NewContractCallInfo("c2", "lock-coin", args), []sdk.AccAddress{sender}),
@@ -199,7 +203,11 @@ func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.St
 		{
 			Name: "lock-coin",
 			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
-				amount := unmarshalCoins(ctx.Args()[0])
+				coin, err := parseCoin(ctx, 0, 1)
+				if err != nil {
+					return nil, err
+				}
+				amount := sdk.NewCoins(coin)
 				from := ctx.Signers()[0]
 				fromBalance := getBalanceOf(store, from)
 				fromBalance, isNega := fromBalance.SafeSub(amount)
@@ -1097,21 +1105,23 @@ func (suite *KeeperTestSuite) TestCrossChainCall() {
 			[]sdk.AccAddress{suite.signer1},
 			ci1.Bytes(),
 			cross.NewStateConstraint(
-				cross.ExactMatchStateConstraint,
+				cross.NoStateConstraint,
 				[]cross.OP{},
 			),
 			nil,
-			nil,
+			[]cross.Link{
+				cross.NewCallResultLink(1),
+			},
 		),
 		cross.NewContractTransaction(
 			suite.ch0to2,
 			[]sdk.AccAddress{suite.signer1},
 			ci2.Bytes(),
 			cross.NewStateConstraint(
-				cross.ExactMatchStateConstraint,
+				cross.NoStateConstraint,
 				[]cross.OP{},
 			),
-			nil,
+			cross.NewReturnValue(marshalCoins(sdk.NewCoins(sdk.NewInt64Coin("tone", 100)))),
 			nil,
 		),
 	}
@@ -1131,7 +1141,23 @@ func (suite *KeeperTestSuite) TestCrossChainCall() {
 		msg.ContractTransactions,
 	)
 	suite.NoError(err)
-	_ = txID
+
+	lkr, err := types.MakeLinker(tss)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	objs0, err := lkr.Lookup(tss[0].Links)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	objs1, err := lkr.Lookup(tss[1].Links)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	var nextSeqSend uint64 = 1
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0], objs0...), nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1], objs1...), nextSeqSend, cross.PREPARE_RESULT_OK)
 }
 
 func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, txInfo cross.ContractTransactionInfo, nextseq uint64, expectedPrepareResult uint8) {

@@ -27,6 +27,10 @@ type CallResultLink struct {
 	ContractTransactionIndex TxIndex
 }
 
+func NewCallResultLink(idx TxIndex) CallResultLink {
+	return CallResultLink{ContractTransactionIndex: idx}
+}
+
 func (l CallResultLink) Type() LinkType {
 	return LinkTypeCallResult
 }
@@ -131,7 +135,7 @@ func (l ConstantValueObject) Key() []byte {
 	return l.K
 }
 
-func (l ConstantValueObject) Evaluate(_ []byte) ([]byte, error) {
+func (l ConstantValueObject) Evaluate(bz []byte) ([]byte, error) {
 	return l.V, nil
 }
 

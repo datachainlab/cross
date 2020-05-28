@@ -57,6 +57,7 @@ var (
 	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement
 	NewPacketDataCommit             = types.NewPacketDataCommit
 	NewPacketCommitAcknowledgement  = types.NewPacketCommitAcknowledgement
+	NewCallResultLink               = types.NewCallResultLink
 	MakeObjectKey                   = types.MakeObjectKey
 	MakeResolver                    = types.MakeResolver
 	NewFakeResolver                 = types.NewFakeResolver
@@ -95,4 +96,6 @@ type (
 	FakeResolver                 = types.FakeResolver
 	Object                       = types.Object
 	ObjectType                   = types.ObjectType
+	Link                         = types.Link
+	LinkType                     = types.LinkType
 )
