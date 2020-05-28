@@ -186,6 +186,8 @@ func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			src1,
@@ -195,6 +197,8 @@ func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
+			nil,
+			nil,
 		),
 	}
 

@@ -2,7 +2,9 @@ package types
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
@@ -33,27 +35,55 @@ func (l CallResultLink) SourceIndex() TxIndex {
 	return l.ContractTransactionIndex
 }
 
-type Linker struct {
-	objects map[TxIndex]Object
+type returnObject struct {
+	obj Object
+	err error
 }
 
-func MakeLinker(txs ContractTransactions) Linker {
-	lkr := Linker{objects: make(map[TxIndex]Object, len(txs))}
+type lazyObject func() returnObject
+
+func makeLazyObject(f func() returnObject) lazyObject {
+	var v returnObject
+	var once sync.Once
+	return func() returnObject {
+		once.Do(func() {
+			v = f()
+			f = nil // so that f can now be GC'ed
+		})
+		return v
+	}
+}
+
+type Linker struct {
+	objects map[TxIndex]lazyObject
+}
+
+func MakeLinker(txs ContractTransactions) (*Linker, error) {
+	lkr := Linker{objects: make(map[TxIndex]lazyObject, len(txs))}
 	for i, tx := range txs {
 		idx := TxIndex(i)
-		lkr.objects[idx] = MakeConstantValueObject(MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue)
+		lkr.objects[idx] = makeLazyObject(func() returnObject {
+			if tx.ReturnValue.IsNil() {
+				return returnObject{err: errors.New("On cross-chain call, each contractTransaction must be specified a return-value")}
+			}
+			return returnObject{obj: MakeConstantValueObject(MakeObjectKey(tx.CallInfo, tx.Signers), *tx.ReturnValue)}
+		})
 	}
-	return lkr
+	return &lkr, nil
 }
 
 func (lkr Linker) Lookup(lks []Link) ([]Object, error) {
 	var objects []Object
 	for _, lk := range lks {
-		obj, ok := lkr.objects[lk.SourceIndex()]
+		lzObj, ok := lkr.objects[lk.SourceIndex()]
 		if !ok {
 			return nil, fmt.Errorf("idx '%v' not found", lk.SourceIndex())
 		}
-		objects = append(objects, obj)
+		ret := lzObj()
+		if ret.err != nil {
+			return nil, ret.err
+		}
+		objects = append(objects, ret.obj)
 	}
 	return objects, nil
 }

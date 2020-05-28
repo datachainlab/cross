@@ -180,6 +180,36 @@ func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.St
 				}
 			},
 		},
+		{
+			Name: "peg-coin",
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
+				sender := ctx.Signers()[0]
+				coin := unmarshalCoin(ctx.Args()[0])
+
+				var args = [][]byte{
+					marshalCoin(coin),
+				}
+				amount := unmarshalCoin(
+					contract.CallExternalFunc(ctx, contract.NewContractCallInfo("c2", "lock-coin", args), []sdk.AccAddress{sender}),
+				)
+				setBalance(store, sender, amount)
+				return marshalCoin(amount), nil
+			},
+		},
+		{
+			Name: "lock-coin",
+			F: func(ctx contract.Context, store cross.Store) ([]byte, error) {
+				amount := unmarshalCoin(ctx.Args()[0])
+				from := ctx.Signers()[0]
+				fromBalance := getBalanceOf(store, from)
+				fromBalance, isNega := fromBalance.SafeSub(amount)
+				if !isNega {
+					return nil, fmt.Errorf("insuficient balance")
+				}
+				setBalance(store, from, fromBalance)
+				return marshalCoin(amount), nil
+			},
+		},
 	})
 	contractHandler.AddRoute(cid, c)
 	return contractHandler
@@ -211,6 +241,8 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{lock.WriteOP{K: signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})}},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			ch0to2,
@@ -220,6 +252,8 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{lock.WriteOP{K: signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})}},
 			),
+			nil,
+			nil,
 		),
 	}
 
@@ -392,6 +426,8 @@ func (suite *KeeperTestSuite) TestRelay() {
 					lock.WriteOP{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})},
 				},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			suite.ch0to2,
@@ -404,6 +440,8 @@ func (suite *KeeperTestSuite) TestRelay() {
 					lock.WriteOP{K: suite.signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})},
 				},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			suite.ch0to2,
@@ -416,6 +454,8 @@ func (suite *KeeperTestSuite) TestRelay() {
 					lock.WriteOP{K: suite.signer3, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tthree", 40)})},
 				},
 			),
+			nil,
+			nil,
 		),
 	}
 
@@ -694,6 +734,8 @@ func (suite *KeeperTestSuite) TestAbort1() {
 					lock.WriteOP{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})},
 				},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			suite.ch0to2,
@@ -703,6 +745,8 @@ func (suite *KeeperTestSuite) TestAbort1() {
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
+			nil,
+			nil,
 		),
 	}
 
@@ -760,6 +804,8 @@ func (suite *KeeperTestSuite) TestAbort2() {
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			suite.ch0to2,
@@ -769,6 +815,8 @@ func (suite *KeeperTestSuite) TestAbort2() {
 				cross.ExactMatchStateConstraint,
 				[]cross.OP{},
 			),
+			nil,
+			nil,
 		),
 	}
 
@@ -830,6 +878,8 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 					lock.ReadOP{K: suite.signer1, V: nil},
 				},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			suite.ch0to2,
@@ -841,6 +891,8 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 					lock.WriteOP{K: suite.signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 60)})},
 				},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			suite.ch0to2,
@@ -850,6 +902,8 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 				cross.NoStateConstraint,
 				[]cross.OP{},
 			),
+			nil,
+			nil,
 		),
 	}
 
@@ -937,6 +991,66 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 		})
 		writer()
 	}
+}
+
+func (suite *KeeperTestSuite) TestCrossChainCall() {
+	// First, issue some token to signer1
+	suite.app0.app.ContractModule.NewHandler()(
+		suite.app0.ctx,
+		contract.NewMsgContractCall(
+			suite.signer1,
+			nil,
+			contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("100")}).Bytes(),
+			cross.NoStateConstraint,
+		),
+	)
+
+	ci1 := contract.NewContractCallInfo("c1", "peg-coin", [][]byte{[]byte("tone"), []byte("100")})
+	ci2 := contract.NewContractCallInfo("c2", "lock-coin", [][]byte{[]byte("tone"), []byte("100")})
+
+	var err error
+	var nonce uint64 = 1
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
+			suite.ch0to1,
+			[]sdk.AccAddress{suite.signer1},
+			ci1.Bytes(),
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
+				[]cross.OP{},
+			),
+			nil,
+			nil,
+		),
+		cross.NewContractTransaction(
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer1},
+			ci2.Bytes(),
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
+				[]cross.OP{},
+			),
+			nil,
+			nil,
+		),
+	}
+
+	suite.openAllChannels()
+	msg := cross.NewMsgInitiate(
+		suite.initiator,
+		suite.app0.chainID,
+		tss,
+		256,
+		nonce,
+	)
+	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+		suite.app0.ctx,
+		suite.initiator,
+		msg,
+		msg.ContractTransactions,
+	)
+	suite.NoError(err)
+	_ = txID
 }
 
 func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, txInfo cross.ContractTransactionInfo, nextseq uint64, expectedPrepareResult uint8) {

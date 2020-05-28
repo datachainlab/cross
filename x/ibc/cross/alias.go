@@ -51,6 +51,7 @@ var (
 	NewMsgInitiate                  = types.NewMsgInitiate
 	NewContractTransaction          = types.NewContractTransaction
 	NewStateConstraint              = types.NewStateConstraint
+	NewReturnValue                  = types.NewReturnValue
 	NewChannelInfo                  = types.NewChannelInfo
 	NewPacketDataPrepare            = types.NewPacketDataPrepare
 	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement

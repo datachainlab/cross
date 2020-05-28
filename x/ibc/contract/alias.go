@@ -27,6 +27,7 @@ var (
 	NewQuerier             = keeper.NewQuerier
 	NewContractHandler     = keeper.NewContractHandler
 	NewContract            = keeper.NewContract
+	CallExternalFunc       = keeper.CallExternalFunc
 	NewHTTPServerRouter    = types.NewHTTPServerRouter
 	EncodeContractCallInfo = types.EncodeContractCallInfo
 	DecodeContractCallInfo = types.DecodeContractCallInfo

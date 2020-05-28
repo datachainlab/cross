@@ -32,7 +32,10 @@ func (k Keeper) MulticastPreparePacket(
 
 	channelInfos := make([]types.ChannelInfo, len(transactions))
 	tss := make([]string, len(transactions))
-	lkr := types.MakeLinker(transactions)
+	lkr, err := types.MakeLinker(transactions)
+	if err != nil {
+		return types.TxID{}, err
+	}
 	for id, t := range transactions {
 		src := t.Source
 		c, found := k.channelKeeper.GetChannel(ctx, src.Port, src.Channel)
@@ -117,6 +120,10 @@ func (k Keeper) prepareTransaction(
 	)
 	if err != nil {
 		return err
+	}
+
+	if rv := data.TxInfo.Transaction.ReturnValue; !rv.IsNil() && !rv.Equal(res.GetData()) {
+		return fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.GetData())
 	}
 
 	id := MakeStoreTransactionID(data.TxID, data.TxIndex)

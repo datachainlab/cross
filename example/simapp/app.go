@@ -135,6 +135,9 @@ type SimApp struct {
 	CrossKeeper      cross.Keeper
 	ContractKeeper   contract.Keeper
 
+	// for test
+	ContractModule contract.AppModule
+
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capability.ScopedKeeper
 	ScopedTransferKeeper capability.ScopedKeeper
@@ -285,6 +288,8 @@ func NewSimApp(
 	evidenceKeeper.SetRouter(evidenceRouter)
 	app.EvidenceKeeper = *evidenceKeeper
 
+	app.ContractModule = contract.NewAppModule(app.ContractKeeper, contractHandler)
+
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
 	app.mm = module.NewManager(
@@ -302,7 +307,7 @@ func NewSimApp(
 		ibc.NewAppModule(app.IBCKeeper),
 		transferModule,
 		crossModule,
-		contract.NewAppModule(app.ContractKeeper, contractHandler),
+		app.ContractModule,
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
