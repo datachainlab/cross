@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/datachainlab/cross/example/simapp"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
@@ -128,8 +129,8 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 	return
 }
 
-func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.StoreKey, cid string) cross.ContractHandler {
-	contractHandler := contract.NewContractHandler(contract.NewKeeper(cdc, stk), func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
+func (suite *KeeperTestSuite) createContractHandler(k contract.Keeper, cid string) cross.ContractHandler {
+	contractHandler := contract.NewContractHandler(k, func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(kvs, tp)
 	})
 	c := contract.NewContract([]contract.Method{
@@ -211,7 +212,7 @@ func (suite *KeeperTestSuite) createContractHandler(cdc *codec.Codec, stk sdk.St
 				from := ctx.Signers()[0]
 				fromBalance := getBalanceOf(store, from)
 				fromBalance, isNega := fromBalance.SafeSub(amount)
-				if !isNega {
+				if isNega {
 					return nil, fmt.Errorf("insuficient balance")
 				}
 				setBalance(store, from, fromBalance)
@@ -367,16 +368,20 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.initiator = sdk.AccAddress("initiator")
 	suite.signer1 = sdk.AccAddress("signer1")
 
-	suite.app0 = suite.createApp("app0") // coordinator node
-	suite.app1 = suite.createApp("app1")
+	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, simapp.DefaultContractHandlerProvider) // coordinator node
 
-	suite.chd1 = suite.createContractHandler(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey), "c1")
+	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper) cross.ContractHandler {
+		return suite.createContractHandler(k, "c1")
+	})
+	suite.chd1 = suite.createContractHandler(contract.NewKeeper(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey)), "c1")
 
-	suite.app2 = suite.createApp("app2")
+	suite.app2 = suite.createAppWithHeader(abci.Header{ChainID: "app2"}, func(k contract.Keeper) cross.ContractHandler {
+		return suite.createContractHandler(k, "c2")
+	})
+	suite.chd2 = suite.createContractHandler(contract.NewKeeper(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey)), "c2")
+
 	suite.signer2 = sdk.AccAddress("signer2")
 	suite.signer3 = sdk.AccAddress("signer3")
-
-	suite.chd2 = suite.createContractHandler(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey), "c2")
 
 	suite.ch0to1 = cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
 	suite.ch1to0 = cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
@@ -1084,20 +1089,21 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 
 func (suite *KeeperTestSuite) TestCrossChainCall() {
 	// First, issue some token to signer1
-	suite.app0.app.ContractModule.NewHandler()(
-		suite.app0.ctx,
-		contract.NewMsgContractCall(
-			suite.signer1,
-			nil,
-			contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("100")}).Bytes(),
-			cross.NoStateConstraint,
-		),
+	store, _, err := suite.chd2.Handle(
+		cross.WithSigners(suite.app2.ctx, []sdk.AccAddress{suite.signer1}),
+		contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("tone"), []byte("100")}).Bytes(),
+		cross.ContractRuntimeInfo{StateConstraintType: cross.NoStateConstraint},
 	)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	if err := store.CommitImmediately(); err != nil {
+		suite.FailNow(err.Error())
+	}
 
 	ci1 := contract.NewContractCallInfo("c1", "peg-coin", [][]byte{[]byte("tone"), []byte("100")})
 	ci2 := contract.NewContractCallInfo("c2", "lock-coin", [][]byte{[]byte("tone"), []byte("100")})
 
-	var err error
 	var nonce uint64 = 1
 	var tss = []cross.ContractTransaction{
 		cross.NewContractTransaction(
