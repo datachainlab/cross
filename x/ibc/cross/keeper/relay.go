@@ -127,22 +127,23 @@ func (k Keeper) prepareTransaction(
 	destinationChannel string,
 	data types.PacketDataPrepare,
 ) error {
-	cond := data.ContractTransaction.StateConstraint
+	constraint := data.ContractTransaction.StateConstraint
 	store, res, err := contractHandler.Handle(
 		types.WithSigners(ctx, data.ContractTransaction.Signers),
-		cond.Type,
+		constraint.Type,
 		data.ContractTransaction.CallInfo,
 	)
 	if err != nil {
 		return err
 	}
 
+	if ops := store.OPs(); !ops.Equal(constraint.OPs) {
+		return fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), constraint.OPs.String())
+	}
+
 	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if err := store.Precommit(id); err != nil {
 		return err
-	}
-	if ops := store.OPs(); !ops.Equal(cond.OPs) {
-		return fmt.Errorf("unexpected ops: actual(%v) != declation(%v)", ops.String(), cond.OPs.String())
 	}
 	k.SetContractResult(ctx, data.TxID, data.TxIndex, res)
 	return nil

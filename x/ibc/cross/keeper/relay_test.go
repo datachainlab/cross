@@ -807,6 +807,78 @@ func (suite *KeeperTestSuite) TestAbort2() {
 	suite.testAbortPacket(suite.app2, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, false), suite.signer2)
 }
 
+func (suite *KeeperTestSuite) TestAbort3() {
+	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
+	ci2 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
+
+	var err error
+	var nonce uint64 = 1
+	var tss = []cross.ContractTransaction{
+		cross.NewContractTransaction(
+			suite.ch0to1,
+			[]sdk.AccAddress{suite.signer1},
+			ci1.Bytes(),
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
+				[]cross.OP{
+					lock.ReadOP{K: suite.signer1, V: nil},
+					lock.WriteOP{K: suite.signer1, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("tone", 80)})},
+				},
+			),
+		),
+		cross.NewContractTransaction(
+			suite.ch0to2,
+			[]sdk.AccAddress{suite.signer2},
+			ci2.Bytes(),
+			cross.NewStateConstraint(
+				cross.ExactMatchStateConstraint,
+				[]cross.OP{
+					lock.ReadOP{K: suite.signer2, V: nil},
+					lock.WriteOP{K: suite.signer2, V: marshalCoin(sdk.Coins{sdk.NewInt64Coin("ttwo", 100)})}, // invalid OP
+				},
+			),
+		),
+	}
+
+	suite.openAllChannels()
+	msg := cross.NewMsgInitiate(
+		suite.initiator,
+		suite.app0.chainID,
+		tss,
+		256,
+		nonce,
+	)
+	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+		suite.app0.ctx,
+		suite.initiator,
+		msg,
+		msg.ContractTransactions,
+	)
+	suite.NoError(err)
+
+	var nextSeqSend uint64 = 1
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, tss[0], nextSeqSend, cross.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, tss[1], nextSeqSend, cross.PREPARE_RESULT_FAILED)
+
+	nextSeqSend += 1
+
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	suite.NoError(err)
+	suite.False(canMulticast)
+	suite.False(isCommitable)
+
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, cross.NewPacketPrepareAcknowledgement(cross.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	suite.NoError(err)
+	suite.True(canMulticast)
+	suite.False(isCommitable)
+
+	// In a1, execute to abort
+	suite.testAbortPacket(suite.app1, suite.chd1, suite.ch0to1, suite.ch1to0, cross.NewPacketDataCommit(txID, 0, false), suite.signer1)
+
+	// In a2, execute to abort
+	suite.testAbortPacket(suite.app2, suite.chd2, suite.ch0to2, suite.ch2to0, cross.NewPacketDataCommit(txID, 1, false), suite.signer2)
+}
+
 func (suite *KeeperTestSuite) TestStateConstraint() {
 	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
 	// app2 has multiple contract calls
