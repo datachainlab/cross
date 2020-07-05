@@ -59,7 +59,7 @@ var (
 	NewPacketCommitAcknowledgement  = types.NewPacketCommitAcknowledgement
 	NewCallResultLink               = types.NewCallResultLink
 	MakeObjectKey                   = types.MakeObjectKey
-	MakeResolver                    = types.MakeResolver
+	DefaultResolverProvider         = types.DefaultResolverProvider
 	NewFakeResolver                 = types.NewFakeResolver
 )
 
@@ -92,7 +92,8 @@ type (
 	TxID                         = types.TxID
 	TxIndex                      = types.TxIndex
 	Resolver                     = types.Resolver
-	MapResolver                  = types.MapResolver
+	ResolverProvider             = types.ResolverProvider
+	SequentialResolver           = types.SequentialResolver
 	FakeResolver                 = types.FakeResolver
 	Object                       = types.Object
 	ObjectType                   = types.ObjectType

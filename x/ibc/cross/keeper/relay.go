@@ -109,7 +109,7 @@ func (k Keeper) prepareTransaction(
 ) error {
 	constraint := data.TxInfo.Transaction.StateConstraint
 
-	rs, err := types.MakeResolver(data.TxInfo.LinkObjects)
+	rs, err := k.resolverProvider(data.TxInfo.LinkObjects)
 	if err != nil {
 		return err
 	}

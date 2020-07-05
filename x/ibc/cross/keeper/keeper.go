@@ -17,24 +17,28 @@ type Keeper struct {
 	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
 	storeKey sdk.StoreKey // Unexposed key to access store from sdk.Context
 
-	channelKeeper types.ChannelKeeper
-	portKeeper    types.PortKeeper
-	scopedKeeper  capability.ScopedKeeper
+	channelKeeper    types.ChannelKeeper
+	portKeeper       types.PortKeeper
+	scopedKeeper     capability.ScopedKeeper
+	resolverProvider types.ResolverProvider
 }
 
 // NewKeeper creates new instances of the cross Keeper
 func NewKeeper(
 	cdc *codec.Codec,
 	storeKey sdk.StoreKey,
-	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper,
+	channelKeeper types.ChannelKeeper,
+	portKeeper types.PortKeeper,
 	scopedKeeper capability.ScopedKeeper,
+	resolverProvider types.ResolverProvider,
 ) Keeper {
 	return Keeper{
-		cdc:           cdc,
-		storeKey:      storeKey,
-		channelKeeper: channelKeeper,
-		portKeeper:    portKeeper,
-		scopedKeeper:  scopedKeeper,
+		cdc:              cdc,
+		storeKey:         storeKey,
+		channelKeeper:    channelKeeper,
+		portKeeper:       portKeeper,
+		scopedKeeper:     scopedKeeper,
+		resolverProvider: resolverProvider,
 	}
 }
 

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"encoding/hex"
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -143,30 +143,35 @@ type Resolver interface {
 	Resolve(bz []byte) (Object, error)
 }
 
-type MapResolver struct {
-	libs map[string]Object
+type ResolverProvider func(libs []Object) (Resolver, error)
+
+func DefaultResolverProvider() ResolverProvider {
+	return func(libs []Object) (Resolver, error) {
+		return NewSequentialResolver(libs), nil
+	}
 }
 
-func MakeResolver(libs []Object) (*MapResolver, error) {
-	r := &MapResolver{libs: make(map[string]Object)}
-
-	for _, lib := range libs {
-		key := hex.EncodeToString(lib.Key())
-		if _, ok := r.libs[key]; ok {
-			return nil, fmt.Errorf("duplicated key '%X'", lib.Key())
-		}
-		r.libs[key] = lib
-	}
-
-	return r, nil
+type SequentialResolver struct {
+	seq  uint8
+	libs []Object
 }
 
-func (r MapResolver) Resolve(bz []byte) (Object, error) {
-	key := hex.EncodeToString(bz)
-	lib, ok := r.libs[key]
-	if !ok {
-		return nil, fmt.Errorf("key not found: %X", bz)
+func NewSequentialResolver(libs []Object) *SequentialResolver {
+	r := &SequentialResolver{}
+	r.seq = 0
+	r.libs = libs
+	return r
+}
+
+func (r *SequentialResolver) Resolve(bz []byte) (Object, error) {
+	if len(r.libs) <= int(r.seq) {
+		return nil, fmt.Errorf("lib not found: seq=%X", r.seq)
 	}
+	lib := r.libs[r.seq]
+	if !bytes.Equal(lib.Key(), bz) {
+		return nil, fmt.Errorf("keys mismatch: %X != %X", lib.Key(), bz)
+	}
+	r.seq++
 	return lib, nil
 }
 
