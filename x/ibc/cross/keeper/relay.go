@@ -126,12 +126,13 @@ func (k Keeper) prepareTransaction(
 		return fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.GetData())
 	}
 
+	if ops := store.OPs(); !ops.Equal(constraint.OPs) {
+		return fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), constraint.OPs.String())
+	}
+
 	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if err := store.Precommit(id); err != nil {
 		return err
-	}
-	if ops := store.OPs(); !ops.Equal(constraint.OPs) {
-		return fmt.Errorf("unexpected ops: actual(%v) != declation(%v)", ops.String(), constraint.OPs.String())
 	}
 	k.SetContractResult(ctx, data.TxID, data.TxIndex, res)
 	return nil

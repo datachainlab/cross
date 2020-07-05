@@ -906,10 +906,13 @@ func (suite *KeeperTestSuite) TestAbort3() {
 			[]sdk.AccAddress{suite.signer2},
 			ci2.Bytes(),
 			cross.NewStateConstraint(
-				cross.NoStateConstraint,
-				[]cross.OP{},
+				cross.ExactMatchStateConstraint,
+				[]cross.OP{
+					lock.ReadOP{K: suite.signer2, V: nil},
+					lock.WriteOP{K: suite.signer2, V: marshalCoins(sdk.Coins{sdk.NewInt64Coin("ttwo", 100)})}, // invalid OP
+				},
 			),
-			cross.NewReturnValue(marshalCoin(sdk.NewInt64Coin("ttwo", 80))),
+			cross.NewReturnValue(marshalCoin(sdk.NewInt64Coin("ttwo", 60))),
 			nil,
 		),
 	}
