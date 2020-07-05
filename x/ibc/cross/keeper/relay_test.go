@@ -1155,11 +1155,11 @@ func (suite *KeeperTestSuite) TestCrossChainCall() {
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
-	objs0, err := lkr.Lookup(tss[0].Links)
+	objs0, err := lkr.Resolve(tss[0].Links)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
-	objs1, err := lkr.Lookup(tss[1].Links)
+	objs1, err := lkr.Resolve(tss[1].Links)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}

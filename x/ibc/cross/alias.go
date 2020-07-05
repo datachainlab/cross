@@ -91,8 +91,8 @@ type (
 	StateConstraintType          = types.StateConstraintType
 	TxID                         = types.TxID
 	TxIndex                      = types.TxIndex
-	Resolver                     = types.Resolver
-	ResolverProvider             = types.ResolverProvider
+	ObjectResolver               = types.ObjectResolver
+	ObjectResolverProvider       = types.ObjectResolverProvider
 	SequentialResolver           = types.SequentialResolver
 	FakeResolver                 = types.FakeResolver
 	Object                       = types.Object

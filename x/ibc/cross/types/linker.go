@@ -10,31 +10,38 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
+// Link is a link to an Object that is referenced in the call to the contract
 type Link interface {
 	Type() LinkType
 	SourceIndex() TxIndex
 }
 
+// LinkType is a type of link
 type LinkType = uint8
 
 const (
+	// LinkTypeCallResult is LinkType that indicates a link with an object returned from external contract call
 	LinkTypeCallResult LinkType = iota + 1
 )
 
 var _ Link = (*CallResultLink)(nil)
 
+// CallResultLink is a link with an object returned from external contract call
 type CallResultLink struct {
 	ContractTransactionIndex TxIndex
 }
 
+// NewCallResultLink returns CallResultLink
 func NewCallResultLink(idx TxIndex) CallResultLink {
 	return CallResultLink{ContractTransactionIndex: idx}
 }
 
+// Type implements Link.Type
 func (l CallResultLink) Type() LinkType {
 	return LinkTypeCallResult
 }
 
+// SourceIndex implements Link.SourceIndex
 func (l CallResultLink) SourceIndex() TxIndex {
 	return l.ContractTransactionIndex
 }
@@ -58,10 +65,12 @@ func makeLazyObject(f func() returnObject) lazyObject {
 	}
 }
 
+// Linker resolves links that each ContractTransaction has.
 type Linker struct {
 	objects map[TxIndex]lazyObject
 }
 
+// MakeLinker returns Linker
 func MakeLinker(txs ContractTransactions) (*Linker, error) {
 	lkr := Linker{objects: make(map[TxIndex]lazyObject, len(txs))}
 	for i, tx := range txs {
@@ -76,7 +85,8 @@ func MakeLinker(txs ContractTransactions) (*Linker, error) {
 	return &lkr, nil
 }
 
-func (lkr Linker) Lookup(lks []Link) ([]Object, error) {
+// Resolve resolves given links and returns resolved Object
+func (lkr Linker) Resolve(lks []Link) ([]Object, error) {
 	var objects []Object
 	for _, lk := range lks {
 		lzObj, ok := lkr.objects[lk.SourceIndex()]
@@ -92,6 +102,7 @@ func (lkr Linker) Lookup(lks []Link) ([]Object, error) {
 	return objects, nil
 }
 
+// MakeObjectKey returns a key that can be used to identify a contract call
 func MakeObjectKey(callInfo ContractCallInfo, signers []sdk.AccAddress) []byte {
 	h := tmhash.New()
 	h.Write(callInfo)
@@ -101,12 +112,15 @@ func MakeObjectKey(callInfo ContractCallInfo, signers []sdk.AccAddress) []byte {
 	return h.Sum(nil)
 }
 
+// ObjectType is a type of Object
 type ObjectType = uint8
 
 const (
+	// ObjectTypeConstantValue is ObjectType indicates a constant value
 	ObjectTypeConstantValue ObjectType = iota + 1
 )
 
+// Object wraps an actual value
 type Object interface {
 	Type() ObjectType
 	Key() []byte
@@ -115,11 +129,13 @@ type Object interface {
 
 var _ Object = (*ConstantValueObject)(nil)
 
+// ConstantValueObject is an Object wraps a constant value
 type ConstantValueObject struct {
 	K []byte
 	V []byte
 }
 
+// MakeConstantValueObject returns ConstantValueObject
 func MakeConstantValueObject(key []byte, value []byte) ConstantValueObject {
 	return ConstantValueObject{
 		K: key,
@@ -127,62 +143,74 @@ func MakeConstantValueObject(key []byte, value []byte) ConstantValueObject {
 	}
 }
 
+// Type implements Object.Type
 func (l ConstantValueObject) Type() ObjectType {
 	return ObjectTypeConstantValue
 }
 
+// Key implements Object.Key
 func (l ConstantValueObject) Key() []byte {
 	return l.K
 }
 
+// Evaluate returns a constant value
 func (l ConstantValueObject) Evaluate(bz []byte) ([]byte, error) {
 	return l.V, nil
 }
 
-type Resolver interface {
-	Resolve(bz []byte) (Object, error)
-}
+// ObjectResolverProvider is a provider of ObjectResolver
+type ObjectResolverProvider func(libs []Object) (ObjectResolver, error)
 
-type ResolverProvider func(libs []Object) (Resolver, error)
-
-func DefaultResolverProvider() ResolverProvider {
-	return func(libs []Object) (Resolver, error) {
+// DefaultResolverProvider returns a default implements of ObjectResolver
+func DefaultResolverProvider() ObjectResolverProvider {
+	return func(libs []Object) (ObjectResolver, error) {
 		return NewSequentialResolver(libs), nil
 	}
 }
 
+// ObjectResolver resolves a given key to Object
+type ObjectResolver interface {
+	Resolve(key []byte) (Object, error)
+}
+
+// SequentialResolver is a resolver that resolves an object in sequential
 type SequentialResolver struct {
-	seq  uint8
-	libs []Object
+	seq     uint8
+	objects []Object
 }
 
-func NewSequentialResolver(libs []Object) *SequentialResolver {
-	r := &SequentialResolver{}
-	r.seq = 0
-	r.libs = libs
-	return r
+var _ ObjectResolver = (*SequentialResolver)(nil)
+
+// NewSequentialResolver returns SequentialResolver
+func NewSequentialResolver(objects []Object) *SequentialResolver {
+	return &SequentialResolver{seq: 0, objects: objects}
 }
 
-func (r *SequentialResolver) Resolve(bz []byte) (Object, error) {
-	if len(r.libs) <= int(r.seq) {
-		return nil, fmt.Errorf("lib not found: seq=%X", r.seq)
+// Resolve implements ObjectResolver.Resolve
+// If success, resolver increments the internal sequence
+func (r *SequentialResolver) Resolve(key []byte) (Object, error) {
+	if len(r.objects) <= int(r.seq) {
+		return nil, fmt.Errorf("object not found: seq=%X", r.seq)
 	}
-	lib := r.libs[r.seq]
-	if !bytes.Equal(lib.Key(), bz) {
-		return nil, fmt.Errorf("keys mismatch: %X != %X", lib.Key(), bz)
+	obj := r.objects[r.seq]
+	if !bytes.Equal(obj.Key(), key) {
+		return nil, fmt.Errorf("keys mismatch: %X != %X", obj.Key(), key)
 	}
 	r.seq++
-	return lib, nil
+	return obj, nil
 }
 
+// FakeResolver is a resolver that always fails to resolve an object
 type FakeResolver struct{}
 
-var _ Resolver = (*FakeResolver)(nil)
+var _ ObjectResolver = (*FakeResolver)(nil)
 
+// NewFakeResolver returns FakeResolver
 func NewFakeResolver() FakeResolver {
 	return FakeResolver{}
 }
 
-func (FakeResolver) Resolve(bz []byte) (Object, error) {
-	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%X'", bz))
+// Resolve implements ObjectResolver.Resolve
+func (FakeResolver) Resolve(key []byte) (Object, error) {
+	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%X'", key))
 }

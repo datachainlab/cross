@@ -42,7 +42,7 @@ func (k Keeper) MulticastPreparePacket(
 		if !found {
 			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
 		}
-		objs, err := lkr.Lookup(t.Links)
+		objs, err := lkr.Resolve(t.Links)
 		if err != nil {
 			return types.TxID{}, err
 		}

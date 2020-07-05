@@ -20,7 +20,7 @@ type ServerRouter interface {
 	Route(bz []byte) (cross.Object, error)
 }
 
-var _ cross.Resolver = (*HTTPResolver)(nil)
+var _ cross.ObjectResolver = (*HTTPResolver)(nil)
 
 func NewHTTPResolver(router ServerRouter) HTTPResolver {
 	return HTTPResolver{Router: router}

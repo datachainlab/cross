@@ -29,7 +29,7 @@ type (
 
 type ContractRuntimeInfo struct {
 	StateConstraintType    StateConstraintType
-	ExternalObjectResolver Resolver
+	ExternalObjectResolver ObjectResolver
 }
 
 type ContractHandler interface {

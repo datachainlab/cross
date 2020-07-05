@@ -20,7 +20,7 @@ type Keeper struct {
 	channelKeeper    types.ChannelKeeper
 	portKeeper       types.PortKeeper
 	scopedKeeper     capability.ScopedKeeper
-	resolverProvider types.ResolverProvider
+	resolverProvider types.ObjectResolverProvider
 }
 
 // NewKeeper creates new instances of the cross Keeper
@@ -30,7 +30,7 @@ func NewKeeper(
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	scopedKeeper capability.ScopedKeeper,
-	resolverProvider types.ResolverProvider,
+	resolverProvider types.ObjectResolverProvider,
 ) Keeper {
 	return Keeper{
 		cdc:              cdc,
