@@ -160,6 +160,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 					lock.WriteOP{K: simappcontract.MakeSeatKey(1), V: signer1Info.GetAddress()},
 				},
 			),
+			nil,
+			nil,
 		),
 		cross.NewContractTransaction(
 			ch0to2,
@@ -172,6 +174,8 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 					lock.WriteOP{K: simappcontract.MakeRoomKey(8), V: signer2Info.GetAddress()},
 				},
 			),
+			nil,
+			nil,
 		),
 	}
 	var txID cross.TxID
@@ -228,7 +232,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			signer0Info.GetAddress(),
 			txID,
 			0,
-			tss[0],
+			cross.ContractTransactionInfo{Transaction: tss[0]},
 		)
 		preparePacketTx0 = channeltypes.NewPacket(
 			data.GetBytes(),
@@ -241,7 +245,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			signer0Info.GetAddress(),
 			txID,
 			1,
-			tss[1],
+			cross.ContractTransactionInfo{Transaction: tss[1]},
 		)
 		preparePacketTx1 = channeltypes.NewPacket(
 			data.GetBytes(),

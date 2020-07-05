@@ -53,12 +53,12 @@ func NewContractHandler(k Keeper, stateProvider StateProvider) *contractHandler 
 	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider}
 }
 
-func (h *contractHandler) Handle(ctx sdk.Context, tp cross.StateConstraintType, callInfo cross.ContractCallInfo) (state cross.State, res cross.ContractHandlerResult, err error) {
-	info, err := types.DecodeContractSignature(callInfo)
+func (h *contractHandler) Handle(ctx sdk.Context, callInfo cross.ContractCallInfo, rtInfo cross.ContractRuntimeInfo) (state cross.State, res cross.ContractHandlerResult, err error) {
+	info, err := types.DecodeContractCallInfo(callInfo)
 	if err != nil {
 		return nil, nil, err
 	}
-	st, err := h.GetState(ctx, tp, callInfo)
+	st, err := h.GetState(ctx, callInfo, rtInfo)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -70,7 +70,7 @@ func (h *contractHandler) Handle(ctx sdk.Context, tp cross.StateConstraintType, 
 	if !ok {
 		return nil, nil, fmt.Errorf("signer is not set")
 	}
-	c := NewContext(signers, info.Args)
+	c := NewContext(signers, info.Args, rtInfo)
 	defer func() {
 		if e := recover(); e != nil {
 			if e2, ok := e.(error); ok {
@@ -88,12 +88,12 @@ func (h *contractHandler) Handle(ctx sdk.Context, tp cross.StateConstraintType, 
 	return st, types.NewContractHandlerResult(v, c.EventManager().Events()), nil
 }
 
-func (h *contractHandler) GetState(ctx sdk.Context, tp cross.StateConstraintType, callInfo cross.ContractCallInfo) (cross.State, error) {
-	info, err := types.DecodeContractSignature(callInfo)
+func (h *contractHandler) GetState(ctx sdk.Context, callInfo cross.ContractCallInfo, rtInfo cross.ContractRuntimeInfo) (cross.State, error) {
+	info, err := types.DecodeContractCallInfo(callInfo)
 	if err != nil {
 		return nil, err
 	}
-	return h.stateProvider(h.keeper.GetContractStateStore(ctx, []byte(info.ID)), tp), nil
+	return h.stateProvider(h.keeper.GetContractStateStore(ctx, []byte(info.ID)), rtInfo.StateConstraintType), nil
 }
 
 func (h *contractHandler) OnCommit(ctx sdk.Context, result cross.ContractHandlerResult) cross.ContractHandlerResult {
@@ -111,16 +111,19 @@ type Context interface {
 	Signers() []sdk.AccAddress
 	Args() [][]byte
 	EventManager() *sdk.EventManager
+
+	runtimeInfo() cross.ContractRuntimeInfo
 }
 
 type ccontext struct {
 	signers      []sdk.AccAddress
 	args         [][]byte
 	eventManager *sdk.EventManager
+	rtInfo       cross.ContractRuntimeInfo
 }
 
-func NewContext(signers []sdk.AccAddress, args [][]byte) Context {
-	return &ccontext{signers: signers, args: args, eventManager: sdk.NewEventManager()}
+func NewContext(signers []sdk.AccAddress, args [][]byte, rtInfo cross.ContractRuntimeInfo) Context {
+	return &ccontext{signers: signers, args: args, eventManager: sdk.NewEventManager(), rtInfo: rtInfo}
 }
 
 func (c ccontext) Signers() []sdk.AccAddress {
@@ -133,4 +136,22 @@ func (c ccontext) Args() [][]byte {
 
 func (c ccontext) EventManager() *sdk.EventManager {
 	return c.eventManager
+}
+
+func (c ccontext) runtimeInfo() cross.ContractRuntimeInfo {
+	return c.rtInfo
+}
+
+func CallExternalFunc(ctx Context, callInfo types.ContractCallInfo, signers []sdk.AccAddress) []byte {
+	rs := ctx.runtimeInfo().ExternalObjectResolver
+	key := cross.MakeObjectKey(callInfo.Bytes(), signers)
+	obj, err := rs.Resolve(key)
+	if err != nil {
+		panic(err)
+	}
+	v, err := obj.Evaluate(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

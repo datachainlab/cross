@@ -51,11 +51,16 @@ var (
 	NewMsgInitiate                  = types.NewMsgInitiate
 	NewContractTransaction          = types.NewContractTransaction
 	NewStateConstraint              = types.NewStateConstraint
+	NewReturnValue                  = types.NewReturnValue
 	NewChannelInfo                  = types.NewChannelInfo
 	NewPacketDataPrepare            = types.NewPacketDataPrepare
 	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement
 	NewPacketDataCommit             = types.NewPacketDataCommit
 	NewPacketCommitAcknowledgement  = types.NewPacketCommitAcknowledgement
+	NewCallResultLink               = types.NewCallResultLink
+	MakeObjectKey                   = types.MakeObjectKey
+	DefaultResolverProvider         = types.DefaultResolverProvider
+	NewFakeResolver                 = types.NewFakeResolver
 )
 
 // nolint
@@ -78,10 +83,20 @@ type (
 	ChannelInfo                  = types.ChannelInfo
 	ContractTransaction          = types.ContractTransaction
 	ContractTransactions         = types.ContractTransactions
+	ContractTransactionInfo      = types.ContractTransactionInfo
 	ContractCallResult           = types.ContractCallResult
 	ContractCallInfo             = types.ContractCallInfo
+	ContractRuntimeInfo          = types.ContractRuntimeInfo
 	StateConstraint              = types.StateConstraint
 	StateConstraintType          = types.StateConstraintType
 	TxID                         = types.TxID
 	TxIndex                      = types.TxIndex
+	ObjectResolver               = types.ObjectResolver
+	ObjectResolverProvider       = types.ObjectResolverProvider
+	SequentialResolver           = types.SequentialResolver
+	FakeResolver                 = types.FakeResolver
+	Object                       = types.Object
+	ObjectType                   = types.ObjectType
+	Link                         = types.Link
+	LinkType                     = types.LinkType
 )

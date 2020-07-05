@@ -17,19 +17,22 @@ type (
 	StateProvider        = keeper.StateProvider
 	Context              = keeper.Context
 	Contract             = keeper.Contract
+	HTTPServerRouter     = types.HTTPServerRouter
 	MsgContractCall      = types.MsgContractCall
 	ContractCallResponse = types.ContractCallResponse
 )
 
 var (
-	NewKeeper               = keeper.NewKeeper
-	NewQuerier              = keeper.NewQuerier
-	NewContractHandler      = keeper.NewContractHandler
-	EncodeContractSignature = types.EncodeContractSignature
-	DecodeContractSignature = types.DecodeContractSignature
-	NewContractCallInfo     = types.NewContractCallInfo
-	NewMsgContractCall      = types.NewMsgContractCall
-	NewContract             = keeper.NewContract
+	NewKeeper              = keeper.NewKeeper
+	NewQuerier             = keeper.NewQuerier
+	NewContractHandler     = keeper.NewContractHandler
+	NewContract            = keeper.NewContract
+	CallExternalFunc       = keeper.CallExternalFunc
+	NewHTTPServerRouter    = types.NewHTTPServerRouter
+	EncodeContractCallInfo = types.EncodeContractCallInfo
+	DecodeContractCallInfo = types.DecodeContractCallInfo
+	NewContractCallInfo    = types.NewContractCallInfo
+	NewMsgContractCall     = types.NewMsgContractCall
 
 	ModuleCdc     = types.ModuleCdc
 	RegisterCodec = types.RegisterCodec

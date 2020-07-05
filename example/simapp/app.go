@@ -263,6 +263,7 @@ func NewSimApp(
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper,
+		cross.DefaultResolverProvider(),
 	)
 	contractHandler := contractHandlerProvider(app.ContractKeeper)
 

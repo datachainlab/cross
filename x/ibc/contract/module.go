@@ -74,6 +74,7 @@ type AppModule struct {
 	AppModuleBasic
 	keeper          Keeper
 	contractHandler cross.ContractHandler
+	router          HTTPServerRouter
 }
 
 // NewAppModule creates a new AppModule Object
@@ -100,7 +101,7 @@ func (am AppModule) Route() string {
 
 // NewHandler returns new Handler
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.keeper, am.contractHandler)
+	return NewHandler(am.keeper, am.contractHandler, am.router)
 }
 
 // QuerierRoute returns module name

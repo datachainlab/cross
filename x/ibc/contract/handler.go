@@ -3,25 +3,33 @@ package contract
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/datachainlab/cross/x/ibc/contract/keeper"
 	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
 )
 
 // NewHandler returns a handler
-func NewHandler(k Keeper, contractHandler cross.ContractHandler) sdk.Handler {
+func NewHandler(k Keeper, contractHandler cross.ContractHandler, router types.ServerRouter) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
 		case MsgContractCall:
-			return handleContractCall(ctx, msg, k, contractHandler)
+			return handleContractCall(ctx, msg, k, contractHandler, router)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message type: %T", msg)
 		}
 	}
 }
 
-func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contractHandler cross.ContractHandler) (*sdk.Result, error) {
+func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contractHandler cross.ContractHandler, router types.ServerRouter) (*sdk.Result, error) {
+	var rs cross.ObjectResolver
+	if keeper.IsSimulation(ctx) {
+		rs = types.NewHTTPResolver(router)
+	} else {
+		rs = cross.NewFakeResolver()
+	}
+
 	ctx = cross.WithSigners(ctx, msg.GetSigners())
-	state, res, err := contractHandler.Handle(ctx, msg.StateConstraintType, msg.CallInfo)
+	state, res, err := contractHandler.Handle(ctx, msg.CallInfo, cross.ContractRuntimeInfo{StateConstraintType: msg.StateConstraintType, ExternalObjectResolver: rs})
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedContractHandle, err.Error())
 	}

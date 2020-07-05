@@ -28,18 +28,18 @@ type PacketAcknowledgement interface {
 var _ PacketData = (*PacketDataPrepare)(nil)
 
 type PacketDataPrepare struct {
-	Sender              sdk.AccAddress
-	TxID                TxID
-	TxIndex             TxIndex
-	ContractTransaction ContractTransaction
+	Sender  sdk.AccAddress
+	TxID    TxID
+	TxIndex TxIndex
+	TxInfo  ContractTransactionInfo
 }
 
-func NewPacketDataPrepare(sender sdk.AccAddress, txID TxID, txIndex TxIndex, transaction ContractTransaction) PacketDataPrepare {
-	return PacketDataPrepare{Sender: sender, TxID: txID, TxIndex: txIndex, ContractTransaction: transaction}
+func NewPacketDataPrepare(sender sdk.AccAddress, txID TxID, txIndex TxIndex, txInfo ContractTransactionInfo) PacketDataPrepare {
+	return PacketDataPrepare{Sender: sender, TxID: txID, TxIndex: txIndex, TxInfo: txInfo}
 }
 
 func (p PacketDataPrepare) ValidateBasic() error {
-	if err := p.ContractTransaction.ValidateBasic(); err != nil {
+	if err := p.TxInfo.ValidateBasic(); err != nil {
 		return err
 	}
 	return nil

@@ -112,12 +112,12 @@ func (suite *KeeperTestSuite) openChannels(
 }
 
 func (suite *KeeperTestSuite) createApp(chainID string) *appContext {
-	return suite.createAppWithHeader(abci.Header{ChainID: chainID})
+	return suite.createAppWithHeader(abci.Header{ChainID: chainID}, simapp.DefaultContractHandlerProvider)
 }
 
-func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header) *appContext {
+func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header, contractHandlerProvider simapp.ContractHandlerProvider) *appContext {
 	isCheckTx := false
-	app := simapp.Setup(isCheckTx)
+	app := simapp.SetupWithContractHandlerProvider(isCheckTx, contractHandlerProvider, simapp.DefaultAnteHandlerProvider)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	ctx = ctx.WithLogger(log.NewTMLogger(os.Stdout))
 	if testing.Verbose() {
