@@ -12,7 +12,9 @@ const (
 	CO_STATUS_NONE uint8 = iota
 	CO_STATUS_INIT
 	CO_STATUS_DECIDED // abort or commit
+)
 
+const (
 	CO_DECISION_NONE uint8 = iota
 	CO_DECISION_COMMIT
 	CO_DECISION_ABORT
