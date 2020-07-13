@@ -2,6 +2,7 @@ package cross
 
 import (
 	"github.com/datachainlab/cross/x/ibc/cross/keeper"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
@@ -45,8 +46,8 @@ const (
 var (
 	NewKeeper                       = keeper.NewKeeper
 	NewQuerier                      = keeper.NewQuerier
-	MakeTxID                        = keeper.MakeTxID
-	MakeStoreTransactionID          = keeper.MakeStoreTransactionID
+	MakeTxID                        = common.MakeTxID
+	MakeStoreTransactionID          = common.MakeStoreTransactionID
 	ModuleCdc                       = types.ModuleCdc
 	RegisterCodec                   = types.RegisterCodec
 	SignersFromContext              = types.SignersFromContext

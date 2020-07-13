@@ -1,14 +1,36 @@
-package keeper
+package tpc
 
 import (
 	"errors"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
+
+const TypeName = "tpc"
+
+type Keeper struct {
+	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
+	storeKey sdk.StoreKey // Unexposed key to access store from sdk.Context
+
+	resolverProvider types.ObjectResolverProvider
+	common.Keeper
+}
+
+func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, resolverProvider types.ObjectResolverProvider, ck common.Keeper) Keeper {
+	return Keeper{
+		cdc:              cdc,
+		storeKey:         storeKey,
+		resolverProvider: resolverProvider,
+		Keeper:           ck,
+	}
+}
 
 func (k Keeper) MulticastPreparePacket(
 	ctx sdk.Context,
@@ -22,7 +44,7 @@ func (k Keeper) MulticastPreparePacket(
 		return types.TxID{}, fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
 	}
 
-	txID := MakeTxID(ctx, msg)
+	txID := common.MakeTxID(ctx, msg)
 	if _, ok := k.GetCoordinator(ctx, txID); ok {
 		return types.TxID{}, fmt.Errorf("coordinator '%x' already exists", txID)
 	}
@@ -35,7 +57,7 @@ func (k Keeper) MulticastPreparePacket(
 	}
 	for id, t := range transactions {
 		src := t.Source
-		c, found := k.channelKeeper.GetChannel(ctx, src.Port, src.Channel)
+		c, found := k.ChannelKeeper().GetChannel(ctx, src.Port, src.Channel)
 		if !found {
 			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
 		}
@@ -44,7 +66,7 @@ func (k Keeper) MulticastPreparePacket(
 			return types.TxID{}, err
 		}
 		data := types.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
-		if err := k.sendPacket(
+		if err := k.SendPacket(
 			ctx,
 			data.GetBytes(),
 			src.Port, src.Channel,
@@ -83,7 +105,7 @@ func (k Keeper) PrepareTransaction(
 		k.Logger(ctx).Info("failed to prepare transaction", "error", err.Error())
 	}
 
-	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
+	c, found := k.ChannelKeeper().GetChannel(ctx, destinationPort, destinationChannel)
 	if !found {
 		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", destinationPort, destinationChannel)
 	}
@@ -127,7 +149,7 @@ func (k Keeper) prepareTransaction(
 		return fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), constraint.OPs.String())
 	}
 
-	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
+	id := common.MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if err := store.Precommit(id); err != nil {
 		return err
 	}
@@ -152,7 +174,7 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 		return false, false, errors.New("all transactions are already confirmed")
 	}
 
-	c, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
+	c, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
 		return false, false, sdkerrors.Wrap(channel.ErrChannelNotFound, sourceChannel)
 	}
@@ -197,12 +219,12 @@ func (k Keeper) MulticastCommitPacket(
 	}
 
 	for id, c := range co.Channels {
-		ch, found := k.channelKeeper.GetChannel(ctx, c.Port, c.Channel)
+		ch, found := k.ChannelKeeper().GetChannel(ctx, c.Port, c.Channel)
 		if !found {
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, c.Channel)
 		}
 		data := types.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
-		if err := k.sendPacket(
+		if err := k.SendPacket(
 			ctx,
 			data.GetBytes(),
 			c.Port,
@@ -232,7 +254,7 @@ func (k Keeper) ReceiveCommitPacket(
 	if err != nil {
 		return nil, err
 	}
-	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
+	c, found := k.ChannelKeeper().GetChannel(ctx, destinationPort, destinationChannel)
 	if !found {
 		return nil, fmt.Errorf("channel not found: port=%v channel=%v", destinationPort, destinationChannel)
 	}
@@ -250,7 +272,7 @@ func (k Keeper) ReceiveCommitPacket(
 
 	var res types.ContractHandlerResult
 	var status uint8
-	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
+	id := common.MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if data.IsCommittable {
 		if err := state.Commit(id); err != nil {
 			return nil, err
@@ -293,4 +315,31 @@ func (k Keeper) PacketCommitAcknowledgement(ctx sdk.Context, txID types.TxID, tx
 	}
 	k.SetCoordinator(ctx, txID, *ci)
 	return nil
+}
+
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", fmt.Sprintf("cross/%s", types.ModuleName))
+}
+
+func (k Keeper) SetContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex, result types.ContractHandlerResult) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryLengthPrefixed(result)
+	store.Set(types.KeyContractResult(txID, txIndex), bz)
+}
+
+func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) (types.ContractHandlerResult, bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.KeyContractResult(txID, txIndex))
+	if bz == nil {
+		return nil, false
+	}
+	var result types.ContractHandlerResult
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &result)
+	return result, true
+}
+
+func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.KeyContractResult(txID, txIndex))
 }

@@ -275,7 +275,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -322,7 +322,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -340,7 +340,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -358,7 +358,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
+		_, err := app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 			app0.ctx,
 			initiator,
 			msg,
@@ -492,7 +492,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	_, err = suite.app0.app.CrossKeeper.MulticastPreparePacket(
+	_, err = suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 		suite.app0.ctx,
 		suite.initiator,
 		msg,
@@ -503,7 +503,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// Try to open a channel and connection between app0 and app1, app2
 	suite.openAllChannels()
 
-	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 		suite.app0.ctx,
 		suite.initiator,
 		msg,
@@ -511,7 +511,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 	)
 	suite.NoError(err) // successfully executed
 
-	ci, found := suite.app0.app.CrossKeeper.GetCoordinator(suite.app0.ctx, txID)
+	ci, found := suite.app0.app.CrossKeeper.TPCKeeper().GetCoordinator(suite.app0.ctx, txID)
 	if suite.True(found) {
 		suite.Equal(ci.Status, cross.CO_STATUS_INIT)
 	}
@@ -785,7 +785,7 @@ func (suite *KeeperTestSuite) TestAbort1() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 		suite.app0.ctx,
 		suite.initiator,
 		msg,
@@ -856,7 +856,7 @@ func (suite *KeeperTestSuite) TestAbort2() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 		suite.app0.ctx,
 		suite.initiator,
 		msg,
@@ -933,7 +933,7 @@ func (suite *KeeperTestSuite) TestAbort3() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 		suite.app0.ctx,
 		suite.initiator,
 		msg,
@@ -1021,7 +1021,7 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 		suite.app0.ctx,
 		suite.initiator,
 		msg,
@@ -1153,7 +1153,7 @@ func (suite *KeeperTestSuite) TestCrossChainCall() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
 		suite.app0.ctx,
 		suite.initiator,
 		msg,
@@ -1184,7 +1184,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	packetData := cross.NewPacketDataPrepare(relayer, txID, txIndex, txInfo)
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = cross.WithSigners(ctx, txInfo.Transaction.Signers)
-	result, err := actx.app.CrossKeeper.PrepareTransaction(
+	result, err := actx.app.CrossKeeper.TPCKeeper().PrepareTransaction(
 		ctx,
 		contractHandler,
 		dst.Port,
@@ -1195,7 +1195,7 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	)
 	suite.NoError(err)
 	suite.Equal(expectedPrepareResult, result)
-	tx, ok := actx.app.CrossKeeper.GetTx(ctx, txID, txIndex)
+	tx, ok := actx.app.CrossKeeper.TPCKeeper().GetTx(ctx, txID, txIndex)
 	if suite.True(ok) {
 		suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
 	}
@@ -1205,23 +1205,23 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 }
 
 func (suite *KeeperTestSuite) testConfirmPrepareResult(actx *appContext, ack cross.PacketPrepareAcknowledgement, txID cross.TxID, txIndex cross.TxIndex, src, dst cross.ChannelInfo, nextseq uint64) (bool, bool, error) {
-	canMulticast, isCommitable, err := actx.app.CrossKeeper.ReceivePrepareAcknowledgement(actx.ctx, dst.Port, dst.Channel, ack, txID, txIndex)
+	canMulticast, isCommitable, err := actx.app.CrossKeeper.TPCKeeper().ReceivePrepareAcknowledgement(actx.ctx, dst.Port, dst.Channel, ack, txID, txIndex)
 	if err != nil {
 		return false, false, err
 	}
 	if canMulticast {
-		return canMulticast, isCommitable, actx.app.CrossKeeper.MulticastCommitPacket(actx.ctx, txID, isCommitable)
+		return canMulticast, isCommitable, actx.app.CrossKeeper.TPCKeeper().MulticastCommitPacket(actx.ctx, txID, isCommitable)
 	} else {
 		return canMulticast, isCommitable, nil
 	}
 }
 
 func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress) {
-	_, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+	_, err := actx.app.CrossKeeper.TPCKeeper().ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
-	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID, packet.TxIndex)
+	tx, found := actx.app.CrossKeeper.TPCKeeper().GetTx(actx.ctx, packet.TxID, packet.TxIndex)
 	if !suite.True(found) {
 		return
 	}
@@ -1247,12 +1247,12 @@ func (suite *KeeperTestSuite) testAbortPacket(actx *appContext, contractHandler 
 }
 
 func (suite *KeeperTestSuite) testCommitPacket(actx *appContext, contractHandler cross.ContractHandler, src, dst cross.ChannelInfo, packet cross.PacketDataCommit, txSigner sdk.AccAddress, checkResult func(cross.ContractHandlerResult)) {
-	res, err := actx.app.CrossKeeper.ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
+	res, err := actx.app.CrossKeeper.TPCKeeper().ReceiveCommitPacket(actx.ctx, contractHandler, src.Port, src.Channel, dst.Port, dst.Channel, packet)
 	if !suite.NoError(err) {
 		return
 	}
 	checkResult(res)
-	tx, found := actx.app.CrossKeeper.GetTx(actx.ctx, packet.TxID, packet.TxIndex)
+	tx, found := actx.app.CrossKeeper.TPCKeeper().GetTx(actx.ctx, packet.TxID, packet.TxIndex)
 	if !suite.True(found) {
 		return
 	}

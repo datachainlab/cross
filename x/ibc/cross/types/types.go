@@ -61,13 +61,13 @@ func (ContractHandlerAbortResult) GetEvents() sdk.Events {
 }
 
 type CoordinatorInfo struct {
-	Transactions []string      // {TransactionID => ConnectionID}
-	Channels     []ChannelInfo // {TransactionID => Channel}
+	Transactions []string      // {TxIndex => ConnectionID}
+	Channels     []ChannelInfo // {TxIndex => Channel}
 
 	Status                uint8
 	Decision              uint8
-	ConfirmedTransactions []TxIndex // [TransactionID]
-	Acks                  []TxIndex // [TransactionID]
+	ConfirmedTransactions []TxIndex // [TxIndex]
+	Acks                  []TxIndex // [TxIndex]
 }
 
 func NewCoordinatorInfo(status uint8, tss []string, channels []ChannelInfo) CoordinatorInfo {

@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/tpc"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
@@ -31,9 +32,9 @@ func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketRec
 		}
 		switch data := data.(type) {
 		case PacketDataPrepare:
-			return handlePacketDataPrepare(ctx, keeper, contractHandler, packet, data)
+			return handlePacketDataPrepare(ctx, keeper.TPCKeeper(), contractHandler, packet, data)
 		case PacketDataCommit:
-			return handlePacketDataCommit(ctx, keeper, contractHandler, packet, data)
+			return handlePacketDataCommit(ctx, keeper.TPCKeeper(), contractHandler, packet, data)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet data type: %T", data)
 		}
@@ -50,9 +51,9 @@ func NewPacketAcknowledgementReceiver(keeper Keeper) PacketAcknowledgementReceiv
 		}
 		switch ack := ack.(type) {
 		case PacketPrepareAcknowledgement:
-			return handlePacketPrepareAcknowledgement(ctx, keeper, packet, ack, data.(PacketDataPrepare))
+			return handlePacketPrepareAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, data.(PacketDataPrepare))
 		case PacketCommitAcknowledgement:
-			return handlePacketCommitAcknowledgement(ctx, keeper, packet, ack, data.(PacketDataCommit))
+			return handlePacketCommitAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, data.(PacketDataCommit))
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet data type: %T", data)
 		}
@@ -70,7 +71,7 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result,
 	case types.COMMIT_PROTOCOL_NAIVE:
 		panic("not implemeneted error")
 	case types.COMMIT_PROTOCOL_TPC:
-		txID, err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
+		txID, err := k.TPCKeeper().MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
 		if err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 		}
@@ -90,7 +91,7 @@ Steps:
 - If it was success, precommit these changes and get locks for concerned keys. Furthermore, send a Prepacket with status 'OK' to coordinator.
 - If it was failed, discard theses changes. Furthermore, send a Prepacket with status 'Failed' to coordinator.
 */
-func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data PacketDataPrepare) (*sdk.Result, error) {
+func handlePacketDataPrepare(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data PacketDataPrepare) (*sdk.Result, error) {
 	status, err := k.PrepareTransaction(ctx, contractHandler, packet.SourcePort, packet.SourceChannel, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
@@ -111,7 +112,7 @@ Steps:
 - If packet status is 'OK' and all packets are confirmed, we send a CommitPacket with status 'Commit' to all participants.
 - If packet status is 'OK' and we haven't confirmed all packets yet, we wait for next packet receiving.
 */
-func handlePacketPrepareAcknowledgement(ctx sdk.Context, k Keeper, packet channeltypes.Packet, ack PacketPrepareAcknowledgement, data PacketDataPrepare) (*sdk.Result, error) {
+func handlePacketPrepareAcknowledgement(ctx sdk.Context, k tpc.Keeper, packet channeltypes.Packet, ack PacketPrepareAcknowledgement, data PacketDataPrepare) (*sdk.Result, error) {
 	canMulticast, isCommitable, err := k.ReceivePrepareAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, data.TxID, data.TxIndex)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedRecievePrepareResult, err.Error())
@@ -133,7 +134,7 @@ Steps:
 - If PacketDataCommit indicates committable, commit precommitted state and unlock locked keys.
 - If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
 */
-func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data PacketDataCommit) (*sdk.Result, error) {
+func handlePacketDataCommit(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data PacketDataCommit) (*sdk.Result, error) {
 	res, err := k.ReceiveCommitPacket(ctx, contractHandler, packet.SourcePort, packet.SourceChannel, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveCommitPacket, err.Error())
@@ -145,7 +146,7 @@ func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractH
 	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func handlePacketCommitAcknowledgement(ctx sdk.Context, k Keeper, packet channeltypes.Packet, ack PacketCommitAcknowledgement, data PacketDataCommit) (*sdk.Result, error) {
+func handlePacketCommitAcknowledgement(ctx sdk.Context, k tpc.Keeper, packet channeltypes.Packet, ack PacketCommitAcknowledgement, data PacketDataCommit) (*sdk.Result, error) {
 	err := k.PacketCommitAcknowledgement(ctx, data.TxID, data.TxIndex)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveAckCommitPacket, err.Error())
