@@ -24,14 +24,6 @@ const (
 )
 
 const (
-	TypeInitiate      = "cross_initiate"
-	TypePrepare       = "cross_prepare"
-	TypePrepareResult = "cross_prepare_result"
-	TypeCommit        = "cross_commit"
-	TypeAckCommit     = "cross_ack_commit"
-)
-
-const (
 	KeyCoordinatorPrefix uint8 = iota
 	KeyTxPrefix
 	KeyContractResultPrefix

@@ -206,6 +206,28 @@ func (k Keeper) IterateUnacknowledgedPackets(ctx sdk.Context, cb func(key []byte
 	}
 }
 
+func (k Keeper) SetContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex, result types.ContractHandlerResult) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryLengthPrefixed(result)
+	store.Set(types.KeyContractResult(txID, txIndex), bz)
+}
+
+func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) (types.ContractHandlerResult, bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.KeyContractResult(txID, txIndex))
+	if bz == nil {
+		return nil, false
+	}
+	var result types.ContractHandlerResult
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &result)
+	return result, true
+}
+
+func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.KeyContractResult(txID, txIndex))
+}
+
 func MakeTxID(ctx sdk.Context, msg types.MsgInitiate) types.TxID {
 	var txID [32]byte
 

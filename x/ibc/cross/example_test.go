@@ -29,6 +29,7 @@ import (
 	simappcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	tpctypes "github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 	"github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -229,7 +230,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	)
 
 	{ // execute Train contract on app1
-		data := cross.NewPacketDataPrepare(
+		data := tpctypes.NewPacketDataPrepare(
 			signer0Info.GetAddress(),
 			txID,
 			0,
@@ -242,7 +243,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	}
 
 	{ // execute Hotel contract on app2
-		data := cross.NewPacketDataPrepare(
+		data := tpctypes.NewPacketDataPrepare(
 			signer0Info.GetAddress(),
 			txID,
 			1,
@@ -257,15 +258,15 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	// doConfirm
 
 	{ // app0 receives PacketPrepareResult from app1
-		ack := cross.NewPacketPrepareAcknowledgement(
-			cross.PREPARE_RESULT_OK,
+		ack := tpctypes.NewPacketPrepareAcknowledgement(
+			tpctypes.PREPARE_RESULT_OK,
 		)
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
-		ack := cross.NewPacketPrepareAcknowledgement(
-			cross.PREPARE_RESULT_OK,
+		ack := tpctypes.NewPacketPrepareAcknowledgement(
+			tpctypes.PREPARE_RESULT_OK,
 		)
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 
@@ -285,7 +286,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	)
 
 	{ // execute to commit on app1
-		data := cross.NewPacketDataCommit(
+		data := tpctypes.NewPacketDataCommit(
 			txID,
 			0,
 			true,
@@ -296,7 +297,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		suite.buildMsgAndDoRelay(commitPacketTx0, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
 	{ // execute to commit on app2
-		data := cross.NewPacketDataCommit(
+		data := tpctypes.NewPacketDataCommit(
 			txID,
 			1,
 			true,
@@ -310,14 +311,14 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 	// Receive an Ack packet
 
 	{ // app1
-		ack := cross.NewPacketCommitAcknowledgement()
+		ack := tpctypes.NewPacketCommitAcknowledgement()
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), commitPacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 		suite.True(ok)
 		suite.False(ci.IsReceivedALLAcks())
 	}
 	{ // app2
-		ack := cross.NewPacketCommitAcknowledgement()
+		ack := tpctypes.NewPacketCommitAcknowledgement()
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), commitPacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 		ci, ok := app0.app.CrossKeeper.GetCoordinator(app0.ctx, txID)
 		suite.True(ok)

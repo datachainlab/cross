@@ -8,6 +8,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const TypeInitiate = "cross_initiate"
+
 var _ sdk.Msg = (*MsgInitiate)(nil)
 
 // MsgInitiate initiates a Cross-chain transaction

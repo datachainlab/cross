@@ -10,6 +10,7 @@ import (
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
+	tpctypes "github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -65,7 +66,7 @@ func (k Keeper) MulticastPreparePacket(
 		if err != nil {
 			return types.TxID{}, err
 		}
-		data := types.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
+		data := tpctypes.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
 		if err := k.SendPacket(
 			ctx,
 			data.GetBytes(),
@@ -93,15 +94,15 @@ func (k Keeper) PrepareTransaction(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	data types.PacketDataPrepare,
+	data tpctypes.PacketDataPrepare,
 ) (uint8, error) {
 	if _, ok := k.GetTx(ctx, data.TxID, data.TxIndex); ok {
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
-	result := types.PREPARE_RESULT_OK
+	result := tpctypes.PREPARE_RESULT_OK
 	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data); err != nil {
-		result = types.PREPARE_RESULT_FAILED
+		result = tpctypes.PREPARE_RESULT_FAILED
 		k.Logger(ctx).Info("failed to prepare transaction", "error", err.Error())
 	}
 
@@ -124,7 +125,7 @@ func (k Keeper) prepareTransaction(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	data types.PacketDataPrepare,
+	data tpctypes.PacketDataPrepare,
 ) error {
 	constraint := data.TxInfo.Transaction.StateConstraint
 
@@ -161,7 +162,7 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 	ctx sdk.Context,
 	sourcePort string,
 	sourceChannel string,
-	ack types.PacketPrepareAcknowledgement,
+	ack tpctypes.PacketPrepareAcknowledgement,
 	txID types.TxID,
 	txIndex types.TxIndex,
 ) (canMulticast bool, isCommittable bool, err error) {
@@ -184,10 +185,10 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 	}
 
 	if co.Status == types.CO_STATUS_INIT {
-		if ack.Status == types.PREPARE_RESULT_FAILED {
+		if ack.Status == tpctypes.PREPARE_RESULT_FAILED {
 			co.Status = types.CO_STATUS_DECIDED
 			co.Decision = types.CO_DECISION_ABORT
-		} else if ack.Status == types.PREPARE_RESULT_OK {
+		} else if ack.Status == tpctypes.PREPARE_RESULT_OK {
 			if co.IsCompleted() {
 				co.Status = types.CO_STATUS_DECIDED
 				co.Decision = types.CO_DECISION_COMMIT
@@ -223,7 +224,7 @@ func (k Keeper) MulticastCommitPacket(
 		if !found {
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, c.Channel)
 		}
-		data := types.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
+		data := tpctypes.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
 		if err := k.SendPacket(
 			ctx,
 			data.GetBytes(),
@@ -248,7 +249,7 @@ func (k Keeper) ReceiveCommitPacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	data types.PacketDataCommit,
+	data tpctypes.PacketDataCommit,
 ) (types.ContractHandlerResult, error) {
 	tx, err := k.EnsureTxStatus(ctx, data.TxID, data.TxIndex, types.TX_STATUS_PREPARE)
 	if err != nil {
@@ -284,11 +285,11 @@ func (k Keeper) ReceiveCommitPacket(
 		}
 		res = contractHandler.OnCommit(ctx, r)
 	} else {
-		if tx.PrepareResult == types.PREPARE_RESULT_OK {
+		if tx.PrepareResult == tpctypes.PREPARE_RESULT_OK {
 			if err := state.Discard(id); err != nil {
 				return nil, err
 			}
-		} else if tx.PrepareResult == types.PREPARE_RESULT_FAILED {
+		} else if tx.PrepareResult == tpctypes.PREPARE_RESULT_FAILED {
 			// nop
 		} else {
 			panic("unreachable")
@@ -320,26 +321,4 @@ func (k Keeper) PacketCommitAcknowledgement(ctx sdk.Context, txID types.TxID, tx
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("cross/%s", types.ModuleName))
-}
-
-func (k Keeper) SetContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex, result types.ContractHandlerResult) {
-	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshalBinaryLengthPrefixed(result)
-	store.Set(types.KeyContractResult(txID, txIndex), bz)
-}
-
-func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) (types.ContractHandlerResult, bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.KeyContractResult(txID, txIndex))
-	if bz == nil {
-		return nil, false
-	}
-	var result types.ContractHandlerResult
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &result)
-	return result, true
-}
-
-func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
-	store := ctx.KVStore(k.storeKey)
-	store.Delete(types.KeyContractResult(txID, txIndex))
 }
