@@ -1185,11 +1185,9 @@ func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross
 	packetData := tpctypes.NewPacketDataPrepare(relayer, txID, txIndex, txInfo)
 	ctx, writer := actx.ctx.CacheContext()
 	ctx = cross.WithSigners(ctx, txInfo.Transaction.Signers)
-	result, err := actx.app.CrossKeeper.TPCKeeper().PrepareTransaction(
+	result, err := actx.app.CrossKeeper.TPCKeeper().Prepare(
 		ctx,
 		contractHandler,
-		dst.Port,
-		dst.Channel,
 		src.Port,
 		src.Channel,
 		packetData,

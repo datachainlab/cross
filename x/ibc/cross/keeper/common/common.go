@@ -22,6 +22,8 @@ type Keeper struct {
 	channelKeeper types.ChannelKeeper
 	portKeeper    types.PortKeeper
 	scopedKeeper  capability.ScopedKeeper
+
+	resolverProvider types.ObjectResolverProvider
 }
 
 func NewKeeper(
@@ -30,13 +32,15 @@ func NewKeeper(
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	scopedKeeper capability.ScopedKeeper,
+	resolverProvider types.ObjectResolverProvider,
 ) Keeper {
 	return Keeper{
-		cdc:           cdc,
-		storeKey:      storeKey,
-		channelKeeper: channelKeeper,
-		portKeeper:    portKeeper,
-		scopedKeeper:  scopedKeeper,
+		cdc:              cdc,
+		storeKey:         storeKey,
+		channelKeeper:    channelKeeper,
+		portKeeper:       portKeeper,
+		scopedKeeper:     scopedKeeper,
+		resolverProvider: resolverProvider,
 	}
 }
 
@@ -87,6 +91,44 @@ func (k Keeper) SendPacket(
 	}
 
 	k.SetUnacknowledgedPacket(ctx, sourcePort, sourceChannel, seq)
+	return nil
+}
+
+func (k Keeper) PrepareTransaction(
+	ctx sdk.Context,
+	contractHandler types.ContractHandler,
+	txID types.TxID,
+	txIndex types.TxIndex,
+	tx types.ContractTransaction,
+	links []types.Object,
+) error {
+	rs, err := k.resolverProvider(links)
+	if err != nil {
+		return err
+	}
+	store, res, err := contractHandler.Handle(
+		types.WithSigners(ctx, tx.Signers),
+		tx.CallInfo,
+		types.ContractRuntimeInfo{StateConstraintType: tx.StateConstraint.Type, ExternalObjectResolver: rs},
+	)
+	if err != nil {
+		return err
+	}
+
+	if rv := tx.ReturnValue; !rv.IsNil() && !rv.Equal(res.GetData()) {
+		return fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.GetData())
+	}
+
+	if ops := store.OPs(); !ops.Equal(tx.StateConstraint.OPs) {
+		return fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), tx.StateConstraint.OPs.String())
+	}
+
+	id := MakeStoreTransactionID(txID, txIndex)
+	if err := store.Precommit(id); err != nil {
+		return err
+	}
+
+	k.SetContractResult(ctx, txID, txIndex, res)
 	return nil
 }
 

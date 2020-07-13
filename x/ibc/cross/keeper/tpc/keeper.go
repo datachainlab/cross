@@ -20,16 +20,14 @@ type Keeper struct {
 	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
 	storeKey sdk.StoreKey // Unexposed key to access store from sdk.Context
 
-	resolverProvider types.ObjectResolverProvider
 	common.Keeper
 }
 
-func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, resolverProvider types.ObjectResolverProvider, ck common.Keeper) Keeper {
+func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper {
 	return Keeper{
-		cdc:              cdc,
-		storeKey:         storeKey,
-		resolverProvider: resolverProvider,
-		Keeper:           ck,
+		cdc:      cdc,
+		storeKey: storeKey,
+		Keeper:   ck,
 	}
 }
 
@@ -87,13 +85,11 @@ func (k Keeper) MulticastPreparePacket(
 	return txID, nil
 }
 
-func (k Keeper) PrepareTransaction(
+func (k Keeper) Prepare(
 	ctx sdk.Context,
 	contractHandler types.ContractHandler,
 	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
+	sourceChannel string,
 	data tpctypes.PacketDataPrepare,
 ) (uint8, error) {
 	if _, ok := k.GetTx(ctx, data.TxID, data.TxIndex); ok {
@@ -101,14 +97,14 @@ func (k Keeper) PrepareTransaction(
 	}
 
 	result := tpctypes.PREPARE_RESULT_OK
-	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data); err != nil {
+	if err := k.PrepareTransaction(ctx, contractHandler, data.TxID, data.TxIndex, data.TxInfo.Transaction, data.TxInfo.LinkObjects); err != nil {
 		result = tpctypes.PREPARE_RESULT_FAILED
 		k.Logger(ctx).Info("failed to prepare transaction", "error", err.Error())
 	}
 
-	c, found := k.ChannelKeeper().GetChannel(ctx, destinationPort, destinationChannel)
+	c, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
-		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", destinationPort, destinationChannel)
+		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", sourcePort, sourceChannel)
 	}
 	hops := c.GetConnectionHops()
 	connID := hops[len(hops)-1]
@@ -116,46 +112,6 @@ func (k Keeper) PrepareTransaction(
 	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, result, connID, data.TxInfo.Transaction.CallInfo)
 	k.SetTx(ctx, data.TxID, data.TxIndex, txinfo)
 	return result, nil
-}
-
-func (k Keeper) prepareTransaction(
-	ctx sdk.Context,
-	contractHandler types.ContractHandler,
-	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
-	data tpctypes.PacketDataPrepare,
-) error {
-	constraint := data.TxInfo.Transaction.StateConstraint
-
-	rs, err := k.resolverProvider(data.TxInfo.LinkObjects)
-	if err != nil {
-		return err
-	}
-	store, res, err := contractHandler.Handle(
-		types.WithSigners(ctx, data.TxInfo.Transaction.Signers),
-		data.TxInfo.Transaction.CallInfo,
-		types.ContractRuntimeInfo{StateConstraintType: constraint.Type, ExternalObjectResolver: rs},
-	)
-	if err != nil {
-		return err
-	}
-
-	if rv := data.TxInfo.Transaction.ReturnValue; !rv.IsNil() && !rv.Equal(res.GetData()) {
-		return fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.GetData())
-	}
-
-	if ops := store.OPs(); !ops.Equal(constraint.OPs) {
-		return fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), constraint.OPs.String())
-	}
-
-	id := common.MakeStoreTransactionID(data.TxID, data.TxIndex)
-	if err := store.Precommit(id); err != nil {
-		return err
-	}
-	k.SetContractResult(ctx, data.TxID, data.TxIndex, res)
-	return nil
 }
 
 func (k Keeper) ReceivePrepareAcknowledgement(
@@ -320,5 +276,5 @@ func (k Keeper) PacketCommitAcknowledgement(ctx sdk.Context, txID types.TxID, tx
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("cross/%s", types.ModuleName))
+	return ctx.Logger().With("module", fmt.Sprintf("cross/%s", TypeName))
 }

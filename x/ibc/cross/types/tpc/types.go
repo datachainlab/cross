@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	TypePrepare       = "cross_prepare"
-	TypePrepareResult = "cross_prepare_result"
-	TypeCommit        = "cross_commit"
-	TypeAckCommit     = "cross_ack_commit"
+	TypePrepare       = "cross_tpc_prepare"
+	TypePrepareResult = "cross_tpc_prepare_result"
+	TypeCommit        = "cross_tpc_commit"
+	TypeAckCommit     = "cross_tpc_ack_commit"
 )
 
 const (
@@ -21,10 +21,10 @@ const (
 )
 
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(PacketDataPrepare{}, "cross/PacketDataPrepare", nil)
-	cdc.RegisterConcrete(PacketPrepareAcknowledgement{}, "cross/PacketPrepareAcknowledgement", nil)
-	cdc.RegisterConcrete(PacketDataCommit{}, "cross/PacketDataCommit", nil)
-	cdc.RegisterConcrete(PacketCommitAcknowledgement{}, "cross/PacketCommitAcknowledgement", nil)
+	cdc.RegisterConcrete(PacketDataPrepare{}, "cross/tpc/PacketDataPrepare", nil)
+	cdc.RegisterConcrete(PacketPrepareAcknowledgement{}, "cross/tpc/PacketPrepareAcknowledgement", nil)
+	cdc.RegisterConcrete(PacketDataCommit{}, "cross/tpc/PacketDataCommit", nil)
+	cdc.RegisterConcrete(PacketCommitAcknowledgement{}, "cross/tpc/PacketCommitAcknowledgement", nil)
 }
 
 func init() {
