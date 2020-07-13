@@ -273,6 +273,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			tss,
 			5,
 			nonce,
+			cross.COMMIT_PROTOCOL_TPC,
 		)
 		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
@@ -319,6 +320,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			tss,
 			3,
 			nonce,
+			cross.COMMIT_PROTOCOL_TPC,
 		)
 		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
@@ -336,6 +338,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			tss,
 			4,
 			nonce,
+			cross.COMMIT_PROTOCOL_TPC,
 		)
 		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
@@ -353,6 +356,7 @@ func (suite *KeeperTestSuite) TestInitiateMsg() {
 			tss,
 			4,
 			nonce,
+			cross.COMMIT_PROTOCOL_TPC,
 		)
 		_, err := app0.app.CrossKeeper.MulticastPreparePacket(
 			app0.ctx,
@@ -486,6 +490,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 		tss,
 		256,
 		nonce,
+		cross.COMMIT_PROTOCOL_TPC,
 	)
 	_, err = suite.app0.app.CrossKeeper.MulticastPreparePacket(
 		suite.app0.ctx,
@@ -778,6 +783,7 @@ func (suite *KeeperTestSuite) TestAbort1() {
 		tss,
 		256,
 		nonce,
+		cross.COMMIT_PROTOCOL_TPC,
 	)
 	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
 		suite.app0.ctx,
@@ -848,6 +854,7 @@ func (suite *KeeperTestSuite) TestAbort2() {
 		tss,
 		256,
 		nonce,
+		cross.COMMIT_PROTOCOL_TPC,
 	)
 	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
 		suite.app0.ctx,
@@ -924,6 +931,7 @@ func (suite *KeeperTestSuite) TestAbort3() {
 		tss,
 		256,
 		nonce,
+		cross.COMMIT_PROTOCOL_TPC,
 	)
 	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
 		suite.app0.ctx,
@@ -1011,6 +1019,7 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 		tss,
 		256,
 		nonce,
+		cross.COMMIT_PROTOCOL_TPC,
 	)
 	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
 		suite.app0.ctx,
@@ -1142,6 +1151,7 @@ func (suite *KeeperTestSuite) TestCrossChainCall() {
 		tss,
 		256,
 		nonce,
+		cross.COMMIT_PROTOCOL_TPC,
 	)
 	txID, err := suite.app0.app.CrossKeeper.MulticastPreparePacket(
 		suite.app0.ctx,

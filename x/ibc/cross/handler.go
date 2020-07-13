@@ -1,6 +1,8 @@
 package cross
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
@@ -63,11 +65,21 @@ Steps:
 - Multicast a Prepare packet to each participants
 */
 func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result, error) {
-	txID, err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
-	if err != nil {
-		return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
+	var data []byte
+	switch msg.CommitProtocol {
+	case types.COMMIT_PROTOCOL_NAIVE:
+		panic("not implemeneted error")
+	case types.COMMIT_PROTOCOL_TPC:
+		txID, err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
+		if err != nil {
+			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
+		}
+		data = txID[:]
+	default:
+		return nil, fmt.Errorf("unknown Commit protocol '%v'", msg.CommitProtocol)
 	}
-	return &sdk.Result{Data: txID[:], Events: ctx.EventManager().ABCIEvents()}, nil
+
+	return &sdk.Result{Data: data, Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 /*

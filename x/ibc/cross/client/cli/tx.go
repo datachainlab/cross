@@ -87,6 +87,7 @@ func GetCreateMsgInitiateCmd(cdc *codec.Codec) *cobra.Command {
 				txs,
 				timeout,
 				nonce,
+				types.COMMIT_PROTOCOL_TPC,
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err

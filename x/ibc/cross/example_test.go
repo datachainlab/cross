@@ -187,6 +187,7 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			tss,
 			256,
 			nonce,
+			cross.COMMIT_PROTOCOL_TPC,
 		)
 		suite.NoError(msg.ValidateBasic())
 		txID = cross.MakeTxID(app0.ctx, msg)

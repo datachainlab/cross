@@ -21,6 +21,11 @@ const (
 )
 
 const (
+	COMMIT_PROTOCOL_NAIVE uint8 = iota // Default
+	COMMIT_PROTOCOL_TPC                // Two-phase commit
+)
+
+const (
 	MaxContractTransactoinNum = math.MaxUint8
 )
 

@@ -202,7 +202,7 @@ func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
 		),
 	}
 
-	msg := cross.NewMsgInitiate(coordinator, "", tss, 256, nonce)
+	msg := cross.NewMsgInitiate(coordinator, "", tss, 256, nonce, cross.COMMIT_PROTOCOL_TPC)
 	res, err := handler(suite.ctx, msg)
 	suite.Require().Error(err)
 	suite.Require().Nil(res, "%+v", res) // channel does not exist
