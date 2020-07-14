@@ -22,6 +22,9 @@ jobs:
     - name: Test
       run: make test
 
+    - name: e2e-test
+      run: make e2e-test
+
     - name: upload simappd binary
       uses: actions/upload-artifact@v1
       with:
