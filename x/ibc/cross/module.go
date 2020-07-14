@@ -18,6 +18,8 @@ import (
 	"github.com/datachainlab/cross/x/ibc/cross/client/cli"
 	"github.com/datachainlab/cross/x/ibc/cross/client/rest"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types/naive"
+	"github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -41,6 +43,8 @@ func (AppModuleBasic) Name() string {
 // RegisterCodec returns RegisterCodec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	RegisterCodec(cdc)
+	naive.RegisterCodec(cdc)
+	tpc.RegisterCodec(cdc)
 }
 
 // DefaultGenesis returns default genesis state
@@ -89,7 +93,7 @@ func NewAppModule(k Keeper, contractHandler ContractHandler) AppModule {
 		AppModuleBasic:                AppModuleBasic{},
 		keeper:                        k,
 		packetReceiver:                NewPacketReceiver(k, contractHandler),
-		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(k),
+		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(k, contractHandler),
 		contractHandler:               contractHandler,
 	}
 }
@@ -109,7 +113,7 @@ func (am AppModule) Route() string {
 
 // NewHandler returns new Handler
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.keeper)
+	return NewHandler(am.keeper, am.contractHandler)
 }
 
 // QuerierRoute returns module name

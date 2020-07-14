@@ -1,17 +1,35 @@
-package keeper
+package tpc
 
 import (
 	"errors"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
-	channelexported "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
-	ibctypes "github.com/cosmos/cosmos-sdk/x/ibc/types"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
+	tpctypes "github.com/datachainlab/cross/x/ibc/cross/types/tpc"
+	"github.com/tendermint/tendermint/libs/log"
 )
+
+const TypeName = "tpc"
+
+type Keeper struct {
+	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
+	storeKey sdk.StoreKey // Unexposed key to access store from sdk.Context
+
+	common.Keeper
+}
+
+func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper {
+	return Keeper{
+		cdc:      cdc,
+		storeKey: storeKey,
+		Keeper:   ck,
+	}
+}
 
 func (k Keeper) MulticastPreparePacket(
 	ctx sdk.Context,
@@ -25,7 +43,7 @@ func (k Keeper) MulticastPreparePacket(
 		return types.TxID{}, fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
 	}
 
-	txID := MakeTxID(ctx, msg)
+	txID := common.MakeTxID(ctx, msg)
 	if _, ok := k.GetCoordinator(ctx, txID); ok {
 		return types.TxID{}, fmt.Errorf("coordinator '%x' already exists", txID)
 	}
@@ -38,7 +56,7 @@ func (k Keeper) MulticastPreparePacket(
 	}
 	for id, t := range transactions {
 		src := t.Source
-		c, found := k.channelKeeper.GetChannel(ctx, src.Port, src.Channel)
+		c, found := k.ChannelKeeper().GetChannel(ctx, src.Port, src.Channel)
 		if !found {
 			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
 		}
@@ -46,8 +64,8 @@ func (k Keeper) MulticastPreparePacket(
 		if err != nil {
 			return types.TxID{}, err
 		}
-		data := types.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
-		if err := k.sendPacket(
+		data := tpctypes.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
+		if err := k.SendPacket(
 			ctx,
 			data.GetBytes(),
 			src.Port, src.Channel,
@@ -67,28 +85,26 @@ func (k Keeper) MulticastPreparePacket(
 	return txID, nil
 }
 
-func (k Keeper) PrepareTransaction(
+func (k Keeper) Prepare(
 	ctx sdk.Context,
 	contractHandler types.ContractHandler,
 	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
-	data types.PacketDataPrepare,
+	sourceChannel string,
+	data tpctypes.PacketDataPrepare,
 ) (uint8, error) {
 	if _, ok := k.GetTx(ctx, data.TxID, data.TxIndex); ok {
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
 	result := types.PREPARE_RESULT_OK
-	if err := k.prepareTransaction(ctx, contractHandler, sourcePort, sourceChannel, destinationPort, destinationChannel, data); err != nil {
+	if err := k.PrepareTransaction(ctx, contractHandler, data.TxID, data.TxIndex, data.TxInfo.Transaction, data.TxInfo.LinkObjects); err != nil {
 		result = types.PREPARE_RESULT_FAILED
 		k.Logger(ctx).Info("failed to prepare transaction", "error", err.Error())
 	}
 
-	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
+	c, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
-		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", destinationPort, destinationChannel)
+		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", sourcePort, sourceChannel)
 	}
 	hops := c.GetConnectionHops()
 	connID := hops[len(hops)-1]
@@ -98,51 +114,11 @@ func (k Keeper) PrepareTransaction(
 	return result, nil
 }
 
-func (k Keeper) prepareTransaction(
-	ctx sdk.Context,
-	contractHandler types.ContractHandler,
-	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
-	data types.PacketDataPrepare,
-) error {
-	constraint := data.TxInfo.Transaction.StateConstraint
-
-	rs, err := k.resolverProvider(data.TxInfo.LinkObjects)
-	if err != nil {
-		return err
-	}
-	store, res, err := contractHandler.Handle(
-		types.WithSigners(ctx, data.TxInfo.Transaction.Signers),
-		data.TxInfo.Transaction.CallInfo,
-		types.ContractRuntimeInfo{StateConstraintType: constraint.Type, ExternalObjectResolver: rs},
-	)
-	if err != nil {
-		return err
-	}
-
-	if rv := data.TxInfo.Transaction.ReturnValue; !rv.IsNil() && !rv.Equal(res.GetData()) {
-		return fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.GetData())
-	}
-
-	if ops := store.OPs(); !ops.Equal(constraint.OPs) {
-		return fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), constraint.OPs.String())
-	}
-
-	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
-	if err := store.Precommit(id); err != nil {
-		return err
-	}
-	k.SetContractResult(ctx, data.TxID, data.TxIndex, res)
-	return nil
-}
-
 func (k Keeper) ReceivePrepareAcknowledgement(
 	ctx sdk.Context,
 	sourcePort string,
 	sourceChannel string,
-	ack types.PacketPrepareAcknowledgement,
+	ack tpctypes.PacketPrepareAcknowledgement,
 	txID types.TxID,
 	txIndex types.TxIndex,
 ) (canMulticast bool, isCommittable bool, err error) {
@@ -155,7 +131,7 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 		return false, false, errors.New("all transactions are already confirmed")
 	}
 
-	c, found := k.channelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
+	c, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
 		return false, false, sdkerrors.Wrap(channel.ErrChannelNotFound, sourceChannel)
 	}
@@ -200,12 +176,12 @@ func (k Keeper) MulticastCommitPacket(
 	}
 
 	for id, c := range co.Channels {
-		ch, found := k.channelKeeper.GetChannel(ctx, c.Port, c.Channel)
+		ch, found := k.ChannelKeeper().GetChannel(ctx, c.Port, c.Channel)
 		if !found {
 			return sdkerrors.Wrap(channel.ErrChannelNotFound, c.Channel)
 		}
-		data := types.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
-		if err := k.sendPacket(
+		data := tpctypes.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
+		if err := k.SendPacket(
 			ctx,
 			data.GetBytes(),
 			c.Port,
@@ -229,13 +205,13 @@ func (k Keeper) ReceiveCommitPacket(
 	sourceChannel,
 	destinationPort,
 	destinationChannel string,
-	data types.PacketDataCommit,
+	data tpctypes.PacketDataCommit,
 ) (types.ContractHandlerResult, error) {
 	tx, err := k.EnsureTxStatus(ctx, data.TxID, data.TxIndex, types.TX_STATUS_PREPARE)
 	if err != nil {
 		return nil, err
 	}
-	c, found := k.channelKeeper.GetChannel(ctx, destinationPort, destinationChannel)
+	c, found := k.ChannelKeeper().GetChannel(ctx, destinationPort, destinationChannel)
 	if !found {
 		return nil, fmt.Errorf("channel not found: port=%v channel=%v", destinationPort, destinationChannel)
 	}
@@ -253,7 +229,7 @@ func (k Keeper) ReceiveCommitPacket(
 
 	var res types.ContractHandlerResult
 	var status uint8
-	id := MakeStoreTransactionID(data.TxID, data.TxIndex)
+	id := common.MakeStoreTransactionID(data.TxID, data.TxIndex)
 	if data.IsCommittable {
 		if err := state.Commit(id); err != nil {
 			return nil, err
@@ -286,48 +262,6 @@ func (k Keeper) ReceiveCommitPacket(
 	return res, nil
 }
 
-func (k Keeper) sendPacket(
-	ctx sdk.Context,
-	data []byte,
-	sourcePort,
-	sourceChannel,
-	destinationPort,
-	destinationChannel string,
-	timeoutHeight uint64,
-	timeoutTimestamp uint64,
-) error {
-	// get the next sequence
-	seq, found := k.channelKeeper.GetNextSequenceSend(ctx, sourcePort, sourceChannel)
-	if !found {
-		return channel.ErrSequenceSendNotFound
-	}
-	packet := channel.NewPacket(
-		data,
-		seq,
-		sourcePort,
-		sourceChannel,
-		destinationPort,
-		destinationChannel,
-		timeoutHeight,
-		timeoutTimestamp,
-	)
-	channelCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(sourcePort, sourceChannel))
-	if !ok {
-		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
-	}
-
-	if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
-		return err
-	}
-
-	k.SetUnacknowledgedPacket(ctx, sourcePort, sourceChannel, seq)
-	return nil
-}
-
-func makePacketKey(port, channel string, seq uint64) string {
-	return fmt.Sprintf("packet/%v/%v/%v", port, channel, seq)
-}
-
 func (k Keeper) PacketCommitAcknowledgement(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) error {
 	ci, err := k.EnsureCoordinatorStatus(ctx, txID, types.CO_STATUS_DECIDED)
 	if err != nil {
@@ -340,34 +274,7 @@ func (k Keeper) PacketCommitAcknowledgement(ctx sdk.Context, txID types.TxID, tx
 	return nil
 }
 
-// PacketExecuted defines a wrapper function for the channel Keeper's function
-// in order to expose it to the cross handler.
-// Keeper retreives channel capability and passes it into channel keeper for authentication
-func (k Keeper) PacketExecuted(ctx sdk.Context, packet channelexported.PacketI, acknowledgement []byte) error {
-	chanCap, ok := k.scopedKeeper.GetCapability(ctx, ibctypes.ChannelCapabilityPath(packet.GetDestPort(), packet.GetDestChannel()))
-	if !ok {
-		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "channel capability could not be retrieved for packet")
-	}
-	return k.channelKeeper.PacketExecuted(ctx, chanCap, packet, acknowledgement)
-}
-
-func MakeTxID(ctx sdk.Context, msg types.MsgInitiate) types.TxID {
-	var txID [32]byte
-
-	a := tmhash.Sum(msg.GetSignBytes())
-	b := tmhash.Sum(types.MakeHashFromABCIHeader(ctx.BlockHeader()).Hash())
-
-	h := tmhash.New()
-	h.Write(a)
-	h.Write(b)
-	copy(txID[:], h.Sum(nil))
-	return txID
-}
-
-func MakeStoreTransactionID(txID types.TxID, txIndex uint8) []byte {
-	size := len(txID)
-	bz := make([]byte, size+1)
-	copy(bz[:size], txID[:])
-	bz[size] = txIndex
-	return bz
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", fmt.Sprintf("cross/%s", TypeName))
 }

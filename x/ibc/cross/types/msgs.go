@@ -8,18 +8,23 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const TypeInitiate = "cross_initiate"
+
 var _ sdk.Msg = (*MsgInitiate)(nil)
 
+// MsgInitiate initiates a Cross-chain transaction
 type MsgInitiate struct {
 	Sender               sdk.AccAddress
 	ChainID              string // chainID of Coordinator node
 	ContractTransactions []ContractTransaction
 	TimeoutHeight        int64 // Timeout for this msg
 	Nonce                uint64
+	CommitProtocol       uint8 // Commit type
 }
 
-func NewMsgInitiate(sender sdk.AccAddress, chainID string, transactions []ContractTransaction, timeoutHeight int64, nonce uint64) MsgInitiate {
-	return MsgInitiate{Sender: sender, ChainID: chainID, ContractTransactions: transactions, TimeoutHeight: timeoutHeight, Nonce: nonce}
+// NewMsgInitiate returns MsgInitiate
+func NewMsgInitiate(sender sdk.AccAddress, chainID string, transactions []ContractTransaction, timeoutHeight int64, nonce uint64, cp uint8) MsgInitiate {
+	return MsgInitiate{Sender: sender, ChainID: chainID, ContractTransactions: transactions, TimeoutHeight: timeoutHeight, Nonce: nonce, CommitProtocol: cp}
 }
 
 // Route implements sdk.Msg
@@ -38,7 +43,21 @@ func (msg MsgInitiate) ValidateBasic() error {
 		return errors.New("this msg includes no transisions")
 	} else if l > MaxContractTransactoinNum {
 		return fmt.Errorf("The number of ContractTransactions exceeds limit: %v > %v", l, MaxContractTransactoinNum)
+	} else {
+		switch msg.CommitProtocol {
+		case COMMIT_PROTOCOL_NAIVE:
+			if l != 2 {
+				return fmt.Errorf("For Commit Protocol 'naive', the number of ContractTransactions must be 2")
+			}
+			if src := msg.ContractTransactions[0].Source; src.Channel != "" || src.Port != "" {
+				return fmt.Errorf("ContractTransactions[0] must be an empty source")
+			}
+		case COMMIT_PROTOCOL_TPC:
+		default:
+			return fmt.Errorf("unknown Commit Protocol '%v'", msg.CommitProtocol)
+		}
 	}
+
 	for id, st := range msg.ContractTransactions {
 		if err := st.ValidateBasic(); err != nil {
 			return err

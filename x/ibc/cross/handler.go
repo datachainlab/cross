@@ -1,18 +1,24 @@
 package cross
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/naive"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/tpc"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
+	naivetypes "github.com/datachainlab/cross/x/ibc/cross/types/naive"
+	tpctypes "github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 )
 
 // NewHandler returns a handler
-func NewHandler(keeper Keeper) sdk.Handler {
+func NewHandler(keeper Keeper, contractHandler ContractHandler) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		switch msg := msg.(type) {
 		case MsgInitiate:
-			return handleMsgInitiate(ctx, keeper, msg)
+			return handleMsgInitiate(ctx, keeper, contractHandler, msg)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC message type: %T", msg)
 		}
@@ -28,10 +34,12 @@ func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketRec
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
 		}
 		switch data := data.(type) {
-		case PacketDataPrepare:
-			return handlePacketDataPrepare(ctx, keeper, contractHandler, packet, data)
-		case PacketDataCommit:
-			return handlePacketDataCommit(ctx, keeper, contractHandler, packet, data)
+		case naivetypes.PacketDataCall:
+			return handlePacketDataCall(ctx, keeper.NaiveKeeper(), contractHandler, packet, data)
+		case tpctypes.PacketDataPrepare:
+			return handlePacketDataPrepare(ctx, keeper.TPCKeeper(), contractHandler, packet, data)
+		case tpctypes.PacketDataCommit:
+			return handlePacketDataCommit(ctx, keeper.TPCKeeper(), contractHandler, packet, data)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet data type: %T", data)
 		}
@@ -40,17 +48,19 @@ func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketRec
 
 type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error)
 
-func NewPacketAcknowledgementReceiver(keeper Keeper) PacketAcknowledgementReceiver {
+func NewPacketAcknowledgementReceiver(keeper Keeper, contractHandler ContractHandler) PacketAcknowledgementReceiver {
 	return func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error) {
 		var data PacketData
 		if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
 		}
 		switch ack := ack.(type) {
-		case PacketPrepareAcknowledgement:
-			return handlePacketPrepareAcknowledgement(ctx, keeper, packet, ack, data.(PacketDataPrepare))
-		case PacketCommitAcknowledgement:
-			return handlePacketCommitAcknowledgement(ctx, keeper, packet, ack, data.(PacketDataCommit))
+		case naivetypes.PacketCallAcknowledgement:
+			return handlePacketCallAcknowledgement(ctx, keeper.NaiveKeeper(), contractHandler, packet, ack, data.(naivetypes.PacketDataCall))
+		case tpctypes.PacketPrepareAcknowledgement:
+			return handlePacketPrepareAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, data.(tpctypes.PacketDataPrepare))
+		case tpctypes.PacketCommitAcknowledgement:
+			return handlePacketCommitAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, data.(tpctypes.PacketDataCommit))
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet data type: %T", data)
 		}
@@ -62,12 +72,51 @@ Steps:
 - Ensure that all channels in ContractTransactions are correct
 - Multicast a Prepare packet to each participants
 */
-func handleMsgInitiate(ctx sdk.Context, k Keeper, msg MsgInitiate) (*sdk.Result, error) {
-	txID, err := k.MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
-	if err != nil {
-		return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
+func handleMsgInitiate(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg MsgInitiate) (*sdk.Result, error) {
+	var data []byte
+	switch msg.CommitProtocol {
+	case types.COMMIT_PROTOCOL_NAIVE:
+		txID, err := k.NaiveKeeper().SendCall(ctx, contractHandler, msg, msg.ContractTransactions)
+		if err != nil {
+			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
+		}
+		data = txID[:]
+	case types.COMMIT_PROTOCOL_TPC:
+		txID, err := k.TPCKeeper().MulticastPreparePacket(ctx, msg.Sender, msg, msg.ContractTransactions)
+		if err != nil {
+			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
+		}
+		data = txID[:]
+	default:
+		return nil, fmt.Errorf("unknown Commit protocol '%v'", msg.CommitProtocol)
 	}
-	return &sdk.Result{Data: txID[:], Events: ctx.EventManager().ABCIEvents()}, nil
+
+	return &sdk.Result{Data: data, Events: ctx.EventManager().ABCIEvents()}, nil
+}
+
+func handlePacketDataCall(ctx sdk.Context, k naive.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data naivetypes.PacketDataCall) (*sdk.Result, error) {
+	status, err := k.ReceiveCallPacket(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, data)
+	if err != nil {
+		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
+	}
+	ack := naivetypes.NewPacketCallAcknowledgement(status)
+	if err := k.PacketExecuted(ctx, packet, ack.GetBytes()); err != nil {
+		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
+	}
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
+}
+
+func handlePacketCallAcknowledgement(ctx sdk.Context, k naive.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, ack naivetypes.PacketCallAcknowledgement, data naivetypes.PacketDataCall) (*sdk.Result, error) {
+	isCommitable, err := k.ReceiveCallAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, data.TxID)
+	if err != nil {
+		return nil, err
+	}
+	res, err := k.TryCommit(ctx, contractHandler, data.TxID, isCommitable)
+	if err != nil {
+		return nil, err
+	}
+	ctx.EventManager().EmitEvents(res.GetEvents())
+	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
 /*
@@ -78,12 +127,12 @@ Steps:
 - If it was success, precommit these changes and get locks for concerned keys. Furthermore, send a Prepacket with status 'OK' to coordinator.
 - If it was failed, discard theses changes. Furthermore, send a Prepacket with status 'Failed' to coordinator.
 */
-func handlePacketDataPrepare(ctx sdk.Context, k Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data PacketDataPrepare) (*sdk.Result, error) {
-	status, err := k.PrepareTransaction(ctx, contractHandler, packet.SourcePort, packet.SourceChannel, packet.DestinationPort, packet.DestinationChannel, data)
+func handlePacketDataPrepare(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataPrepare) (*sdk.Result, error) {
+	status, err := k.Prepare(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
-	ack := types.NewPacketPrepareAcknowledgement(status)
+	ack := tpctypes.NewPacketPrepareAcknowledgement(status)
 	if err := k.PacketExecuted(ctx, packet, ack.GetBytes()); err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
@@ -99,7 +148,7 @@ Steps:
 - If packet status is 'OK' and all packets are confirmed, we send a CommitPacket with status 'Commit' to all participants.
 - If packet status is 'OK' and we haven't confirmed all packets yet, we wait for next packet receiving.
 */
-func handlePacketPrepareAcknowledgement(ctx sdk.Context, k Keeper, packet channeltypes.Packet, ack PacketPrepareAcknowledgement, data PacketDataPrepare) (*sdk.Result, error) {
+func handlePacketPrepareAcknowledgement(ctx sdk.Context, k tpc.Keeper, packet channeltypes.Packet, ack tpctypes.PacketPrepareAcknowledgement, data tpctypes.PacketDataPrepare) (*sdk.Result, error) {
 	canMulticast, isCommitable, err := k.ReceivePrepareAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, data.TxID, data.TxIndex)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedRecievePrepareResult, err.Error())
@@ -121,19 +170,19 @@ Steps:
 - If PacketDataCommit indicates committable, commit precommitted state and unlock locked keys.
 - If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
 */
-func handlePacketDataCommit(ctx sdk.Context, k Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data PacketDataCommit) (*sdk.Result, error) {
+func handlePacketDataCommit(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataCommit) (*sdk.Result, error) {
 	res, err := k.ReceiveCommitPacket(ctx, contractHandler, packet.SourcePort, packet.SourceChannel, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveCommitPacket, err.Error())
 	}
 	ctx.EventManager().EmitEvents(res.GetEvents())
-	if err := k.PacketExecuted(ctx, packet, NewPacketCommitAcknowledgement().GetBytes()); err != nil {
+	if err := k.PacketExecuted(ctx, packet, tpctypes.NewPacketCommitAcknowledgement().GetBytes()); err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedSendAckCommitPacket, err.Error())
 	}
 	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func handlePacketCommitAcknowledgement(ctx sdk.Context, k Keeper, packet channeltypes.Packet, ack PacketCommitAcknowledgement, data PacketDataCommit) (*sdk.Result, error) {
+func handlePacketCommitAcknowledgement(ctx sdk.Context, k tpc.Keeper, packet channeltypes.Packet, ack tpctypes.PacketCommitAcknowledgement, data tpctypes.PacketDataCommit) (*sdk.Result, error) {
 	err := k.PacketCommitAcknowledgement(ctx, data.TxID, data.TxIndex)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveAckCommitPacket, err.Error())

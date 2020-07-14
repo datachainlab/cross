@@ -139,6 +139,7 @@ type SimApp struct {
 	ScopedIBCKeeper      capability.ScopedKeeper
 	ScopedTransferKeeper capability.ScopedKeeper
 	ScopedCrossKeeper    capability.ScopedKeeper
+	ContractHandler      cross.ContractHandler
 
 	// the module manager
 	mm *module.Manager
@@ -368,6 +369,7 @@ func NewSimApp(
 	app.ScopedIBCKeeper = scopedIBCKeeper
 	app.ScopedTransferKeeper = scopedTransferKeeper
 	app.ScopedCrossKeeper = scopedCrossKeeper
+	app.ContractHandler = contractHandler
 
 	return app
 }
