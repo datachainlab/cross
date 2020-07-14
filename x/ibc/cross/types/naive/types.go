@@ -3,6 +3,7 @@ package naive
 import (
 	"math"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
@@ -11,6 +12,15 @@ const (
 	TypeCall    = "cross_naive_call"
 	TypeCallAck = "cross_naive_call_ack"
 )
+
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(PacketDataCall{}, "cross/naive/PacketDataCall", nil)
+	cdc.RegisterConcrete(PacketCallAcknowledgement{}, "cross/naive/PacketCallAcknowledgement", nil)
+}
+
+func init() {
+	RegisterCodec(types.ModuleCdc)
+}
 
 const (
 	COMMIT_OK uint8 = iota + 1
