@@ -96,9 +96,9 @@ func (k Keeper) Prepare(
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
-	result := tpctypes.PREPARE_RESULT_OK
+	result := types.PREPARE_RESULT_OK
 	if err := k.PrepareTransaction(ctx, contractHandler, data.TxID, data.TxIndex, data.TxInfo.Transaction, data.TxInfo.LinkObjects); err != nil {
-		result = tpctypes.PREPARE_RESULT_FAILED
+		result = types.PREPARE_RESULT_FAILED
 		k.Logger(ctx).Info("failed to prepare transaction", "error", err.Error())
 	}
 
@@ -141,10 +141,10 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 	}
 
 	if co.Status == types.CO_STATUS_INIT {
-		if ack.Status == tpctypes.PREPARE_RESULT_FAILED {
+		if ack.Status == types.PREPARE_RESULT_FAILED {
 			co.Status = types.CO_STATUS_DECIDED
 			co.Decision = types.CO_DECISION_ABORT
-		} else if ack.Status == tpctypes.PREPARE_RESULT_OK {
+		} else if ack.Status == types.PREPARE_RESULT_OK {
 			if co.IsCompleted() {
 				co.Status = types.CO_STATUS_DECIDED
 				co.Decision = types.CO_DECISION_COMMIT
@@ -241,11 +241,11 @@ func (k Keeper) ReceiveCommitPacket(
 		}
 		res = contractHandler.OnCommit(ctx, r)
 	} else {
-		if tx.PrepareResult == tpctypes.PREPARE_RESULT_OK {
+		if tx.PrepareResult == types.PREPARE_RESULT_OK {
 			if err := state.Discard(id); err != nil {
 				return nil, err
 			}
-		} else if tx.PrepareResult == tpctypes.PREPARE_RESULT_FAILED {
+		} else if tx.PrepareResult == types.PREPARE_RESULT_FAILED {
 			// nop
 		} else {
 			panic("unreachable")

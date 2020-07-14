@@ -102,34 +102,99 @@ func (k Keeper) PrepareTransaction(
 	tx types.ContractTransaction,
 	links []types.Object,
 ) error {
-	rs, err := k.resolverProvider(links)
+	store, res, err := k.processTransaction(ctx, contractHandler, txID, txIndex, tx, links)
 	if err != nil {
 		return err
 	}
-	store, res, err := contractHandler.Handle(
+	k.SetContractResult(ctx, txID, txIndex, res)
+	return store.Precommit(MakeStoreTransactionID(txID, txIndex))
+}
+
+func (k Keeper) CommitTransaction(
+	ctx sdk.Context,
+	contractHandler types.ContractHandler,
+	txID types.TxID,
+	txIndex types.TxIndex,
+	txInfo *types.TxInfo,
+) (types.ContractHandlerResult, error) {
+	state, err := contractHandler.GetState(ctx, txInfo.ContractCallInfo, types.ContractRuntimeInfo{StateConstraintType: types.NoStateConstraint})
+	if err != nil {
+		return nil, err
+	}
+	if err := state.Commit(MakeStoreTransactionID(txID, txIndex)); err != nil {
+		return nil, err
+	}
+	r, ok := k.GetContractResult(ctx, txID, txIndex)
+	if !ok {
+		return nil, fmt.Errorf("Can't find the execution result of contract handler")
+	}
+	res := contractHandler.OnCommit(ctx, r)
+	k.RemoveContractResult(ctx, txID, txIndex)
+	return res, nil
+}
+
+func (k Keeper) AbortTransaction(
+	ctx sdk.Context,
+	contractHandler types.ContractHandler,
+	txID types.TxID,
+	txIndex types.TxIndex,
+	txInfo *types.TxInfo,
+) error {
+	state, err := contractHandler.GetState(ctx, txInfo.ContractCallInfo, types.ContractRuntimeInfo{StateConstraintType: types.NoStateConstraint})
+	if err != nil {
+		return err
+	}
+	if err := state.Discard(MakeStoreTransactionID(txID, txIndex)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k Keeper) CommitImmediatelyTransaction(
+	ctx sdk.Context,
+	contractHandler types.ContractHandler,
+	txID types.TxID,
+	txIndex types.TxIndex,
+	tx types.ContractTransaction,
+	links []types.Object,
+) error {
+	store, _, err := k.processTransaction(ctx, contractHandler, txID, txIndex, tx, links)
+	if err != nil {
+		return err
+	}
+	return store.CommitImmediately()
+}
+
+func (k Keeper) processTransaction(
+	ctx sdk.Context,
+	contractHandler types.ContractHandler,
+	txID types.TxID,
+	txIndex types.TxIndex,
+	tx types.ContractTransaction,
+	links []types.Object,
+) (store types.Committer, res types.ContractHandlerResult, err error) {
+	rs, err := k.resolverProvider(links)
+	if err != nil {
+		return nil, nil, err
+	}
+	store, res, err = contractHandler.Handle(
 		types.WithSigners(ctx, tx.Signers),
 		tx.CallInfo,
 		types.ContractRuntimeInfo{StateConstraintType: tx.StateConstraint.Type, ExternalObjectResolver: rs},
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if rv := tx.ReturnValue; !rv.IsNil() && !rv.Equal(res.GetData()) {
-		return fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.GetData())
+		return nil, nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.GetData())
 	}
 
 	if ops := store.OPs(); !ops.Equal(tx.StateConstraint.OPs) {
-		return fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), tx.StateConstraint.OPs.String())
+		return nil, nil, fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), tx.StateConstraint.OPs.String())
 	}
 
-	id := MakeStoreTransactionID(txID, txIndex)
-	if err := store.Precommit(id); err != nil {
-		return err
-	}
-
-	k.SetContractResult(ctx, txID, txIndex, res)
-	return nil
+	return store, res, nil
 }
 
 // PacketExecuted defines a wrapper function for the channel Keeper's function

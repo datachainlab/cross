@@ -1,6 +1,7 @@
 package naive
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -9,11 +10,17 @@ import (
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types/naive"
 	naivetypes "github.com/datachainlab/cross/x/ibc/cross/types/naive"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 const TypeName = "naive"
+
+const (
+	TX_INDEX_COORDINATOR types.TxIndex = 0
+	TX_INDEX_PARTICIPANT types.TxIndex = 1
+)
 
 type Keeper struct {
 	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
@@ -30,6 +37,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper
 	}
 }
 
+// caller is Coordinator
 func (k Keeper) SendCall(
 	ctx sdk.Context,
 	contractHandler types.ContractHandler,
@@ -94,7 +102,112 @@ func (k Keeper) SendCall(
 			[]types.ChannelInfo{types.NewChannelInfo(tx1.Source.Port, tx1.Source.Channel)},
 		),
 	)
+	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, types.PREPARE_RESULT_OK, "localhost", data.TxInfo.Transaction.CallInfo)
+	k.SetTx(ctx, data.TxID, TX_INDEX_COORDINATOR, txinfo)
 	return txID, nil
+}
+
+// caller is participant
+func (k Keeper) ReceiveCallPacket(
+	ctx sdk.Context,
+	contractHandler types.ContractHandler,
+	sourcePort,
+	sourceChannel string,
+	data naive.PacketDataCall,
+) (uint8, error) {
+	if _, ok := k.GetTx(ctx, data.TxID, 1); ok {
+		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
+	}
+
+	result := types.PREPARE_RESULT_OK
+	if err := k.CommitImmediatelyTransaction(ctx, contractHandler, data.TxID, 1, data.TxInfo.Transaction, data.TxInfo.LinkObjects); err != nil {
+		result = types.PREPARE_RESULT_FAILED
+		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
+	}
+
+	c, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
+	if !found {
+		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", sourcePort, sourceChannel)
+	}
+	hops := c.GetConnectionHops()
+	connID := hops[len(hops)-1]
+
+	txinfo := types.NewTxInfo(types.TX_STATUS_COMMIT, types.PREPARE_RESULT_OK, connID, data.TxInfo.Transaction.CallInfo)
+	k.SetTx(ctx, data.TxID, TX_INDEX_PARTICIPANT, txinfo)
+	return result, nil
+}
+
+// caller is coordinator
+func (k Keeper) ReceiveCallAcknowledgement(
+	ctx sdk.Context,
+	sourcePort string,
+	sourceChannel string,
+	ack naivetypes.PacketCallAcknowledgement,
+	txID types.TxID,
+) (isCommittable bool, err error) {
+	co, ok := k.GetCoordinator(ctx, txID)
+	if !ok {
+		return false, fmt.Errorf("coordinator '%x' not found", txID)
+	} else if co.Status == types.CO_STATUS_NONE {
+		return false, errors.New("coordinator status must not be CO_STATUS_NONE")
+	} else if co.IsCompleted() {
+		return false, errors.New("all transactions are already confirmed")
+	}
+
+	c, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
+	if !found {
+		return false, sdkerrors.Wrap(channel.ErrChannelNotFound, sourceChannel)
+	}
+	hops := c.GetConnectionHops()
+	if err := co.Confirm(1, hops[len(hops)-1]); err != nil {
+		return false, err
+	}
+	switch ack.Status {
+	case naive.COMMIT_OK:
+		co.Decision = types.CO_DECISION_COMMIT
+	case naive.COMMIT_FAILED:
+		co.Decision = types.CO_DECISION_ABORT
+	default:
+		panic("unreachable")
+	}
+	co.Status = types.CO_STATUS_DECIDED
+	co.AddAck(1)
+	if !co.IsCompleted() || !co.IsReceivedALLAcks() {
+		panic("fatal error")
+	}
+	k.SetCoordinator(ctx, txID, *co)
+	return true, nil
+}
+
+func (k Keeper) TryCommit(
+	ctx sdk.Context,
+	contractHandler types.ContractHandler,
+	txID types.TxID,
+	isCommittable bool,
+) (types.ContractHandlerResult, error) {
+	tx, err := k.EnsureTxStatus(ctx, txID, TX_INDEX_COORDINATOR, types.TX_STATUS_PREPARE)
+	if err != nil {
+		return nil, err
+	}
+
+	var status uint8
+	var res types.ContractHandlerResult
+	if isCommittable {
+		res, err = k.CommitTransaction(ctx, contractHandler, txID, TX_INDEX_COORDINATOR, tx)
+		if err != nil {
+			return nil, err
+		}
+		status = types.TX_STATUS_COMMIT
+	} else {
+		err = k.AbortTransaction(ctx, contractHandler, txID, TX_INDEX_COORDINATOR, tx)
+		if err != nil {
+			return nil, err
+		}
+		status = types.TX_STATUS_ABORT
+	}
+
+	k.UpdateTxStatus(ctx, txID, TX_INDEX_COORDINATOR, status)
+	return res, nil
 }
 
 // Logger returns a module-specific logger.

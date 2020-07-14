@@ -29,6 +29,7 @@ import (
 	simappcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	tpctypes "github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 	"github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
@@ -259,14 +260,14 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 
 	{ // app0 receives PacketPrepareResult from app1
 		ack := tpctypes.NewPacketPrepareAcknowledgement(
-			tpctypes.PREPARE_RESULT_OK,
+			types.PREPARE_RESULT_OK,
 		)
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx0, app1, app0, txID, relayer0Info, txBuilder, packetSeq)
 	}
 
 	{ // app0 receives PacketPrepareResult from app2
 		ack := tpctypes.NewPacketPrepareAcknowledgement(
-			tpctypes.PREPARE_RESULT_OK,
+			types.PREPARE_RESULT_OK,
 		)
 		suite.buildAckMsgAndDoRelay(ack.GetBytes(), preparePacketTx1, app2, app0, txID, relayer0Info, txBuilder, packetSeq)
 

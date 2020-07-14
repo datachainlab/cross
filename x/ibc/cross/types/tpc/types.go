@@ -15,11 +15,6 @@ const (
 	TypeAckCommit     = "cross_tpc_ack_commit"
 )
 
-const (
-	PREPARE_RESULT_OK uint8 = iota + 1
-	PREPARE_RESULT_FAILED
-)
-
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(PacketDataPrepare{}, "cross/tpc/PacketDataPrepare", nil)
 	cdc.RegisterConcrete(PacketPrepareAcknowledgement{}, "cross/tpc/PacketPrepareAcknowledgement", nil)
@@ -95,7 +90,7 @@ func (p PacketPrepareAcknowledgement) Type() string {
 }
 
 func (p PacketPrepareAcknowledgement) IsOK() bool {
-	return p.Status == PREPARE_RESULT_OK
+	return p.Status == types.PREPARE_RESULT_OK
 }
 
 var _ types.PacketData = (*PacketDataCommit)(nil)

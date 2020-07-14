@@ -163,7 +163,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.
 }
 
 func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
-	handler := cross.NewHandler(suite.app.CrossKeeper)
+	handler := cross.NewHandler(suite.app.CrossKeeper, suite.app.ContractHandler)
 	coordinator := sdk.AccAddress("coordinator")
 
 	signer0 := sdk.AccAddress("signerzero")

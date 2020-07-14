@@ -525,9 +525,9 @@ func (suite *KeeperTestSuite) TestRelay() {
 	packetCommitment = suite.app0.app.IBCKeeper.ChannelKeeper.GetPacketCommitment(suite.app0.ctx, suite.ch0to2.Port, suite.ch0to2.Channel, nextSeqSend+1)
 	suite.NotNil(packetCommitment)
 
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, makeTransactionInfo(tss[2]), nextSeqSend+1, tpctypes.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, types.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, types.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, makeTransactionInfo(tss[2]), nextSeqSend+1, types.PREPARE_RESULT_OK)
 
 	// Tests for Confirm step
 
@@ -536,7 +536,7 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// ensure that coordinator decides 'abort'
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -544,11 +544,11 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// ensure that coordinator decides 'abort'
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -556,15 +556,15 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// ensure that coordinator decides 'abort' (ordered sequence number)
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -572,15 +572,15 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// ensure that coordinator decides 'abort' (unordered sequence number)
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
@@ -588,11 +588,11 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// ensure that contractTransaction ID conflict occurs
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.Error(err)
 	}
 	// invalid transactionID
@@ -600,27 +600,27 @@ func (suite *KeeperTestSuite) TestRelay() {
 		capp, _ := suite.app0.Cache()
 		var invalidTxID types.TxID
 		copy(invalidTxID[:], tmhash.Sum(txID[:]))
-		_, _, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), invalidTxID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		_, _, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), invalidTxID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// invalid transactionIndex
 	{
 		capp, _ := suite.app0.Cache()
-		_, _, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 3, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		_, _, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 3, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// ensure that coordinator doesn't execute to multicast more than once
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
@@ -628,27 +628,27 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// ensure that coordinator doesn't receive a result of same contract call
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.Error(err)
 	}
 	// ensure that coordinator decides 'commit' (unordered sequence number)
 	{
 		capp, _ := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.True(isCommitable)
@@ -656,17 +656,17 @@ func (suite *KeeperTestSuite) TestRelay() {
 	// ensure that coordinator decides 'commit' (ordered sequence number)
 	{
 		capp, writer := suite.app0.Cache()
-		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+		canMulticast, isCommitable, err := suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.False(canMulticast)
 		suite.False(isCommitable)
 
-		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
+		canMulticast, isCommitable, err = suite.testConfirmPrepareResult(&capp, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 		suite.NoError(err)
 		suite.True(canMulticast)
 		suite.True(isCommitable)
@@ -795,17 +795,17 @@ func (suite *KeeperTestSuite) TestAbort1() {
 	suite.NoError(err)
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, tpctypes.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, types.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, types.PREPARE_RESULT_FAILED)
 
 	nextSeqSend += 1
 
-	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 	suite.NoError(err)
 	suite.False(canMulticast)
 	suite.False(isCommitable)
 
-	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 	suite.NoError(err)
 	suite.True(canMulticast)
 	suite.False(isCommitable)
@@ -866,17 +866,17 @@ func (suite *KeeperTestSuite) TestAbort2() {
 	suite.NoError(err)
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, tpctypes.PREPARE_RESULT_FAILED)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, tpctypes.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, types.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, types.PREPARE_RESULT_FAILED)
 
 	nextSeqSend += 1
 
-	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 	suite.NoError(err)
 	suite.True(canMulticast)
 	suite.False(isCommitable)
 
-	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 	suite.NoError(err)
 	suite.False(canMulticast)
 	suite.False(isCommitable)
@@ -943,17 +943,17 @@ func (suite *KeeperTestSuite) TestAbort3() {
 	suite.NoError(err)
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, tpctypes.PREPARE_RESULT_FAILED)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, types.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, types.PREPARE_RESULT_FAILED)
 
 	nextSeqSend += 1
 
-	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 	suite.NoError(err)
 	suite.False(canMulticast)
 	suite.False(isCommitable)
 
-	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_FAILED), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 	suite.NoError(err)
 	suite.True(canMulticast)
 	suite.False(isCommitable)
@@ -1031,23 +1031,23 @@ func (suite *KeeperTestSuite) TestStateConstraint() {
 	suite.NoError(err)
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, makeTransactionInfo(tss[2]), nextSeqSend+1, tpctypes.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0]), nextSeqSend, types.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1]), nextSeqSend, types.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 2, suite.chd2, makeTransactionInfo(tss[2]), nextSeqSend+1, types.PREPARE_RESULT_OK)
 
 	nextSeqSend += 1
 
-	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
+	canMulticast, isCommitable, err := suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 0, suite.ch1to0, suite.ch0to1, nextSeqSend)
 	suite.NoError(err)
 	suite.False(canMulticast)
 	suite.False(isCommitable)
 
-	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 1, suite.ch2to0, suite.ch0to2, nextSeqSend)
 	suite.NoError(err)
 	suite.False(canMulticast)
 	suite.False(isCommitable)
 
-	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(tpctypes.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
+	canMulticast, isCommitable, err = suite.testConfirmPrepareResult(suite.app0, tpctypes.NewPacketPrepareAcknowledgement(types.PREPARE_RESULT_OK), txID, 2, suite.ch2to0, suite.ch0to2, nextSeqSend)
 	suite.NoError(err)
 	suite.True(canMulticast)
 	suite.True(isCommitable)
@@ -1176,8 +1176,8 @@ func (suite *KeeperTestSuite) TestCrossChainCall() {
 	}
 
 	var nextSeqSend uint64 = 1
-	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0], objs0...), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
-	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1], objs1...), nextSeqSend, tpctypes.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app1, suite.ch1to0, suite.ch0to1, txID, 0, suite.chd1, makeTransactionInfo(tss[0], objs0...), nextSeqSend, types.PREPARE_RESULT_OK)
+	suite.testPreparePacket(suite.app2, suite.ch2to0, suite.ch0to2, txID, 1, suite.chd2, makeTransactionInfo(tss[1], objs1...), nextSeqSend, types.PREPARE_RESULT_OK)
 }
 
 func (suite *KeeperTestSuite) testPreparePacket(actx *appContext, src, dst cross.ChannelInfo, txID types.TxID, txIndex types.TxIndex, contractHandler cross.ContractHandler, txInfo cross.ContractTransactionInfo, nextseq uint64, expectedPrepareResult uint8) {

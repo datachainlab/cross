@@ -8,7 +8,13 @@ import (
 )
 
 const (
-	TypeCall = "cross_naive_call"
+	TypeCall    = "cross_naive_call"
+	TypeCallAck = "cross_naive_call_ack"
+)
+
+const (
+	COMMIT_OK uint8 = iota + 1
+	COMMIT_FAILED
 )
 
 var _ types.PacketData = (*PacketDataCall)(nil)
@@ -48,4 +54,30 @@ func (p PacketDataCall) GetTimeoutTimestamp() uint64 {
 
 func (p PacketDataCall) Type() string {
 	return TypeCall
+}
+
+var _ types.PacketAcknowledgement = (*PacketCallAcknowledgement)(nil)
+
+type PacketCallAcknowledgement struct {
+	Status uint8
+}
+
+func NewPacketCallAcknowledgement(status uint8) PacketCallAcknowledgement {
+	return PacketCallAcknowledgement{Status: status}
+}
+
+func (p PacketCallAcknowledgement) ValidateBasic() error {
+	return nil
+}
+
+func (p PacketCallAcknowledgement) GetBytes() []byte {
+	return sdk.MustSortJSON(types.ModuleCdc.MustMarshalJSON(p))
+}
+
+func (p PacketCallAcknowledgement) Type() string {
+	return TypeCallAck
+}
+
+func (p PacketCallAcknowledgement) IsOK() bool {
+	return p.Status == COMMIT_OK
 }

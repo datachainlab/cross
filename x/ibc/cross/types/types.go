@@ -26,6 +26,11 @@ const (
 )
 
 const (
+	PREPARE_RESULT_OK uint8 = iota + 1
+	PREPARE_RESULT_FAILED
+)
+
+const (
 	MaxContractTransactoinNum = math.MaxUint8
 )
 
