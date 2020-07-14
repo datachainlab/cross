@@ -15,7 +15,10 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-const TypeName = "naive"
+const (
+	TypeName                = "naive"
+	CoordinatorConnectionID = ""
+)
 
 const (
 	TX_INDEX_COORDINATOR types.TxIndex = 0
@@ -67,7 +70,7 @@ func (k Keeper) SendCall(
 	if err != nil {
 		return types.TxID{}, err
 	}
-	if err := k.PrepareTransaction(ctx, contractHandler, txID, 0, tx0, objs0); err != nil {
+	if err := k.PrepareTransaction(ctx, contractHandler, txID, TX_INDEX_COORDINATOR, tx0, objs0); err != nil {
 		return types.TxID{}, err
 	}
 
@@ -93,17 +96,21 @@ func (k Keeper) SendCall(
 		return types.TxID{}, err
 	}
 	hops := c.GetConnectionHops()
+	co := types.NewCoordinatorInfo(
+		types.CO_STATUS_INIT,
+		[]string{CoordinatorConnectionID, hops[len(hops)-1]},
+		[]types.ChannelInfo{tx0.Source, tx1.Source},
+	)
+	if err := co.Confirm(TX_INDEX_COORDINATOR, CoordinatorConnectionID); err != nil {
+		return types.TxID{}, err
+	}
 	k.SetCoordinator(
 		ctx,
 		txID,
-		types.NewCoordinatorInfo(
-			types.CO_STATUS_INIT,
-			[]string{hops[len(hops)-1]},
-			[]types.ChannelInfo{types.NewChannelInfo(tx1.Source.Port, tx1.Source.Channel)},
-		),
+		co,
 	)
-	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, types.PREPARE_RESULT_OK, "localhost", data.TxInfo.Transaction.CallInfo)
-	k.SetTx(ctx, data.TxID, TX_INDEX_COORDINATOR, txinfo)
+	txinfo := types.NewTxInfo(types.TX_STATUS_PREPARE, types.PREPARE_RESULT_OK, CoordinatorConnectionID, tx0.CallInfo)
+	k.SetTx(ctx, txID, TX_INDEX_COORDINATOR, txinfo)
 	return txID, nil
 }
 
@@ -115,7 +122,7 @@ func (k Keeper) ReceiveCallPacket(
 	sourceChannel string,
 	data naive.PacketDataCall,
 ) (uint8, error) {
-	if _, ok := k.GetTx(ctx, data.TxID, 1); ok {
+	if _, ok := k.GetTx(ctx, data.TxID, TX_INDEX_PARTICIPANT); ok {
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
 	}
 
@@ -159,7 +166,7 @@ func (k Keeper) ReceiveCallAcknowledgement(
 		return false, sdkerrors.Wrap(channel.ErrChannelNotFound, sourceChannel)
 	}
 	hops := c.GetConnectionHops()
-	if err := co.Confirm(1, hops[len(hops)-1]); err != nil {
+	if err := co.Confirm(TX_INDEX_PARTICIPANT, hops[len(hops)-1]); err != nil {
 		return false, err
 	}
 	switch ack.Status {
@@ -171,7 +178,8 @@ func (k Keeper) ReceiveCallAcknowledgement(
 		panic("unreachable")
 	}
 	co.Status = types.CO_STATUS_DECIDED
-	co.AddAck(1)
+	co.AddAck(TX_INDEX_COORDINATOR)
+	co.AddAck(TX_INDEX_PARTICIPANT)
 	if !co.IsCompleted() || !co.IsReceivedALLAcks() {
 		panic("fatal error")
 	}
