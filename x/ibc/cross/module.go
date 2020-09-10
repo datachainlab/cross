@@ -18,7 +18,7 @@ import (
 	"github.com/datachainlab/cross/x/ibc/cross/client/cli"
 	"github.com/datachainlab/cross/x/ibc/cross/client/rest"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
-	"github.com/datachainlab/cross/x/ibc/cross/types/naive"
+	"github.com/datachainlab/cross/x/ibc/cross/types/simple"
 	"github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -43,7 +43,7 @@ func (AppModuleBasic) Name() string {
 // RegisterCodec returns RegisterCodec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	RegisterCodec(cdc)
-	naive.RegisterCodec(cdc)
+	simple.RegisterCodec(cdc)
 	tpc.RegisterCodec(cdc)
 }
 

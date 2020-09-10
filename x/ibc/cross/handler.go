@@ -6,10 +6,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
-	"github.com/datachainlab/cross/x/ibc/cross/keeper/naive"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/simple"
 	"github.com/datachainlab/cross/x/ibc/cross/keeper/tpc"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
-	naivetypes "github.com/datachainlab/cross/x/ibc/cross/types/naive"
+	simpletypes "github.com/datachainlab/cross/x/ibc/cross/types/simple"
 	tpctypes "github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 )
 
@@ -34,8 +34,8 @@ func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketRec
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
 		}
 		switch data := data.(type) {
-		case naivetypes.PacketDataCall:
-			return handlePacketDataCall(ctx, keeper.NaiveKeeper(), contractHandler, packet, data)
+		case simpletypes.PacketDataCall:
+			return handlePacketDataCall(ctx, keeper.SimpleKeeper(), contractHandler, packet, data)
 		case tpctypes.PacketDataPrepare:
 			return handlePacketDataPrepare(ctx, keeper.TPCKeeper(), contractHandler, packet, data)
 		case tpctypes.PacketDataCommit:
@@ -55,8 +55,8 @@ func NewPacketAcknowledgementReceiver(keeper Keeper, contractHandler ContractHan
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
 		}
 		switch ack := ack.(type) {
-		case naivetypes.PacketCallAcknowledgement:
-			return handlePacketCallAcknowledgement(ctx, keeper.NaiveKeeper(), contractHandler, packet, ack, data.(naivetypes.PacketDataCall))
+		case simpletypes.PacketCallAcknowledgement:
+			return handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), contractHandler, packet, ack, data.(simpletypes.PacketDataCall))
 		case tpctypes.PacketPrepareAcknowledgement:
 			return handlePacketPrepareAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, data.(tpctypes.PacketDataPrepare))
 		case tpctypes.PacketCommitAcknowledgement:
@@ -75,8 +75,8 @@ Steps:
 func handleMsgInitiate(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg MsgInitiate) (*sdk.Result, error) {
 	var data []byte
 	switch msg.CommitProtocol {
-	case types.COMMIT_PROTOCOL_NAIVE:
-		txID, err := k.NaiveKeeper().SendCall(ctx, contractHandler, msg, msg.ContractTransactions)
+	case types.COMMIT_PROTOCOL_SIMPLE:
+		txID, err := k.SimpleKeeper().SendCall(ctx, contractHandler, msg, msg.ContractTransactions)
 		if err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 		}
@@ -94,19 +94,19 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, contractHandler ContractHandle
 	return &sdk.Result{Data: data, Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func handlePacketDataCall(ctx sdk.Context, k naive.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data naivetypes.PacketDataCall) (*sdk.Result, error) {
+func handlePacketDataCall(ctx sdk.Context, k simple.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data simpletypes.PacketDataCall) (*sdk.Result, error) {
 	status, err := k.ReceiveCallPacket(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
-	ack := naivetypes.NewPacketCallAcknowledgement(status)
+	ack := simpletypes.NewPacketCallAcknowledgement(status)
 	if err := k.PacketExecuted(ctx, packet, ack.GetBytes()); err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func handlePacketCallAcknowledgement(ctx sdk.Context, k naive.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, ack naivetypes.PacketCallAcknowledgement, data naivetypes.PacketDataCall) (*sdk.Result, error) {
+func handlePacketCallAcknowledgement(ctx sdk.Context, k simple.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, ack simpletypes.PacketCallAcknowledgement, data simpletypes.PacketDataCall) (*sdk.Result, error) {
 	isCommitable, err := k.ReceiveCallAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, data.TxID)
 	if err != nil {
 		return nil, err

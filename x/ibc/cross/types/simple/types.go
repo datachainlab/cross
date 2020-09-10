@@ -1,4 +1,4 @@
-package naive
+package simple
 
 import (
 	"math"
@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	TypeCall    = "cross_naive_call"
-	TypeCallAck = "cross_naive_call_ack"
+	TypeCall    = "cross_simple_call"
+	TypeCallAck = "cross_simple_call_ack"
 )
 
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(PacketDataCall{}, "cross/naive/PacketDataCall", nil)
-	cdc.RegisterConcrete(PacketCallAcknowledgement{}, "cross/naive/PacketCallAcknowledgement", nil)
+	cdc.RegisterConcrete(PacketDataCall{}, "cross/simple/PacketDataCall", nil)
+	cdc.RegisterConcrete(PacketCallAcknowledgement{}, "cross/simple/PacketCallAcknowledgement", nil)
 }
 
 func init() {
