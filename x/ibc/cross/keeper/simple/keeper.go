@@ -1,4 +1,4 @@
-package naive
+package simple
 
 import (
 	"errors"
@@ -10,13 +10,13 @@ import (
 	channel "github.com/cosmos/cosmos-sdk/x/ibc/04-channel"
 	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
-	"github.com/datachainlab/cross/x/ibc/cross/types/naive"
-	naivetypes "github.com/datachainlab/cross/x/ibc/cross/types/naive"
+	"github.com/datachainlab/cross/x/ibc/cross/types/simple"
+	simpletypes "github.com/datachainlab/cross/x/ibc/cross/types/simple"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 const (
-	TypeName                = "naive"
+	TypeName                = "simple"
 	CoordinatorConnectionID = ""
 )
 
@@ -84,7 +84,7 @@ func (k Keeper) SendCall(
 		return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, tx1.Source.Channel)
 	}
 
-	data := naivetypes.NewPacketDataCall(msg.Sender, txID, types.NewContractTransactionInfo(tx1, objs1))
+	data := simpletypes.NewPacketDataCall(msg.Sender, txID, types.NewContractTransactionInfo(tx1, objs1))
 	if err := k.SendPacket(
 		ctx,
 		data.GetBytes(),
@@ -120,7 +120,7 @@ func (k Keeper) ReceiveCallPacket(
 	contractHandler types.ContractHandler,
 	sourcePort,
 	sourceChannel string,
-	data naive.PacketDataCall,
+	data simple.PacketDataCall,
 ) (uint8, error) {
 	if _, ok := k.GetTx(ctx, data.TxID, TX_INDEX_PARTICIPANT); ok {
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
@@ -149,7 +149,7 @@ func (k Keeper) ReceiveCallAcknowledgement(
 	ctx sdk.Context,
 	sourcePort string,
 	sourceChannel string,
-	ack naivetypes.PacketCallAcknowledgement,
+	ack simpletypes.PacketCallAcknowledgement,
 	txID types.TxID,
 ) (isCommittable bool, err error) {
 	co, ok := k.GetCoordinator(ctx, txID)
@@ -170,9 +170,9 @@ func (k Keeper) ReceiveCallAcknowledgement(
 		return false, err
 	}
 	switch ack.Status {
-	case naive.COMMIT_OK:
+	case simple.COMMIT_OK:
 		co.Decision = types.CO_DECISION_COMMIT
-	case naive.COMMIT_FAILED:
+	case simple.COMMIT_FAILED:
 		co.Decision = types.CO_DECISION_ABORT
 	default:
 		panic("unreachable")

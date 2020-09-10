@@ -6,7 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/capability"
 	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/05-port/types"
 	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
-	"github.com/datachainlab/cross/x/ibc/cross/keeper/naive"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/simple"
 	"github.com/datachainlab/cross/x/ibc/cross/keeper/tpc"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
@@ -16,7 +16,7 @@ type Keeper struct {
 	cdc      *codec.Codec // The wire codec for binary encoding/decoding.
 	storeKey sdk.StoreKey // Unexposed key to access store from sdk.Context
 
-	naiveKeeper  naive.Keeper
+	simpleKeeper simple.Keeper
 	tpcKeeper    tpc.Keeper
 	portKeeper   types.PortKeeper
 	scopedKeeper capability.ScopedKeeper
@@ -37,7 +37,7 @@ func NewKeeper(
 	return Keeper{
 		cdc:          cdc,
 		storeKey:     storeKey,
-		naiveKeeper:  naive.NewKeeper(cdc, storeKey, ck),
+		simpleKeeper: simple.NewKeeper(cdc, storeKey, ck),
 		tpcKeeper:    tpc.NewKeeper(cdc, storeKey, ck),
 		portKeeper:   portKeeper,
 		scopedKeeper: scopedKeeper,
@@ -49,8 +49,8 @@ func (k Keeper) TPCKeeper() tpc.Keeper {
 	return k.tpcKeeper
 }
 
-func (k Keeper) NaiveKeeper() naive.Keeper {
-	return k.naiveKeeper
+func (k Keeper) SimpleKeeper() simple.Keeper {
+	return k.simpleKeeper
 }
 
 // BindPort defines a wrapper function for the ort TPCKeeper's function in

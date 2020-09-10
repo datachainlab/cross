@@ -47,7 +47,7 @@ func (msg MsgInitiate) ValidateBasic() error {
 		switch msg.CommitProtocol {
 		case COMMIT_PROTOCOL_NAIVE:
 			if l != 2 {
-				return fmt.Errorf("For Commit Protocol 'naive', the number of ContractTransactions must be 2")
+				return fmt.Errorf("For Commit Protocol 'simple', the number of ContractTransactions must be 2")
 			}
 			if src := msg.ContractTransactions[0].Source; src.Channel != "" || src.Port != "" {
 				return fmt.Errorf("ContractTransactions[0] must be an empty source")

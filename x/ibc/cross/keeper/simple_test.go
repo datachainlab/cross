@@ -7,17 +7,17 @@ import (
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
-	"github.com/datachainlab/cross/x/ibc/cross/types/naive"
+	"github.com/datachainlab/cross/x/ibc/cross/types/simple"
 	"github.com/datachainlab/cross/x/ibc/store/lock"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func TestNaiveKeeperTestSuite(t *testing.T) {
-	suite.Run(t, new(NaiveKeeperTestSuite))
+func TestSimpleKeeperTestSuite(t *testing.T) {
+	suite.Run(t, new(SimpleKeeperTestSuite))
 }
 
-type NaiveKeeperTestSuite struct {
+type SimpleKeeperTestSuite struct {
 	KeeperTestSuite
 
 	app0 *appContext // coordinator
@@ -34,7 +34,7 @@ type NaiveKeeperTestSuite struct {
 	ch1to0 cross.ChannelInfo
 }
 
-func (suite *NaiveKeeperTestSuite) SetupTest() {
+func (suite *SimpleKeeperTestSuite) SetupTest() {
 	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, func(k contract.Keeper) cross.ContractHandler {
 		return suite.createContractHandler(k, "c1")
 	})
@@ -53,7 +53,7 @@ func (suite *NaiveKeeperTestSuite) SetupTest() {
 	suite.ch1to0 = cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
 }
 
-func (suite *NaiveKeeperTestSuite) TestCall() {
+func (suite *SimpleKeeperTestSuite) TestCall() {
 	ci1 := contract.NewContractCallInfo("c1", "issue", [][]byte{[]byte("tone"), []byte("80")})
 	ci2 := contract.NewContractCallInfo("c2", "issue", [][]byte{[]byte("ttwo"), []byte("60")})
 
@@ -92,7 +92,7 @@ func (suite *NaiveKeeperTestSuite) TestCall() {
 	// 		nonce,
 	// 		cross.COMMIT_PROTOCOL_NAIVE,
 	// 	)
-	// 	_, err := suite.app0.app.CrossKeeper.NaiveKeeper().SendCall(
+	// 	_, err := suite.app0.app.CrossKeeper.SimpleKeeper().SendCall(
 	// 		suite.app0.ctx,
 	// 		suite.app0.app.ContractHandler,
 	// 		msg,
@@ -125,7 +125,7 @@ func (suite *NaiveKeeperTestSuite) TestCall() {
 		cross.COMMIT_PROTOCOL_TPC,
 	)
 
-	txID, err := suite.app0.app.CrossKeeper.NaiveKeeper().SendCall(
+	txID, err := suite.app0.app.CrossKeeper.SimpleKeeper().SendCall(
 		suite.app0.ctx,
 		suite.app0.app.ContractHandler,
 		msg,
@@ -133,7 +133,7 @@ func (suite *NaiveKeeperTestSuite) TestCall() {
 	)
 	suite.NoError(err) // successfully executed
 
-	ci, found := suite.app0.app.CrossKeeper.NaiveKeeper().GetCoordinator(suite.app0.ctx, txID)
+	ci, found := suite.app0.app.CrossKeeper.SimpleKeeper().GetCoordinator(suite.app0.ctx, txID)
 	if suite.True(found) {
 		suite.Equal(ci.Status, cross.CO_STATUS_INIT)
 	}
@@ -151,15 +151,15 @@ func (suite *NaiveKeeperTestSuite) TestCall() {
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
-	data := naive.NewPacketDataCall(suite.relayer, txID, types.NewContractTransactionInfo(tss[1], objs1))
-	status, err := suite.app1.app.CrossKeeper.NaiveKeeper().ReceiveCallPacket(suite.app1.ctx, suite.app1.app.ContractHandler, suite.ch1to0.Port, suite.ch1to0.Channel, data)
+	data := simple.NewPacketDataCall(suite.relayer, txID, types.NewContractTransactionInfo(tss[1], objs1))
+	status, err := suite.app1.app.CrossKeeper.SimpleKeeper().ReceiveCallPacket(suite.app1.ctx, suite.app1.app.ContractHandler, suite.ch1to0.Port, suite.ch1to0.Channel, data)
 	suite.NoError(err)
 	suite.Equal(types.PREPARE_RESULT_OK, status)
 
-	isCommittable, err := suite.app0.app.CrossKeeper.NaiveKeeper().ReceiveCallAcknowledgement(suite.app0.ctx, suite.ch0to1.Port, suite.ch0to1.Channel, naive.NewPacketCallAcknowledgement(status), txID)
+	isCommittable, err := suite.app0.app.CrossKeeper.SimpleKeeper().ReceiveCallAcknowledgement(suite.app0.ctx, suite.ch0to1.Port, suite.ch0to1.Channel, simple.NewPacketCallAcknowledgement(status), txID)
 	suite.NoError(err)
 	suite.True(isCommittable)
 
-	_, err = suite.app0.app.CrossKeeper.NaiveKeeper().TryCommit(suite.app0.ctx, suite.app0.app.ContractHandler, txID, isCommittable)
+	_, err = suite.app0.app.CrossKeeper.SimpleKeeper().TryCommit(suite.app0.ctx, suite.app0.app.ContractHandler, txID, isCommittable)
 	suite.NoError(err)
 }
