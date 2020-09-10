@@ -21,8 +21,8 @@ const (
 )
 
 const (
-	COMMIT_PROTOCOL_NAIVE uint8 = iota // Default
-	COMMIT_PROTOCOL_TPC                // Two-phase commit
+	COMMIT_PROTOCOL_SIMPLE uint8 = iota // Default
+	COMMIT_PROTOCOL_TPC                 // Two-phase commit
 )
 
 const (

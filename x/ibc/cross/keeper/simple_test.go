@@ -90,7 +90,7 @@ func (suite *SimpleKeeperTestSuite) TestCall() {
 	// 		tss,
 	// 		5,
 	// 		nonce,
-	// 		cross.COMMIT_PROTOCOL_NAIVE,
+	// 		cross.COMMIT_PROTOCOL_SIMPLE,
 	// 	)
 	// 	_, err := suite.app0.app.CrossKeeper.SimpleKeeper().SendCall(
 	// 		suite.app0.ctx,

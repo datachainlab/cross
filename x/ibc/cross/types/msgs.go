@@ -45,7 +45,7 @@ func (msg MsgInitiate) ValidateBasic() error {
 		return fmt.Errorf("The number of ContractTransactions exceeds limit: %v > %v", l, MaxContractTransactoinNum)
 	} else {
 		switch msg.CommitProtocol {
-		case COMMIT_PROTOCOL_NAIVE:
+		case COMMIT_PROTOCOL_SIMPLE:
 			if l != 2 {
 				return fmt.Errorf("For Commit Protocol 'simple', the number of ContractTransactions must be 2")
 			}

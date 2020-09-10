@@ -75,7 +75,7 @@ Steps:
 func handleMsgInitiate(ctx sdk.Context, k Keeper, contractHandler ContractHandler, msg MsgInitiate) (*sdk.Result, error) {
 	var data []byte
 	switch msg.CommitProtocol {
-	case types.COMMIT_PROTOCOL_NAIVE:
+	case types.COMMIT_PROTOCOL_SIMPLE:
 		txID, err := k.SimpleKeeper().SendCall(ctx, contractHandler, msg, msg.ContractTransactions)
 		if err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
