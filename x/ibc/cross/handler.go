@@ -95,6 +95,10 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, contractHandler ContractHandle
 }
 
 func handlePacketDataCall(ctx sdk.Context, k simple.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data simpletypes.PacketDataCall) (*sdk.Result, error) {
+	ctx, err := k.SetupContext(ctx, data.GetBytes())
+	if err != nil {
+		return nil, err
+	}
 	status, err := k.ReceiveCallPacket(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
@@ -128,6 +132,10 @@ Steps:
 - If it was failed, discard theses changes. Furthermore, send a Prepacket with status 'Failed' to coordinator.
 */
 func handlePacketDataPrepare(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataPrepare) (*sdk.Result, error) {
+	ctx, err := k.SetupContext(ctx, data.GetBytes())
+	if err != nil {
+		return nil, err
+	}
 	status, err := k.Prepare(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
@@ -171,6 +179,10 @@ Steps:
 - If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
 */
 func handlePacketDataCommit(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataCommit) (*sdk.Result, error) {
+	ctx, err := k.SetupContext(ctx, data.GetBytes())
+	if err != nil {
+		return nil, err
+	}
 	res, err := k.ReceiveCommitPacket(ctx, contractHandler, packet.SourcePort, packet.SourceChannel, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrFailedReceiveCommitPacket, err.Error())

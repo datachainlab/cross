@@ -49,9 +49,10 @@ func (msg MsgInitiate) ValidateBasic() error {
 			if l != 2 {
 				return fmt.Errorf("For Commit Protocol 'simple', the number of ContractTransactions must be 2")
 			}
-			if src := msg.ContractTransactions[0].Source; src.Channel != "" || src.Port != "" {
-				return fmt.Errorf("ContractTransactions[0] must be an empty source")
-			}
+			// TODO check if first element indicates self
+			// if src := msg.ContractTransactions[0].Source; src.Channel != "" || src.Port != "" {
+			// 	return fmt.Errorf("ContractTransactions[0] must be an empty source")
+			// }
 		case COMMIT_PROTOCOL_TPC:
 		default:
 			return fmt.Errorf("unknown Commit Protocol '%v'", msg.CommitProtocol)
@@ -137,7 +138,7 @@ func (rv *ReturnValue) Equal(bz []byte) bool {
 }
 
 type ContractTransaction struct {
-	Source          ChannelInfo      `json:"source" yaml:"source"`
+	ChainID         ChainID          `json:"chain_id" yaml:"chain_id"`
 	Signers         []sdk.AccAddress `json:"signers" yaml:"signers"`
 	CallInfo        ContractCallInfo `json:"call_info" yaml:"call_info"`
 	StateConstraint StateConstraint  `json:"state_constraint" yaml:"state_constraint"`
@@ -145,9 +146,9 @@ type ContractTransaction struct {
 	Links           []Link           `json:"links" yaml:"links"`
 }
 
-func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo ContractCallInfo, sc StateConstraint, rv *ReturnValue, links []Link) ContractTransaction {
+func NewContractTransaction(chainID ChainID, signers []sdk.AccAddress, callInfo ContractCallInfo, sc StateConstraint, rv *ReturnValue, links []Link) ContractTransaction {
 	return ContractTransaction{
-		Source:          src,
+		ChainID:         chainID,
 		Signers:         signers,
 		CallInfo:        callInfo,
 		StateConstraint: sc,
@@ -157,9 +158,6 @@ func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo 
 }
 
 func (t ContractTransaction) ValidateBasic() error {
-	if err := t.Source.ValidateBasic(); err != nil {
-		return err
-	}
 	if len(t.Signers) == 0 {
 		return errors.New("Signers must not be empty")
 	}

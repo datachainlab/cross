@@ -79,7 +79,7 @@ func MakeLinker(txs ContractTransactions) (*Linker, error) {
 			if tx.ReturnValue.IsNil() {
 				return returnObject{err: errors.New("On cross-chain call, each contractTransaction must be specified a return-value")}
 			}
-			return returnObject{obj: MakeConstantValueObject(MakeObjectKey(tx.CallInfo, tx.Signers), *tx.ReturnValue)}
+			return returnObject{obj: MakeConstantValueObject(tx.ChainID, MakeObjectKey(tx.CallInfo, tx.Signers), *tx.ReturnValue)}
 		})
 	}
 	return &lkr, nil
@@ -124,6 +124,7 @@ const (
 type Object interface {
 	Type() ObjectType
 	Key() []byte
+	ChainID() ChainID
 	Evaluate([]byte) ([]byte, error)
 }
 
@@ -131,21 +132,29 @@ var _ Object = (*ConstantValueObject)(nil)
 
 // ConstantValueObject is an Object wraps a constant value
 type ConstantValueObject struct {
+	chainID ChainID
+
 	K []byte
 	V []byte
 }
 
 // MakeConstantValueObject returns ConstantValueObject
-func MakeConstantValueObject(key []byte, value []byte) ConstantValueObject {
+func MakeConstantValueObject(chainID ChainID, key []byte, value []byte) ConstantValueObject {
 	return ConstantValueObject{
-		K: key,
-		V: value,
+		chainID: chainID,
+		K:       key,
+		V:       value,
 	}
 }
 
 // Type implements Object.Type
 func (l ConstantValueObject) Type() ObjectType {
 	return ObjectTypeConstantValue
+}
+
+// ChainID implements Object.ChainID
+func (l ConstantValueObject) ChainID() ChainID {
+	return l.chainID
 }
 
 // Key implements Object.Key
@@ -170,7 +179,7 @@ func DefaultResolverProvider() ObjectResolverProvider {
 
 // ObjectResolver resolves a given key to Object
 type ObjectResolver interface {
-	Resolve(key []byte) (Object, error)
+	Resolve(id ChainID, key []byte) (Object, error)
 }
 
 // SequentialResolver is a resolver that resolves an object in sequential
@@ -188,13 +197,16 @@ func NewSequentialResolver(objects []Object) *SequentialResolver {
 
 // Resolve implements ObjectResolver.Resolve
 // If success, resolver increments the internal sequence
-func (r *SequentialResolver) Resolve(key []byte) (Object, error) {
+func (r *SequentialResolver) Resolve(id ChainID, key []byte) (Object, error) {
 	if len(r.objects) <= int(r.seq) {
 		return nil, fmt.Errorf("object not found: seq=%X", r.seq)
 	}
 	obj := r.objects[r.seq]
 	if !bytes.Equal(obj.Key(), key) {
 		return nil, fmt.Errorf("keys mismatch: %X != %X", obj.Key(), key)
+	}
+	if cid := obj.ChainID(); cid.Equal(id) {
+		return nil, fmt.Errorf("chainID mismatch: %v != %v", cid, id)
 	}
 	r.seq++
 	return obj, nil
@@ -211,6 +223,6 @@ func NewFakeResolver() FakeResolver {
 }
 
 // Resolve implements ObjectResolver.Resolve
-func (FakeResolver) Resolve(key []byte) (Object, error) {
-	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%X'", key))
+func (FakeResolver) Resolve(id ChainID, key []byte) (Object, error) {
+	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%v' '%X'", id, key))
 }

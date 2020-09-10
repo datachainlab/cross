@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
 const (
@@ -26,7 +27,7 @@ func NewHTTPResolver(router ServerRouter) HTTPResolver {
 	return HTTPResolver{Router: router}
 }
 
-func (rs HTTPResolver) Resolve(bz []byte) (cross.Object, error) {
+func (rs HTTPResolver) Resolve(id types.ChainID, bz []byte) (cross.Object, error) {
 	return rs.Router.Route(bz)
 }
 
@@ -43,6 +44,10 @@ type HTTPObject struct {
 
 func (HTTPObject) Type() cross.ObjectType {
 	return ObjectTypeHTTP
+}
+
+func (HTTPObject) ChainID() types.ChainID {
+	panic("not implemented error")
 }
 
 func (o HTTPObject) Key() []byte {

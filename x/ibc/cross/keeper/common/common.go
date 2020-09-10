@@ -24,6 +24,7 @@ type Keeper struct {
 	scopedKeeper  capability.ScopedKeeper
 
 	resolverProvider types.ObjectResolverProvider
+	channelResolver  types.ChannelResolver
 }
 
 func NewKeeper(
@@ -33,6 +34,7 @@ func NewKeeper(
 	portKeeper types.PortKeeper,
 	scopedKeeper capability.ScopedKeeper,
 	resolverProvider types.ObjectResolverProvider,
+	channelResolver types.ChannelResolver,
 ) Keeper {
 	return Keeper{
 		cdc:              cdc,
@@ -41,6 +43,7 @@ func NewKeeper(
 		portKeeper:       portKeeper,
 		scopedKeeper:     scopedKeeper,
 		resolverProvider: resolverProvider,
+		channelResolver:  channelResolver,
 	}
 }
 
@@ -333,6 +336,14 @@ func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex type
 func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.KeyContractResult(txID, txIndex))
+}
+
+func (k Keeper) ResolveChannel(ctx sdk.Context, chainID types.ChainID) (*types.ChannelInfo, error) {
+	return k.channelResolver.Resolve(ctx, chainID)
+}
+
+func (k Keeper) SetupContext(ctx sdk.Context, packetData []byte) (sdk.Context, error) {
+	return k.channelResolver.SetupContextWithReceivingPacket(ctx, packetData)
 }
 
 func MakeTxID(ctx sdk.Context, msg types.MsgInitiate) types.TxID {

@@ -9,6 +9,7 @@ import (
 	"github.com/datachainlab/cross/example/simapp"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -51,7 +52,7 @@ func (suite *HandlerTestSuite) SetupTest() {
 func (suite *HandlerTestSuite) TestHandleContractCall() {
 	contractHandler := contract.NewContractHandler(suite.app.ContractKeeper, func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(kvs, tp)
-	})
+	}, types.ChannelInfoResolver{})
 	var methods []contract.Method
 	methods = append(methods, []contract.Method{
 		{

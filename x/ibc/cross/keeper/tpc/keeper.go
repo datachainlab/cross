@@ -55,10 +55,13 @@ func (k Keeper) MulticastPreparePacket(
 		return types.TxID{}, err
 	}
 	for id, t := range transactions {
-		src := t.Source
+		src, err := k.ResolveChannel(ctx, t.ChainID)
+		if err != nil {
+			return types.TxID{}, err
+		}
 		c, found := k.ChannelKeeper().GetChannel(ctx, src.Port, src.Channel)
 		if !found {
-			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
+			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, src.Channel)
 		}
 		objs, err := lkr.Resolve(t.Links)
 		if err != nil {

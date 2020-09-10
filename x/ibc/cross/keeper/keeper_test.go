@@ -158,7 +158,7 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 func (suite *KeeperTestSuite) createContractHandler(k contract.Keeper, cid string) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(kvs, tp)
-	})
+	}, types.ChannelInfoResolver{})
 	c := contract.NewContract([]contract.Method{
 		{
 			Name: "issue",
@@ -221,7 +221,7 @@ func (suite *KeeperTestSuite) createContractHandler(k contract.Keeper, cid strin
 					ctx.Args()[1],
 				}
 				amount := unmarshalCoins(
-					contract.CallExternalFunc(ctx, contract.NewContractCallInfo("c2", "lock-coin", args), []sdk.AccAddress{sender}),
+					contract.CallExternalFunc(ctx, types.NewChannelInfo("port", "channel"), contract.NewContractCallInfo("c2", "lock-coin", args), []sdk.AccAddress{sender}),
 				)
 				setBalance(store, sender, amount)
 				return marshalCoins(amount), nil

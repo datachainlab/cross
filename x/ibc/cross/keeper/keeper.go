@@ -32,8 +32,9 @@ func NewKeeper(
 	portKeeper types.PortKeeper,
 	scopedKeeper capability.ScopedKeeper,
 	resolverProvider types.ObjectResolverProvider,
+	channelResolver types.ChannelResolver,
 ) Keeper {
-	ck := common.NewKeeper(cdc, storeKey, channelKeeper, portKeeper, scopedKeeper, resolverProvider)
+	ck := common.NewKeeper(cdc, storeKey, channelKeeper, portKeeper, scopedKeeper, resolverProvider, channelResolver)
 	return Keeper{
 		cdc:          cdc,
 		storeKey:     storeKey,

@@ -79,16 +79,25 @@ func (k Keeper) SendCall(
 		return types.TxID{}, err
 	}
 
-	c, found := k.ChannelKeeper().GetChannel(ctx, tx1.Source.Port, tx1.Source.Channel)
+	ch0, err := k.ResolveChannel(ctx, tx0.ChainID)
+	if err != nil {
+		return types.TxID{}, err
+	}
+	ch1, err := k.ResolveChannel(ctx, tx1.ChainID)
+	if err != nil {
+		return types.TxID{}, err
+	}
+
+	c, found := k.ChannelKeeper().GetChannel(ctx, ch1.Port, ch1.Channel)
 	if !found {
-		return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, tx1.Source.Channel)
+		return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, ch1.Channel)
 	}
 
 	data := simpletypes.NewPacketDataCall(msg.Sender, txID, types.NewContractTransactionInfo(tx1, objs1))
 	if err := k.SendPacket(
 		ctx,
 		data.GetBytes(),
-		tx1.Source.Port, tx1.Source.Channel,
+		ch1.Port, ch1.Channel,
 		c.Counterparty.PortID, c.Counterparty.ChannelID,
 		data.GetTimeoutHeight(),
 		data.GetTimeoutTimestamp(),
@@ -99,7 +108,7 @@ func (k Keeper) SendCall(
 	co := types.NewCoordinatorInfo(
 		types.CO_STATUS_INIT,
 		[]string{CoordinatorConnectionID, hops[len(hops)-1]},
-		[]types.ChannelInfo{tx0.Source, tx1.Source},
+		[]types.ChannelInfo{*ch0, *ch1},
 	)
 	if err := co.Confirm(TX_INDEX_COORDINATOR, CoordinatorConnectionID); err != nil {
 		return types.TxID{}, err
