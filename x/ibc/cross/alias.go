@@ -63,7 +63,7 @@ type (
 	ContractHandler         = types.ContractHandler
 	ContractHandlerResult   = types.ContractHandlerResult
 	MsgInitiate             = types.MsgInitiate
-	PacketData              = types.PacketData
+	PacketDataPayload       = types.PacketDataPayload
 	PacketAcknowledgement   = types.PacketAcknowledgement
 	OP                      = types.OP
 	OPs                     = types.OPs
