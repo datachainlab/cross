@@ -237,8 +237,12 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			0,
 			cross.ContractTransactionInfo{Transaction: tss[0]},
 		)
+		bz, err := types.MarshalPacketData(types.NewPacketData(nil, data.GetBytes()))
+		if err != nil {
+			panic(err)
+		}
 		preparePacketTx0 = channeltypes.NewPacket(
-			data.GetBytes(),
+			bz,
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight(), 0)
 		suite.buildMsgAndDoRelay(preparePacketTx0, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
@@ -250,8 +254,12 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			1,
 			cross.ContractTransactionInfo{Transaction: tss[1]},
 		)
+		bz, err := types.MarshalPacketData(types.NewPacketData(nil, data.GetBytes()))
+		if err != nil {
+			panic(err)
+		}
 		preparePacketTx1 = channeltypes.NewPacket(
-			data.GetBytes(),
+			bz,
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight(), 0)
 		suite.buildMsgAndDoRelay(preparePacketTx1, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}
@@ -292,8 +300,12 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			0,
 			true,
 		)
+		bz, err := types.MarshalPacketData(types.NewPacketData(nil, data.GetBytes()))
+		if err != nil {
+			panic(err)
+		}
 		commitPacketTx0 = channeltypes.NewPacket(
-			data.GetBytes(),
+			bz,
 			packetSeq, ch0to1.Port, ch0to1.Channel, ch1to0.Port, ch1to0.Channel, data.GetTimeoutHeight(), 0)
 		suite.buildMsgAndDoRelay(commitPacketTx0, app0, app1, txID, relayer0Info, txBuilder, packetSeq)
 	}
@@ -303,8 +315,12 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 			1,
 			true,
 		)
+		bz, err := types.MarshalPacketData(types.NewPacketData(nil, data.GetBytes()))
+		if err != nil {
+			panic(err)
+		}
 		commitPacketTx1 = channeltypes.NewPacket(
-			data.GetBytes(),
+			bz,
 			packetSeq, ch0to2.Port, ch0to2.Channel, ch2to0.Port, ch2to0.Channel, data.GetTimeoutHeight(), 0)
 		suite.buildMsgAndDoRelay(commitPacketTx1, app0, app2, txID, relayer0Info, txBuilder, packetSeq)
 	}

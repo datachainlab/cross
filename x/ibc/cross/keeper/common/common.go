@@ -61,7 +61,7 @@ func (k Keeper) ScopedKeeper() capability.ScopedKeeper {
 
 func (k Keeper) SendPacket(
 	ctx sdk.Context,
-	data []byte,
+	payload []byte,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
@@ -69,6 +69,12 @@ func (k Keeper) SendPacket(
 	timeoutHeight uint64,
 	timeoutTimestamp uint64,
 ) error {
+	// Wrap raw data with a container
+	data, err := types.MarshalPacketData(types.NewPacketData(nil, payload))
+	if err != nil {
+		return err
+	}
+
 	// get the next sequence
 	seq, found := k.channelKeeper.GetNextSequenceSend(ctx, sourcePort, sourceChannel)
 	if !found {

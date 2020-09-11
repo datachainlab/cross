@@ -26,7 +26,7 @@ func init() {
 	RegisterCodec(types.ModuleCdc)
 }
 
-var _ types.PacketData = (*PacketDataPrepare)(nil)
+var _ types.PacketDataPayload = (*PacketDataPrepare)(nil)
 
 type PacketDataPrepare struct {
 	Sender  sdk.AccAddress
@@ -94,7 +94,7 @@ func (p PacketPrepareAcknowledgement) IsOK() bool {
 	return p.Status == types.PREPARE_RESULT_OK
 }
 
-var _ types.PacketData = (*PacketDataCommit)(nil)
+var _ types.PacketDataPayload = (*PacketDataCommit)(nil)
 
 type PacketDataCommit struct {
 	TxID          types.TxID

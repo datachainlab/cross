@@ -29,19 +29,20 @@ type PacketReceiver func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Resu
 
 func NewPacketReceiver(keeper Keeper, contractHandler ContractHandler) PacketReceiver {
 	return func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error) {
-		var data PacketData
-		if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
+		var pd types.PacketData
+		var payload PacketDataPayload
+		if err := types.UnmarshalPacketDataPayload(types.ModuleCdc, packet.GetData(), &pd, &payload); err != nil {
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
 		}
-		switch data := data.(type) {
+		switch payload := payload.(type) {
 		case simpletypes.PacketDataCall:
-			return handlePacketDataCall(ctx, keeper.SimpleKeeper(), contractHandler, packet, data)
+			return handlePacketDataCall(ctx, keeper.SimpleKeeper(), contractHandler, packet, payload)
 		case tpctypes.PacketDataPrepare:
-			return handlePacketDataPrepare(ctx, keeper.TPCKeeper(), contractHandler, packet, data)
+			return handlePacketDataPrepare(ctx, keeper.TPCKeeper(), contractHandler, packet, payload)
 		case tpctypes.PacketDataCommit:
-			return handlePacketDataCommit(ctx, keeper.TPCKeeper(), contractHandler, packet, data)
+			return handlePacketDataCommit(ctx, keeper.TPCKeeper(), contractHandler, packet, payload)
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet data type: %T", data)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet payload type: %T", payload)
 		}
 	}
 }
@@ -50,19 +51,20 @@ type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Pac
 
 func NewPacketAcknowledgementReceiver(keeper Keeper, contractHandler ContractHandler) PacketAcknowledgementReceiver {
 	return func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error) {
-		var data PacketData
-		if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
+		var pd types.PacketData
+		var payload PacketDataPayload
+		if err := types.UnmarshalPacketDataPayload(types.ModuleCdc, packet.GetData(), &pd, &payload); err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
 		}
 		switch ack := ack.(type) {
 		case simpletypes.PacketCallAcknowledgement:
-			return handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), contractHandler, packet, ack, data.(simpletypes.PacketDataCall))
+			return handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), contractHandler, packet, ack, payload.(simpletypes.PacketDataCall))
 		case tpctypes.PacketPrepareAcknowledgement:
-			return handlePacketPrepareAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, data.(tpctypes.PacketDataPrepare))
+			return handlePacketPrepareAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, payload.(tpctypes.PacketDataPrepare))
 		case tpctypes.PacketCommitAcknowledgement:
-			return handlePacketCommitAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, data.(tpctypes.PacketDataCommit))
+			return handlePacketCommitAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, payload.(tpctypes.PacketDataCommit))
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet data type: %T", data)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC ack type: %T", ack)
 		}
 	}
 }

@@ -27,7 +27,7 @@ const (
 	COMMIT_FAILED
 )
 
-var _ types.PacketData = (*PacketDataCall)(nil)
+var _ types.PacketDataPayload = (*PacketDataCall)(nil)
 
 type PacketDataCall struct {
 	Sender sdk.AccAddress
