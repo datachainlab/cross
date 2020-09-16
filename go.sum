@@ -43,6 +43,8 @@ github.com/bgentry/speakeasy v0.1.0 h1:ByYyxL9InA1OWqxJqqp2A5pYHUrCiAL6K3J+LKSsQ
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/bluele/interchain-simple-packet v0.0.0-20200910144230-4d0ddd5ec642 h1:1JCCdbBMoYKCRiA8EFrrhowWzrfyHwWqyImPQICx60o=
 github.com/bluele/interchain-simple-packet v0.0.0-20200910144230-4d0ddd5ec642/go.mod h1:t8Y1c48mTEwGNUsxz3ByNirt2Lr5kUTMAC/50Jj5j6k=
+github.com/bluele/interchain-simple-packet v0.0.0-20200912044232-f9777fd0845d h1:IvUublrYYrgftoDivdt9zr7Pa3V+qAgACt4QSULCSBc=
+github.com/bluele/interchain-simple-packet v0.0.0-20200912044232-f9777fd0845d/go.mod h1:t8Y1c48mTEwGNUsxz3ByNirt2Lr5kUTMAC/50Jj5j6k=
 github.com/btcsuite/btcd v0.0.0-20190115013929-ed77733ec07d h1:xG8Pj6Y6J760xwETNmMzmlt38QSwz0BLp1cZ09g27uw=
 github.com/btcsuite/btcd v0.0.0-20190115013929-ed77733ec07d/go.mod h1:d3C0AkH6BRcvO8T0UEPu53cnw4IbV63x1bEjildYhO0=
 github.com/btcsuite/btcd v0.20.1-beta h1:Ik4hyJqN8Jfyv3S4AGBOmyouMsYE3EdYODkMbQjwPGw=

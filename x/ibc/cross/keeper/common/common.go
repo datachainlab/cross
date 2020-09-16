@@ -62,7 +62,7 @@ func (k Keeper) ScopedKeeper() capability.ScopedKeeper {
 func (k Keeper) SendPacket(
 	ctx sdk.Context,
 	packetSender types.PacketSender,
-	payload []byte,
+	payload types.PacketDataPayload,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
@@ -70,8 +70,9 @@ func (k Keeper) SendPacket(
 	timeoutHeight uint64,
 	timeoutTimestamp uint64,
 ) error {
+	data := types.NewPacketData(nil, payload.GetBytes())
 	// Wrap raw data with a container
-	data, err := types.MarshalPacketData(types.NewPacketData(nil, payload))
+	bz, err := types.MarshalPacketData(data)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func (k Keeper) SendPacket(
 		return channel.ErrSequenceSendNotFound
 	}
 	packet := channel.NewPacket(
-		data,
+		bz,
 		seq,
 		sourcePort,
 		sourceChannel,
@@ -96,7 +97,7 @@ func (k Keeper) SendPacket(
 		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
 
-	if err := packetSender.SendPacket(ctx, channelCap, packet); err != nil {
+	if err := packetSender.SendPacket(ctx, channelCap, types.NewOutgoingPacket(packet, data, payload)); err != nil {
 		return err
 	}
 

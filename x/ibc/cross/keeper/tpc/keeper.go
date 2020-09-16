@@ -72,7 +72,7 @@ func (k Keeper) MulticastPreparePacket(
 		if err := k.SendPacket(
 			ctx,
 			packetSender,
-			data.GetBytes(),
+			data,
 			src.Port, src.Channel,
 			c.Counterparty.PortID, c.Counterparty.ChannelID,
 			data.GetTimeoutHeight(),
@@ -190,7 +190,7 @@ func (k Keeper) MulticastCommitPacket(
 		if err := k.SendPacket(
 			ctx,
 			packetSender,
-			data.GetBytes(),
+			data,
 			c.Port,
 			c.Channel,
 			ch.GetCounterparty().GetPortID(),

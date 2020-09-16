@@ -5,6 +5,7 @@ import (
 
 	sptypes "github.com/bluele/interchain-simple-packet/types"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 )
 
 type (
@@ -49,4 +50,85 @@ func UnmarshalPacketDataPayload(cdc *codec.Codec, bz []byte, pd *PacketData, ptr
 		return err
 	}
 	return cdc.UnmarshalJSON(pd.Payload, ptr)
+}
+
+func UnmarshalIncomingPacket(cdc *codec.Codec, raw exported.PacketI) (IncomingPacket, error) {
+	var pd PacketData
+	var payload PacketDataPayload
+	if err := UnmarshalPacketDataPayload(cdc, raw.GetData(), &pd, &payload); err != nil {
+		return nil, err
+	}
+	return NewIncomingPacket(raw, pd, payload), nil
+}
+
+type IncomingPacket interface {
+	exported.PacketI
+	PacketData() PacketData
+	Payload() PacketDataPayload
+}
+
+var _ IncomingPacket = (*incomingPacket)(nil)
+
+type incomingPacket struct {
+	exported.PacketI
+	packetData PacketData
+	payload    PacketDataPayload
+}
+
+func NewIncomingPacket(raw exported.PacketI, packetData PacketData, payload PacketDataPayload) IncomingPacket {
+	return &incomingPacket{
+		PacketI:    raw,
+		packetData: packetData,
+		payload:    payload,
+	}
+}
+
+func (p incomingPacket) PacketData() PacketData {
+	return p.packetData
+}
+
+func (p incomingPacket) Payload() PacketDataPayload {
+	return p.payload
+}
+
+type OutgoingPacket interface {
+	IncomingPacket
+	SetPacketData(header Header, payload PacketDataPayload)
+}
+
+var _ OutgoingPacket = (*outgoingPacket)(nil)
+
+type outgoingPacket struct {
+	exported.PacketI
+	packetData PacketData
+	payload    PacketDataPayload
+}
+
+func NewOutgoingPacket(raw exported.PacketI, packetData PacketData, payload PacketDataPayload) OutgoingPacket {
+	return &outgoingPacket{
+		PacketI:    raw,
+		packetData: packetData,
+		payload:    payload,
+	}
+}
+
+func (p outgoingPacket) PacketData() PacketData {
+	return p.packetData
+}
+
+func (p outgoingPacket) Payload() PacketDataPayload {
+	return p.payload
+}
+
+func (p *outgoingPacket) SetPacketData(header Header, payload PacketDataPayload) {
+	p.payload = payload
+	p.packetData = NewPacketData(&header, payload.GetBytes())
+}
+
+func (p outgoingPacket) GetData() []byte {
+	bz, err := MarshalPacketData(p.packetData)
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }

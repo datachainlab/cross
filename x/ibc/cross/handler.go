@@ -16,7 +16,8 @@ import (
 // NewHandler returns a handler
 func NewHandler(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx, ps, err := packetMiddleware.HandleMsg(ctx, msg, keeper.ChannelKeeper())
+		ps := types.NewSimplePacketSender(keeper.ChannelKeeper())
+		ctx, ps, err := packetMiddleware.HandleMsg(ctx, msg, ps)
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 		}
@@ -33,16 +34,16 @@ type PacketReceiver func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Resu
 
 func NewPacketReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) PacketReceiver {
 	return func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error) {
-		var pd types.PacketData
-		var payload PacketDataPayload
-		if err := types.UnmarshalPacketDataPayload(types.ModuleCdc, packet.GetData(), &pd, &payload); err != nil {
+		ip, err := types.UnmarshalIncomingPacket(types.ModuleCdc, packet)
+		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
 		}
-		ctx, _, err := packetMiddleware.HandlePacket(ctx, packet, keeper.ChannelKeeper())
+		ps := types.NewSimplePacketSender(keeper.ChannelKeeper())
+		ctx, _, err = packetMiddleware.HandlePacket(ctx, ip, ps)
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 		}
-		switch payload := payload.(type) {
+		switch payload := ip.Payload().(type) {
 		case simpletypes.PacketDataCall:
 			return handlePacketDataCall(ctx, keeper.SimpleKeeper(), contractHandler, packet, payload)
 		case tpctypes.PacketDataPrepare:
@@ -59,22 +60,21 @@ type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Pac
 
 func NewPacketAcknowledgementReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) PacketAcknowledgementReceiver {
 	return func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error) {
-		var pd types.PacketData
-		var payload PacketDataPayload
-		if err := types.UnmarshalPacketDataPayload(types.ModuleCdc, packet.GetData(), &pd, &payload); err != nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T", packet)
+		pi, err := types.UnmarshalIncomingPacket(types.ModuleCdc, packet)
+		if err != nil {
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
 		}
-		ctx, ps, err := packetMiddleware.HandleACK(ctx, packet, ack.GetBytes(), keeper.ChannelKeeper())
+		ctx, ps, err := packetMiddleware.HandleACK(ctx, pi, ack.GetBytes(), types.NewSimplePacketSender(keeper.ChannelKeeper()))
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 		}
 		switch ack := ack.(type) {
 		case simpletypes.PacketCallAcknowledgement:
-			return handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), contractHandler, packet, ack, payload.(simpletypes.PacketDataCall))
+			return handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), contractHandler, packet, ack, pi.Payload().(simpletypes.PacketDataCall))
 		case tpctypes.PacketPrepareAcknowledgement:
-			return handlePacketPrepareAcknowledgement(ctx, keeper.TPCKeeper(), ps, packet, ack, payload.(tpctypes.PacketDataPrepare))
+			return handlePacketPrepareAcknowledgement(ctx, keeper.TPCKeeper(), ps, packet, ack, pi.Payload().(tpctypes.PacketDataPrepare))
 		case tpctypes.PacketCommitAcknowledgement:
-			return handlePacketCommitAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, payload.(tpctypes.PacketDataCommit))
+			return handlePacketCommitAcknowledgement(ctx, keeper.TPCKeeper(), packet, ack, pi.Payload().(tpctypes.PacketDataCommit))
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC ack type: %T", ack)
 		}

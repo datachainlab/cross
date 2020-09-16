@@ -98,7 +98,7 @@ func (k Keeper) SendCall(
 	if err := k.SendPacket(
 		ctx,
 		packetSender,
-		data.GetBytes(),
+		data,
 		ch1.Port, ch1.Channel,
 		c.Counterparty.PortID, c.Counterparty.ChannelID,
 		data.GetTimeoutHeight(),
