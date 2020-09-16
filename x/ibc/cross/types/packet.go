@@ -7,7 +7,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-type PacketData = sptypes.PacketData
+type (
+	Header     = sptypes.Header
+	PacketData = sptypes.PacketData
+)
 
 // NewPacketData returns a new packet data
 func NewPacketData(h *sptypes.Header, payload []byte) PacketData {

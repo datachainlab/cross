@@ -16,28 +16,12 @@ func (ci ChannelInfo) Equal(other ChainID) bool {
 }
 
 type ChannelResolver interface {
-	SetupContextWithReceivingPacket(ctx sdk.Context, packetData []byte) (sdk.Context, error)
-
-	MatchContext(ctx sdk.Context) bool
-
 	Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
-}
-
-type ContextMatcher interface {
-	MatchContext(ctx sdk.Context) bool
 }
 
 type ChannelInfoResolver struct{}
 
 var _ ChannelResolver = (*ChannelInfoResolver)(nil)
-
-func (r ChannelInfoResolver) SetupContextWithReceivingPacket(ctx sdk.Context, packetData []byte) (sdk.Context, error) {
-	return ctx.WithValue("channel", true), nil
-}
-
-func (r ChannelInfoResolver) MatchContext(ctx sdk.Context) bool {
-	return ctx.Value("channel") != nil
-}
 
 func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error) {
 	ci, ok := chainID.(ChannelInfo)

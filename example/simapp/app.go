@@ -257,18 +257,19 @@ func NewSimApp(
 		scopedTransferKeeper,
 	)
 	app.ContractKeeper = contract.NewKeeper(app.cdc, keys[contract.StoreKey])
+	channelResolver := cross.ChannelInfoResolver{}
 	app.CrossKeeper = cross.NewKeeper(
 		app.cdc, keys[cross.StoreKey],
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper,
 		cross.DefaultResolverProvider(),
-		nil, // TODO set ChannelResolver
+		channelResolver,
 	)
 	contractHandler := contractHandlerProvider(app.ContractKeeper)
 
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
-	crossModule := cross.NewAppModule(app.CrossKeeper, contractHandler)
+	crossModule := cross.NewAppModule(app.CrossKeeper, nil, contractHandler)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := port.NewRouter()

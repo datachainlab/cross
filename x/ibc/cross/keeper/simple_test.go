@@ -127,6 +127,7 @@ func (suite *SimpleKeeperTestSuite) TestCall() {
 
 	txID, err := suite.app0.app.CrossKeeper.SimpleKeeper().SendCall(
 		suite.app0.ctx,
+		suite.app0.app.IBCKeeper.ChannelKeeper,
 		suite.app0.app.ContractHandler,
 		msg,
 		msg.ContractTransactions,

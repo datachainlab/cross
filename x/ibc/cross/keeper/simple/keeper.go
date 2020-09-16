@@ -43,6 +43,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper
 // caller is Coordinator
 func (k Keeper) SendCall(
 	ctx sdk.Context,
+	packetSender types.PacketSender,
 	contractHandler types.ContractHandler,
 	msg types.MsgInitiate,
 	transactions []types.ContractTransaction,
@@ -96,6 +97,7 @@ func (k Keeper) SendCall(
 	data := simpletypes.NewPacketDataCall(msg.Sender, txID, types.NewContractTransactionInfo(tx1, objs1))
 	if err := k.SendPacket(
 		ctx,
+		packetSender,
 		data.GetBytes(),
 		ch1.Port, ch1.Channel,
 		c.Counterparty.PortID, c.Counterparty.ChannelID,

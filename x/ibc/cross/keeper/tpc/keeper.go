@@ -33,6 +33,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper
 
 func (k Keeper) MulticastPreparePacket(
 	ctx sdk.Context,
+	packetSender types.PacketSender,
 	sender sdk.AccAddress,
 	msg types.MsgInitiate,
 	transactions []types.ContractTransaction,
@@ -70,6 +71,7 @@ func (k Keeper) MulticastPreparePacket(
 		data := tpctypes.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
 		if err := k.SendPacket(
 			ctx,
+			packetSender,
 			data.GetBytes(),
 			src.Port, src.Channel,
 			c.Counterparty.PortID, c.Counterparty.ChannelID,
@@ -168,6 +170,7 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 
 func (k Keeper) MulticastCommitPacket(
 	ctx sdk.Context,
+	packetSender types.PacketSender,
 	txID types.TxID,
 	isCommittable bool,
 ) error {
@@ -186,6 +189,7 @@ func (k Keeper) MulticastCommitPacket(
 		data := tpctypes.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
 		if err := k.SendPacket(
 			ctx,
+			packetSender,
 			data.GetBytes(),
 			c.Port,
 			c.Channel,

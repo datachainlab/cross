@@ -61,6 +61,7 @@ func (k Keeper) ScopedKeeper() capability.ScopedKeeper {
 
 func (k Keeper) SendPacket(
 	ctx sdk.Context,
+	packetSender types.PacketSender,
 	payload []byte,
 	sourcePort,
 	sourceChannel,
@@ -95,7 +96,7 @@ func (k Keeper) SendPacket(
 		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
 
-	if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
+	if err := packetSender.SendPacket(ctx, channelCap, packet); err != nil {
 		return err
 	}
 
@@ -346,10 +347,6 @@ func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex t
 
 func (k Keeper) ResolveChannel(ctx sdk.Context, chainID types.ChainID) (*types.ChannelInfo, error) {
 	return k.channelResolver.Resolve(ctx, chainID)
-}
-
-func (k Keeper) SetupContext(ctx sdk.Context, packetData []byte) (sdk.Context, error) {
-	return k.channelResolver.SetupContextWithReceivingPacket(ctx, packetData)
 }
 
 func MakeTxID(ctx sdk.Context, msg types.MsgInitiate) types.TxID {

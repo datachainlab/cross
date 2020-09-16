@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"errors"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -47,20 +46,16 @@ type contractHandler struct {
 	keeper          Keeper
 	routes          map[string]Contract
 	stateProvider   StateProvider
-	channelResolver crosstypes.ContextMatcher
+	channelResolver crosstypes.ChannelResolver
 }
 
 var _ cross.ContractHandler = (*contractHandler)(nil)
 
-func NewContractHandler(k Keeper, stateProvider StateProvider, channelResolver crosstypes.ContextMatcher) *contractHandler {
+func NewContractHandler(k Keeper, stateProvider StateProvider, channelResolver crosstypes.ChannelResolver) *contractHandler {
 	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider, channelResolver: channelResolver}
 }
 
 func (h *contractHandler) Handle(ctx sdk.Context, callInfo cross.ContractCallInfo, rtInfo cross.ContractRuntimeInfo) (state cross.State, res cross.ContractHandlerResult, err error) {
-	// TODO if there are no links, should skip this checks?
-	if !h.channelResolver.MatchContext(ctx) {
-		return nil, nil, errors.New("mismatch context")
-	}
 	info, err := types.DecodeContractCallInfo(callInfo)
 	if err != nil {
 		return nil, nil, err

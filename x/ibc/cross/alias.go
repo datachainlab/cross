@@ -89,4 +89,6 @@ type (
 	ObjectType              = types.ObjectType
 	Link                    = types.Link
 	LinkType                = types.LinkType
+	ChannelResolver         = types.ChannelResolver
+	ChannelInfoResolver     = types.ChannelInfoResolver
 )
