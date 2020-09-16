@@ -8,20 +8,11 @@ import (
 // PacketMiddleware defines middleware interface of handling packets
 type PacketMiddleware interface {
 	// HandleMsg handles sdk.Msg
-	HandleMsg(ctx sdk.Context, msg sdk.Msg, sender PacketSender) (sdk.Context, PacketSender, error)
+	HandleMsg(ctx sdk.Context, msg sdk.Msg, ps PacketSender) (sdk.Context, PacketSender, error)
 	// HandlePacket handles a packet
-	HandlePacket(ctx sdk.Context, packet IncomingPacket, sender PacketSender) (sdk.Context, PacketSender, error)
+	HandlePacket(ctx sdk.Context, packet IncomingPacket, ps PacketSender, as ACKSender) (sdk.Context, PacketSender, ACKSender, error)
 	// HandleACK handles a packet and packet ack
-	HandleACK(ctx sdk.Context, packet IncomingPacket, ack []byte, sender PacketSender) (sdk.Context, PacketSender, error)
-}
-
-// PacketSender defines packet-sender interface
-type PacketSender interface {
-	SendPacket(
-		ctx sdk.Context,
-		channelCap *capabilitytypes.Capability,
-		packet OutgoingPacket,
-	) error
+	HandleACK(ctx sdk.Context, packet IncomingPacket, ack []byte, ps PacketSender) (sdk.Context, PacketSender, error)
 }
 
 // nopPacketMiddleware is middleware that does nothing
@@ -35,18 +26,27 @@ func NewNOPPacketMiddleware() PacketMiddleware {
 }
 
 // HandleMsg implements PacketMiddleware.HandleMsg
-func (m nopPacketMiddleware) HandleMsg(ctx sdk.Context, msg sdk.Msg, sender PacketSender) (sdk.Context, PacketSender, error) {
-	return ctx, sender, nil
+func (m nopPacketMiddleware) HandleMsg(ctx sdk.Context, msg sdk.Msg, ps PacketSender) (sdk.Context, PacketSender, error) {
+	return ctx, ps, nil
 }
 
 // HandlePacket implements PacketMiddleware.HandlePacket
-func (m nopPacketMiddleware) HandlePacket(ctx sdk.Context, packet IncomingPacket, sender PacketSender) (sdk.Context, PacketSender, error) {
-	return ctx, sender, nil
+func (m nopPacketMiddleware) HandlePacket(ctx sdk.Context, packet IncomingPacket, ps PacketSender, as ACKSender) (sdk.Context, PacketSender, ACKSender, error) {
+	return ctx, ps, as, nil
 }
 
 // HandlePacket implements PacketMiddleware.HandleACK
-func (m nopPacketMiddleware) HandleACK(ctx sdk.Context, packet IncomingPacket, ack []byte, sender PacketSender) (sdk.Context, PacketSender, error) {
-	return ctx, sender, nil
+func (m nopPacketMiddleware) HandleACK(ctx sdk.Context, packet IncomingPacket, ack []byte, ps PacketSender) (sdk.Context, PacketSender, error) {
+	return ctx, ps, nil
+}
+
+// PacketSender defines packet-sender interface
+type PacketSender interface {
+	SendPacket(
+		ctx sdk.Context,
+		channelCap *capabilitytypes.Capability,
+		packet OutgoingPacket,
+	) error
 }
 
 type simplePacketSender struct {
@@ -63,4 +63,23 @@ func (s simplePacketSender) SendPacket(
 	packet OutgoingPacket,
 ) error {
 	return s.channelKeeper.SendPacket(ctx, channelCap, packet)
+}
+
+type ACKSender interface {
+	SendACK(
+		ctx sdk.Context,
+		ack []byte, // TODO define standard ack format like simple packet
+	) ([]byte, error)
+}
+
+type simpleACKSender struct{}
+
+var _ ACKSender = (*simpleACKSender)(nil)
+
+func NewSimpleACKSender() ACKSender {
+	return &simpleACKSender{}
+}
+
+func (s *simpleACKSender) SendACK(ctx sdk.Context, ack []byte) ([]byte, error) {
+	return ack, nil
 }
