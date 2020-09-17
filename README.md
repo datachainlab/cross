@@ -1,6 +1,15 @@
 # Cross Framework
 
-![](https://github.com/datachainlab/cross/workflows/Test/badge.svg)
+<div align="center">
+  <img width="300" alt="Cross Framework" src="./docs/images/cross_logo.png" />
+</div>
+
+<div align="center">
+  <a href="https://pkg.go.dev/github.com/datachainlab/cross?tab=doc">
+    <img alt="godoc" src="https://godoc.org/github.com/datachainlab/cross?status.svg" />
+  </a>
+  <img alt="gh-action" src="https://github.com/datachainlab/cross/workflows/Test/badge.svg" />
+</div>
 
 Cross is a framework for Cross-chain transaction. It is implemented as [Cosmos module](https://github.com/cosmos/cosmos-sdk).
 
@@ -27,10 +36,6 @@ For specs and documents, see [here](./docs/spec).
 ## FAQ
 
 Please see [here](./docs/spec/XX_faq.md).
-
-## Future works
-
-Currently, golang is the only language supported for smart contract development. However, in the future, EVM support will allow for development using solidity. This will bring not only scaling, but also interoperability to existing smart contract that is developed as Ethereum contracts.
 
 ## Maintainers
 
