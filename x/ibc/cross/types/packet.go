@@ -64,6 +64,7 @@ func UnmarshalIncomingPacket(cdc *codec.Codec, raw exported.PacketI) (IncomingPa
 type IncomingPacket interface {
 	exported.PacketI
 	PacketData() PacketData
+	Header() Header
 	Payload() PacketDataPayload
 }
 
@@ -85,6 +86,10 @@ func NewIncomingPacket(raw exported.PacketI, packetData PacketData, payload Pack
 
 func (p incomingPacket) PacketData() PacketData {
 	return p.packetData
+}
+
+func (p incomingPacket) Header() Header {
+	return p.packetData.Header
 }
 
 func (p incomingPacket) Payload() PacketDataPayload {
@@ -114,6 +119,10 @@ func NewOutgoingPacket(raw exported.PacketI, packetData PacketData, payload Pack
 
 func (p outgoingPacket) PacketData() PacketData {
 	return p.packetData
+}
+
+func (p outgoingPacket) Header() Header {
+	return p.packetData.Header
 }
 
 func (p outgoingPacket) Payload() PacketDataPayload {
