@@ -1,7 +1,7 @@
 # Cross Framework
 
 <div align="center">
-  <img width="300" alt="Cross Framework" src="./docs/images/cross_logo.png" />
+  <img width="400" alt="Cross Framework" src="./docs/images/cross_logo.png" />
 </div>
 
 <div align="center">
