@@ -205,7 +205,7 @@ func (r *SequentialResolver) Resolve(id ChainID, key []byte) (Object, error) {
 	if !bytes.Equal(obj.Key(), key) {
 		return nil, fmt.Errorf("keys mismatch: %X != %X", obj.Key(), key)
 	}
-	if cid := obj.ChainID(); cid.Equal(id) {
+	if cid := obj.ChainID(); !cid.Equal(id) {
 		return nil, fmt.Errorf("chainID mismatch: %v != %v", cid, id)
 	}
 	r.seq++

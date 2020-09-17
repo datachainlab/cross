@@ -11,18 +11,37 @@ type ChainID interface {
 	Equal(ChainID) bool
 }
 
+// Equal implements ChainID.Equal
 func (ci ChannelInfo) Equal(other ChainID) bool {
 	return ci == other
 }
 
+// ChannelResolver defines the interface of resolver resolves chainID to ChannelInfo
 type ChannelResolver interface {
 	Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
+	Capabilities() ChannelResolverCapabilities
 }
 
+// ChannelResolverCapabilities defines the capabilities for the ChannelResolver
+type ChannelResolverCapabilities interface {
+	// CrossChainCalls returns true if support for cross-chain calls is enabled.
+	CrossChainCalls() bool
+}
+
+type channelResolverCapabilities struct {
+	crossChainCalls bool
+}
+
+func (c channelResolverCapabilities) CrossChainCalls() bool {
+	return c.crossChainCalls
+}
+
+// ChannelInfoResolver just returns a given ChannelInfo as is.
 type ChannelInfoResolver struct{}
 
 var _ ChannelResolver = (*ChannelInfoResolver)(nil)
 
+// Resolve implements ChannelResolver.ResResolve
 func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error) {
 	ci, ok := chainID.(ChannelInfo)
 	if !ok {
@@ -31,39 +50,7 @@ func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*Channel
 	return &ci, nil
 }
 
-// TODO move this into other package
-
-// var _ ChainID = (*DNSChainID)(nil)
-
-// type DNSChainID struct {
-// 	DomainName string
-// }
-
-// func (c DNSChainID) Equal(chainID ChainID) bool {
-// 	return c == chainID
-// }
-
-// type DNSResolver struct {
-// 	primaryDNSID string
-// }
-
-// var _ ChannelResolver = (*DNSResolver)(nil)
-
-// func NewDNSResolver(primaryDNSID string) DNSResolver {
-// 	return DNSResolver{primaryDNSID: primaryDNSID}
-// }
-
-// func (r DNSResolver) SetupContextWithReceivingPacket(ctx sdk.Context, packetData []byte) (sdk.Context, error) {
-// 	// TODO implement this
-// 	// parse header and get DNS-ID from its
-// 	return ctx.WithValue("dns", "xxxx"), nil
-// }
-
-// func (r DNSResolver) MatchContext(ctx sdk.Context) bool {
-// 	return r.primaryDNSID == ctx.Value("dns").(string)
-// }
-
-// func (r DNSResolver) Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error) {
-// 	// use primaryDNSID to resolve chainID
-// 	return nil, fmt.Errorf("not implemented error")
-// }
+// Capabilities implements ChannelResolver.Capabilities
+func (r ChannelInfoResolver) Capabilities() ChannelResolverCapabilities {
+	return channelResolverCapabilities{crossChainCalls: false}
+}

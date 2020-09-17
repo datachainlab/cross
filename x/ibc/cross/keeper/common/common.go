@@ -346,8 +346,8 @@ func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex t
 	store.Delete(types.KeyContractResult(txID, txIndex))
 }
 
-func (k Keeper) ResolveChannel(ctx sdk.Context, chainID types.ChainID) (*types.ChannelInfo, error) {
-	return k.channelResolver.Resolve(ctx, chainID)
+func (k Keeper) ChannelResolver() types.ChannelResolver {
+	return k.channelResolver
 }
 
 func MakeTxID(ctx sdk.Context, msg types.MsgInitiate) types.TxID {
