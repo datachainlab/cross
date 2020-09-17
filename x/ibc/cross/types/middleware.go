@@ -12,7 +12,7 @@ type PacketMiddleware interface {
 	// HandlePacket handles a packet
 	HandlePacket(ctx sdk.Context, packet IncomingPacket, ps PacketSender, as ACKSender) (sdk.Context, PacketSender, ACKSender, error)
 	// HandleACK handles a packet and packet ack
-	HandleACK(ctx sdk.Context, packet IncomingPacket, ack []byte, ps PacketSender) (sdk.Context, PacketSender, error)
+	HandleACK(ctx sdk.Context, packet IncomingPacket, ack IncomingPacketAcknowledgement, ps PacketSender) (sdk.Context, PacketSender, error)
 }
 
 // nopPacketMiddleware is middleware that does nothing
@@ -36,7 +36,7 @@ func (m nopPacketMiddleware) HandlePacket(ctx sdk.Context, packet IncomingPacket
 }
 
 // HandlePacket implements PacketMiddleware.HandleACK
-func (m nopPacketMiddleware) HandleACK(ctx sdk.Context, packet IncomingPacket, ack []byte, ps PacketSender) (sdk.Context, PacketSender, error) {
+func (m nopPacketMiddleware) HandleACK(ctx sdk.Context, packet IncomingPacket, ack IncomingPacketAcknowledgement, ps PacketSender) (sdk.Context, PacketSender, error) {
 	return ctx, ps, nil
 }
 
@@ -68,8 +68,8 @@ func (s simplePacketSender) SendPacket(
 type ACKSender interface {
 	SendACK(
 		ctx sdk.Context,
-		ack []byte, // TODO define standard ack format like simple packet
-	) ([]byte, error)
+		ack OutgoingPacketAcknowledgement,
+	) error
 }
 
 type simpleACKSender struct{}
@@ -80,6 +80,6 @@ func NewSimpleACKSender() ACKSender {
 	return &simpleACKSender{}
 }
 
-func (s *simpleACKSender) SendACK(ctx sdk.Context, ack []byte) ([]byte, error) {
-	return ack, nil
+func (s *simpleACKSender) SendACK(ctx sdk.Context, ack OutgoingPacketAcknowledgement) error {
+	return nil
 }

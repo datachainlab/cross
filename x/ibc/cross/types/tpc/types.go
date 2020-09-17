@@ -68,7 +68,7 @@ func (p PacketDataPrepare) Type() string {
 	return TypePrepare
 }
 
-var _ types.PacketAcknowledgement = (*PacketPrepareAcknowledgement)(nil)
+var _ types.PacketAcknowledgementPayload = (*PacketPrepareAcknowledgement)(nil)
 
 type PacketPrepareAcknowledgement struct {
 	Status uint8
@@ -126,7 +126,7 @@ func (p PacketDataCommit) Type() string {
 	return TypeCommit
 }
 
-var _ types.PacketAcknowledgement = (*PacketCommitAcknowledgement)(nil)
+var _ types.PacketAcknowledgementPayload = (*PacketCommitAcknowledgement)(nil)
 
 type PacketCommitAcknowledgement struct{}
 

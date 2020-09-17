@@ -16,8 +16,7 @@ import (
 // NewHandler returns a handler
 func NewHandler(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ps := types.NewSimplePacketSender(keeper.ChannelKeeper())
-		ctx, ps, err := packetMiddleware.HandleMsg(ctx, msg, ps)
+		ctx, ps, err := packetMiddleware.HandleMsg(ctx, msg, types.NewSimplePacketSender(keeper.ChannelKeeper()))
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 		}
@@ -38,14 +37,12 @@ func NewPacketReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, c
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
 		}
-		ps := types.NewSimplePacketSender(keeper.ChannelKeeper())
-		as := types.NewSimpleACKSender()
-		ctx, _, as, err = packetMiddleware.HandlePacket(ctx, ip, ps, as)
+		ctx, _, as, err := packetMiddleware.HandlePacket(ctx, ip, types.NewSimplePacketSender(keeper.ChannelKeeper()), types.NewSimpleACKSender())
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 		}
 		var resData []byte
-		var ack []byte
+		var ack types.OutgoingPacketAcknowledgement
 		switch payload := ip.Payload().(type) {
 		case simpletypes.PacketDataCall:
 			resData, ack, err = handlePacketDataCall(ctx, keeper.SimpleKeeper(), contractHandler, packet, payload)
@@ -59,31 +56,34 @@ func NewPacketReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, c
 		if err != nil {
 			return nil, err
 		}
-		ack, err = as.SendACK(ctx, ack)
+		if err = as.SendACK(ctx, ack); err != nil {
+			return nil, err
+		}
+		bz, err := types.MarshalPacketAcknowledgementData(ack.Data())
 		if err != nil {
 			return nil, err
 		}
-		if err := keeper.PacketExecuted(ctx, packet, ack); err != nil {
+		if err := keeper.PacketExecuted(ctx, packet, bz); err != nil {
 			return nil, err
 		}
 		return &sdk.Result{Data: resData, Events: ctx.EventManager().ABCIEvents()}, nil
 	}
 }
 
-type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error)
+type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Packet, ack types.IncomingPacketAcknowledgement) (*sdk.Result, error)
 
 func NewPacketAcknowledgementReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) PacketAcknowledgementReceiver {
-	return func(ctx sdk.Context, packet channeltypes.Packet, ack PacketAcknowledgement) (*sdk.Result, error) {
+	return func(ctx sdk.Context, packet channeltypes.Packet, ack types.IncomingPacketAcknowledgement) (*sdk.Result, error) {
 		pi, err := types.UnmarshalIncomingPacket(types.ModuleCdc, packet)
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
 		}
-		ctx, ps, err := packetMiddleware.HandleACK(ctx, pi, ack.GetBytes(), types.NewSimplePacketSender(keeper.ChannelKeeper()))
+		ctx, ps, err := packetMiddleware.HandleACK(ctx, pi, ack, types.NewSimplePacketSender(keeper.ChannelKeeper()))
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 		}
 		var resData []byte
-		switch ack := ack.(type) {
+		switch ack := ack.Payload().(type) {
 		case simpletypes.PacketCallAcknowledgement:
 			resData, err = handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), contractHandler, packet, ack, pi.Payload().(simpletypes.PacketDataCall))
 		case tpctypes.PacketPrepareAcknowledgement:
@@ -127,12 +127,12 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, packetSender types.PacketSende
 	return &sdk.Result{Data: data, Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func handlePacketDataCall(ctx sdk.Context, k simple.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, payload simpletypes.PacketDataCall) (res []byte, ack []byte, err error) {
+func handlePacketDataCall(ctx sdk.Context, k simple.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, payload simpletypes.PacketDataCall) (res []byte, ack types.OutgoingPacketAcknowledgement, err error) {
 	status, err := k.ReceiveCallPacket(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, payload)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
-	return nil, simpletypes.NewPacketCallAcknowledgement(status).GetBytes(), nil
+	return nil, types.NewOutgoingPacketAcknowledgement(nil, simpletypes.NewPacketCallAcknowledgement(status)), nil
 }
 
 func handlePacketCallAcknowledgement(ctx sdk.Context, k simple.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, ack simpletypes.PacketCallAcknowledgement, payload simpletypes.PacketDataCall) ([]byte, error) {
@@ -156,12 +156,12 @@ Steps:
 - If it was success, precommit these changes and get locks for concerned keys. Furthermore, send a Prepacket with status 'OK' to coordinator.
 - If it was failed, discard theses changes. Furthermore, send a Prepacket with status 'Failed' to coordinator.
 */
-func handlePacketDataPrepare(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataPrepare) (res []byte, ack []byte, err error) {
+func handlePacketDataPrepare(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataPrepare) (res []byte, ack types.OutgoingPacketAcknowledgement, err error) {
 	status, err := k.Prepare(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrFailedPrepare, err.Error())
 	}
-	return nil, tpctypes.NewPacketPrepareAcknowledgement(status).GetBytes(), nil
+	return nil, types.NewOutgoingPacketAcknowledgement(nil, tpctypes.NewPacketPrepareAcknowledgement(status)), nil
 }
 
 /*
@@ -195,13 +195,13 @@ Steps:
 - If PacketDataCommit indicates committable, commit precommitted state and unlock locked keys.
 - If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
 */
-func handlePacketDataCommit(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataCommit) (res []byte, ack []byte, err error) {
+func handlePacketDataCommit(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataCommit) (res []byte, ack types.OutgoingPacketAcknowledgement, err error) {
 	r, err := k.ReceiveCommitPacket(ctx, contractHandler, packet.SourcePort, packet.SourceChannel, packet.DestinationPort, packet.DestinationChannel, data)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrFailedReceiveCommitPacket, err.Error())
 	}
 	ctx.EventManager().EmitEvents(r.GetEvents())
-	return r.GetData(), tpctypes.NewPacketCommitAcknowledgement().GetBytes(), nil
+	return r.GetData(), types.NewOutgoingPacketAcknowledgement(nil, tpctypes.NewPacketCommitAcknowledgement()), nil
 }
 
 func handlePacketCommitAcknowledgement(ctx sdk.Context, k tpc.Keeper, packet channeltypes.Packet, ack tpctypes.PacketCommitAcknowledgement, data tpctypes.PacketDataCommit) ([]byte, error) {

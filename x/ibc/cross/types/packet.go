@@ -9,14 +9,15 @@ import (
 )
 
 type (
-	Header     = sptypes.Header
-	PacketData = sptypes.PacketData
+	Header                    = sptypes.Header
+	PacketData                = sptypes.PacketData
+	PacketAcknowledgementData = PacketData
 )
 
 // NewPacketData returns a new packet data
-func NewPacketData(h *sptypes.Header, payload []byte) PacketData {
+func NewPacketData(h *Header, payload []byte) PacketData {
 	if h == nil {
-		h = &sptypes.Header{}
+		h = &Header{}
 	}
 	return sptypes.NewSimplePacketData(*h, payload)
 }
@@ -27,7 +28,7 @@ type PacketDataPayload interface {
 	Type() string
 }
 
-type PacketAcknowledgement interface {
+type PacketAcknowledgementPayload interface {
 	ValidateBasic() error
 	GetBytes() []byte
 	Type() string
@@ -140,4 +141,100 @@ func (p outgoingPacket) GetData() []byte {
 		panic(err)
 	}
 	return bz
+}
+
+func MarshalPacketAcknowledgementData(data PacketAcknowledgementData) ([]byte, error) {
+	bz, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return bz, nil
+}
+
+func UnmarshalPacketAcknowledgementData(bz []byte, ad *PacketAcknowledgementData) error {
+	return json.Unmarshal(bz, ad)
+}
+
+func NewPacketAcknowledgementData(h *Header, payload PacketAcknowledgementPayload) PacketAcknowledgementData {
+	if h == nil {
+		h = new(Header)
+	}
+	return PacketAcknowledgementData{
+		Header:  *h,
+		Payload: payload.GetBytes(),
+	}
+}
+
+type IncomingPacketAcknowledgement interface {
+	Data() PacketAcknowledgementData
+	Header() Header
+	Payload() PacketAcknowledgementPayload
+}
+
+type incomingPacketAcknowledgement struct {
+	data    PacketAcknowledgementData
+	payload PacketAcknowledgementPayload
+}
+
+var _ IncomingPacketAcknowledgement = (*incomingPacketAcknowledgement)(nil)
+
+func NewIncomingPacketAcknowledgement(h *Header, payload PacketAcknowledgementPayload) IncomingPacketAcknowledgement {
+	return incomingPacketAcknowledgement{data: NewPacketAcknowledgementData(h, payload), payload: payload}
+}
+
+func (a incomingPacketAcknowledgement) Data() PacketAcknowledgementData {
+	return a.data
+}
+
+func (a incomingPacketAcknowledgement) Header() Header {
+	return a.data.Header
+}
+
+func (a incomingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
+	return a.payload
+}
+
+func UnmarshalIncomingPacketAcknowledgement(cdc *codec.Codec, bz []byte) (IncomingPacketAcknowledgement, error) {
+	var pd PacketAcknowledgementData
+	var payload PacketAcknowledgementPayload
+	if err := UnmarshalPacketDataPayload(cdc, bz, &pd, &payload); err != nil {
+		return nil, err
+	}
+	return NewIncomingPacketAcknowledgement(&pd.Header, payload), nil
+}
+
+type OutgoingPacketAcknowledgement interface {
+	IncomingPacketAcknowledgement
+	SetData(header Header, payload PacketAcknowledgementPayload)
+}
+
+type outgoingPacketAcknowledgement struct {
+	data    PacketAcknowledgementData
+	payload PacketAcknowledgementPayload
+}
+
+func NewOutgoingPacketAcknowledgement(h *Header, payload PacketAcknowledgementPayload) OutgoingPacketAcknowledgement {
+	return &outgoingPacketAcknowledgement{
+		data:    NewPacketAcknowledgementData(h, payload),
+		payload: payload,
+	}
+}
+
+var _ OutgoingPacketAcknowledgement = (*outgoingPacketAcknowledgement)(nil)
+
+func (a outgoingPacketAcknowledgement) Data() PacketAcknowledgementData {
+	return a.data
+}
+
+func (a outgoingPacketAcknowledgement) Header() Header {
+	return a.data.Header
+}
+
+func (a outgoingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
+	return a.payload
+}
+
+func (a outgoingPacketAcknowledgement) SetData(header Header, payload PacketAcknowledgementPayload) {
+	a.data = NewPacketAcknowledgementData(&header, payload)
+	a.payload = payload
 }

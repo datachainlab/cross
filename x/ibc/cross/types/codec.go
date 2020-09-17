@@ -24,7 +24,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*Object)(nil), nil)
 	cdc.RegisterConcrete(ConstantValueObject{}, "cross/ConstantValueObject", nil)
 	cdc.RegisterInterface((*PacketDataPayload)(nil), nil)
-	cdc.RegisterInterface((*PacketAcknowledgement)(nil), nil)
+	cdc.RegisterInterface((*PacketAcknowledgementPayload)(nil), nil)
 	cdc.RegisterInterface((*OP)(nil), nil)
 	cdc.RegisterInterface((*ContractHandlerResult)(nil), nil)
 }
