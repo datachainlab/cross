@@ -221,7 +221,7 @@ func (suite *KeeperTestSuite) createContractHandler(k contract.Keeper, cid strin
 					ctx.Args()[1],
 				}
 				amount := unmarshalCoins(
-					contract.CallExternalFunc(ctx, types.NewChannelInfo("port", "channel"), contract.NewContractCallInfo("c2", "lock-coin", args), []sdk.AccAddress{sender}),
+					contract.CallExternalFunc(ctx, types.NewChannelInfo("cross", "testchanneltwo"), contract.NewContractCallInfo("c2", "lock-coin", args), []sdk.AccAddress{sender}),
 				)
 				setBalance(store, sender, amount)
 				return marshalCoins(amount), nil
@@ -310,7 +310,7 @@ func (suite *KeeperTestSuite) createApp(chainID string) *appContext {
 
 func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header, contractHandlerProvider simapp.ContractHandlerProvider) *appContext {
 	isCheckTx := false
-	app := simapp.SetupWithContractHandlerProvider(isCheckTx, contractHandlerProvider, simapp.DefaultAnteHandlerProvider)
+	app := simapp.SetupWithOptions(isCheckTx, contractHandlerProvider, simapp.DefaultChannelResolverProvider, simapp.DefaultAnteHandlerProvider)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	ctx = ctx.WithLogger(log.NewTMLogger(os.Stdout))
 	if testing.Verbose() {

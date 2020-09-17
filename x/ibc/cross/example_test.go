@@ -115,9 +115,9 @@ func (suite *ExampleTestSuite) TestTrainAndHotelProblem() {
 		sdk.NewDecCoins(),
 	).WithKeybase(kb)
 
-	app0 := suite.createApp("app0", simapp.DefaultContractHandlerProvider, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc}) // coordinator node
-	app1 := suite.createApp("app1", simappcontract.TrainReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
-	app2 := suite.createApp("app2", simappcontract.HotelReservationContractHandler, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
+	app0 := suite.createApp("app0", simapp.DefaultContractHandlerProvider, simapp.DefaultChannelResolverProvider, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc}) // coordinator node
+	app1 := suite.createApp("app1", simappcontract.TrainReservationContractHandler, simapp.DefaultChannelResolverProvider, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
+	app2 := suite.createApp("app2", simappcontract.HotelReservationContractHandler, simapp.DefaultChannelResolverProvider, getAnteHandler, []authexported.GenesisAccount{signer0Acc, signer1Acc, signer2Acc, relayer0Acc})
 
 	ch0to1 := cross.NewChannelInfo(cross.RouterKey, "testchannelzeroone") // app0 -> app1
 	ch1to0 := cross.NewChannelInfo(cross.RouterKey, "testchannelonezero") // app1 -> app
@@ -592,22 +592,24 @@ func (suite *ExampleTestSuite) openChannels(
 func (suite *ExampleTestSuite) createApp(
 	chainID string,
 	contractHanderProvider simapp.ContractHandlerProvider,
+	channelResolverProvider simapp.ChannelResolverProvider,
 	anteHandlerProvider simapp.AnteHandlerProvider,
 	genAccs []authexported.GenesisAccount,
 	balances ...bank.Balance,
 ) *appContext {
-	return suite.createAppWithHeader(abci.Header{ChainID: chainID, Time: time.Now()}, contractHanderProvider, anteHandlerProvider, genAccs, balances...)
+	return suite.createAppWithHeader(abci.Header{ChainID: chainID, Time: time.Now()}, contractHanderProvider, channelResolverProvider, anteHandlerProvider, genAccs, balances...)
 }
 
 func (suite *ExampleTestSuite) createAppWithHeader(
 	header abci.Header,
 	contractHanderProvider simapp.ContractHandlerProvider,
+	channelResolverProvider simapp.ChannelResolverProvider,
 	anteHandlerProvider simapp.AnteHandlerProvider,
 	genAccs []authexported.GenesisAccount,
 	balances ...bank.Balance,
 ) *appContext {
 	isCheckTx := false
-	app := simapp.SetupWithGenesisAccounts(header.ChainID, contractHanderProvider, anteHandlerProvider, genAccs, balances...)
+	app := simapp.SetupWithGenesisAccounts(header.ChainID, contractHanderProvider, channelResolverProvider, anteHandlerProvider, genAccs, balances...)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	privVal := tmtypes.NewMockPV()
 	pub, err := privVal.GetPubKey()

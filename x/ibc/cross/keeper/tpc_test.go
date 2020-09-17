@@ -60,10 +60,10 @@ func (suite *TPCKeeperTestSuite) SetupTest() {
 	suite.signer2 = sdk.AccAddress("signer2")
 	suite.signer3 = sdk.AccAddress("signer3")
 
-	suite.ch0to1 = cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
-	suite.ch1to0 = cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
-	suite.ch0to2 = cross.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
-	suite.ch2to0 = cross.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
+	suite.ch0to1 = cross.NewChannelInfo("cross", "testchannelone")  // app0 -> app1
+	suite.ch1to0 = cross.NewChannelInfo("cross", "testchannelzero") // app1 -> app0
+	suite.ch0to2 = cross.NewChannelInfo("cross", "testchanneltwo")  // app0 -> app2
+	suite.ch2to0 = cross.NewChannelInfo("cross", "testchannelzero") // app2 -> app0
 }
 
 func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
@@ -908,7 +908,6 @@ func (suite *TPCKeeperTestSuite) TestStateConstraint() {
 
 func (suite *TPCKeeperTestSuite) TestCrossChainCall() {
 	suite.T().Skip()
-
 	// First, issue some token to signer1
 	store, _, err := suite.chd2.Handle(
 		cross.WithSigners(suite.app2.ctx, []sdk.AccAddress{suite.signer1}),

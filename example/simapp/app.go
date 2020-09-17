@@ -148,12 +148,14 @@ type SimApp struct {
 
 type ContractHandlerProvider = func(contract.Keeper) cross.ContractHandler
 
+type ChannelResolverProvider = func() cross.ChannelResolver
+
 type AnteHandlerProvider = func(*SimApp) sdk.AnteHandler
 
 // NewSimApp returns a reference to an initialized SimApp.
 func NewSimApp(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool, skipUpgradeHeights map[int64]bool,
-	homePath string, invCheckPeriod uint, contractHandlerProvider ContractHandlerProvider, anteHandlerProvider AnteHandlerProvider, baseAppOptions ...func(*bam.BaseApp),
+	homePath string, invCheckPeriod uint, contractHandlerProvider ContractHandlerProvider, channelResolverProvider ChannelResolverProvider, anteHandlerProvider AnteHandlerProvider, baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
 
 	// TODO: Remove cdc in favor of appCodec once all modules are migrated.
@@ -257,7 +259,8 @@ func NewSimApp(
 		scopedTransferKeeper,
 	)
 	app.ContractKeeper = contract.NewKeeper(app.cdc, keys[contract.StoreKey])
-	channelResolver := cross.ChannelInfoResolver{}
+
+	channelResolver := channelResolverProvider()
 	app.CrossKeeper = cross.NewKeeper(
 		app.cdc, keys[cross.StoreKey],
 		app.IBCKeeper.ChannelKeeper,
@@ -482,4 +485,8 @@ func DefaultAnteHandlerProvider(app *SimApp) sdk.AnteHandler {
 		app.AccountKeeper, app.BankKeeper, *app.IBCKeeper,
 		ante.DefaultSigVerificationGasConsumer,
 	)
+}
+
+func DefaultChannelResolverProvider() cross.ChannelResolver {
+	return cross.ChannelInfoResolver{}
 }

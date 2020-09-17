@@ -97,6 +97,7 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 	return app.NewSimApp(
 		logger, db, traceStore, true, skipUpgradeHeights, viper.GetString(cli.HomeFlag), invCheckPeriod,
 		getContractHandler(viper.GetString(flagContractMode)),
+		app.DefaultChannelResolverProvider,
 		app.DefaultAnteHandlerProvider,
 		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
@@ -112,13 +113,13 @@ func exportAppStateAndTMValidators(
 
 	var simApp *simapp.SimApp
 	if height != -1 {
-		simApp = app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), getContractHandler(viper.GetString(flagContractMode)), app.DefaultAnteHandlerProvider)
+		simApp = app.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), getContractHandler(viper.GetString(flagContractMode)), app.DefaultChannelResolverProvider, app.DefaultAnteHandlerProvider)
 		err := simApp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 	} else {
-		simApp = app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), app.DefaultContractHandlerProvider, app.DefaultAnteHandlerProvider)
+		simApp = app.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, viper.GetString(cli.HomeFlag), uint(1), app.DefaultContractHandlerProvider, app.DefaultChannelResolverProvider, app.DefaultAnteHandlerProvider)
 	}
 	return simApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }
