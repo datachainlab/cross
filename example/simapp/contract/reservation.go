@@ -6,7 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
-	crosstypes "github.com/datachainlab/cross/x/ibc/cross/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/datachainlab/cross/x/ibc/store/lock"
 )
 
@@ -16,19 +16,19 @@ const (
 	HotelContractID = "hotel"
 )
 
-func HotelReservationContractHandler(k contract.Keeper) cross.ContractHandler {
+func HotelReservationContractHandler(k contract.Keeper, channelResolver types.ChannelResolver) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(store, tp)
-	}, crosstypes.ChannelInfoResolver{})
+	}, channelResolver)
 
 	contractHandler.AddRoute(HotelContractID, GetHotelContract())
 	return contractHandler
 }
 
-func TrainReservationContractHandler(k contract.Keeper) cross.ContractHandler {
+func TrainReservationContractHandler(k contract.Keeper, channelResolver types.ChannelResolver) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(store, tp)
-	}, crosstypes.ChannelInfoResolver{})
+	}, channelResolver)
 
 	contractHandler.AddRoute(TrainContractID, GetTrainContract())
 	return contractHandler

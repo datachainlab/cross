@@ -155,10 +155,10 @@ func (suite *KeeperTestSuite) queryProof(actx *appContext, key []byte) (proof co
 	return
 }
 
-func (suite *KeeperTestSuite) createContractHandler(k contract.Keeper, cid string) cross.ContractHandler {
+func (suite *KeeperTestSuite) createContractHandler(k contract.Keeper, cid string, channelResolver cross.ChannelResolver) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(kvs, tp)
-	}, types.ChannelInfoResolver{})
+	}, channelResolver)
 	c := contract.NewContract([]contract.Method{
 		{
 			Name: "issue",
@@ -305,12 +305,12 @@ func (suite *KeeperTestSuite) openChannels(
 }
 
 func (suite *KeeperTestSuite) createApp(chainID string) *appContext {
-	return suite.createAppWithHeader(abci.Header{ChainID: chainID}, simapp.DefaultContractHandlerProvider)
+	return suite.createAppWithHeader(abci.Header{ChainID: chainID}, simapp.DefaultContractHandlerProvider, simapp.DefaultChannelResolverProvider)
 }
 
-func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header, contractHandlerProvider simapp.ContractHandlerProvider) *appContext {
+func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header, contractHandlerProvider simapp.ContractHandlerProvider, channelResolverProvider simapp.ChannelResolverProvider) *appContext {
 	isCheckTx := false
-	app := simapp.SetupWithOptions(isCheckTx, contractHandlerProvider, simapp.DefaultChannelResolverProvider, simapp.DefaultAnteHandlerProvider)
+	app := simapp.SetupWithOptions(isCheckTx, contractHandlerProvider, channelResolverProvider, simapp.DefaultAnteHandlerProvider)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	ctx = ctx.WithLogger(log.NewTMLogger(os.Stdout))
 	if testing.Verbose() {

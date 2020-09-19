@@ -11,10 +11,10 @@ import (
 	"github.com/datachainlab/cross/x/ibc/store/lock"
 )
 
-func CounterContractHandlerProvider(k contract.Keeper) cross.ContractHandler {
+func CounterContractHandlerProvider(k contract.Keeper, channelResolver crosstypes.ChannelResolver) cross.ContractHandler {
 	contractHandler := contract.NewContractHandler(k, func(store sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(store, tp)
-	}, crosstypes.ChannelInfoResolver{})
+	}, channelResolver)
 
 	contractHandler.AddRoute(
 		"c0",

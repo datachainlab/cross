@@ -42,20 +42,24 @@ type TPCKeeperTestSuite struct {
 }
 
 func (suite *TPCKeeperTestSuite) SetupTest() {
+	suite.setup(types.ChannelInfoResolver{})
+}
+
+func (suite *TPCKeeperTestSuite) setup(channelResolver types.ChannelResolver) {
 	suite.initiator = sdk.AccAddress("initiator")
 	suite.signer1 = sdk.AccAddress("signer1")
 
-	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, simapp.DefaultContractHandlerProvider) // coordinator node
+	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, simapp.DefaultContractHandlerProvider, func() types.ChannelResolver { return channelResolver }) // coordinator node
 
-	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper) cross.ContractHandler {
-		return suite.createContractHandler(k, "c1")
-	})
-	suite.chd1 = suite.createContractHandler(contract.NewKeeper(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey)), "c1")
+	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
+		return suite.createContractHandler(k, "c1", r)
+	}, func() types.ChannelResolver { return channelResolver })
+	suite.chd1 = suite.createContractHandler(contract.NewKeeper(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey)), "c1", channelResolver)
 
-	suite.app2 = suite.createAppWithHeader(abci.Header{ChainID: "app2"}, func(k contract.Keeper) cross.ContractHandler {
-		return suite.createContractHandler(k, "c2")
-	})
-	suite.chd2 = suite.createContractHandler(contract.NewKeeper(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey)), "c2")
+	suite.app2 = suite.createAppWithHeader(abci.Header{ChainID: "app2"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
+		return suite.createContractHandler(k, "c2", r)
+	}, func() types.ChannelResolver { return channelResolver })
+	suite.chd2 = suite.createContractHandler(contract.NewKeeper(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey)), "c2", channelResolver)
 
 	suite.signer2 = sdk.AccAddress("signer2")
 	suite.signer3 = sdk.AccAddress("signer3")
@@ -906,8 +910,30 @@ func (suite *TPCKeeperTestSuite) TestStateConstraint() {
 	}
 }
 
+/*
+TrustedChannelInfoResolver just returns a given ChannelInfo as is.
+CAUTION: This assumes that the coordinator and participant have the same channel ID and port ID for a chain.
+*/
+type TrustedChannelInfoResolver struct {
+	types.ChannelInfoResolver
+}
+
+// Capabilities implements ChannelResolver.Capabilities
+func (r TrustedChannelInfoResolver) Capabilities() types.ChannelResolverCapabilities {
+	return channelResolverCapabilities{crossChainCalls: true}
+}
+
+type channelResolverCapabilities struct {
+	crossChainCalls bool
+}
+
+func (c channelResolverCapabilities) CrossChainCalls() bool {
+	return c.crossChainCalls
+}
+
 func (suite *TPCKeeperTestSuite) TestCrossChainCall() {
-	suite.T().Skip()
+	suite.setup(TrustedChannelInfoResolver{})
+
 	// First, issue some token to signer1
 	store, _, err := suite.chd2.Handle(
 		cross.WithSigners(suite.app2.ctx, []sdk.AccAddress{suite.signer1}),

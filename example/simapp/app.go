@@ -7,6 +7,7 @@ import (
 	simappcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -146,7 +147,7 @@ type SimApp struct {
 	sm *module.SimulationManager
 }
 
-type ContractHandlerProvider = func(contract.Keeper) cross.ContractHandler
+type ContractHandlerProvider = func(contract.Keeper, types.ChannelResolver) cross.ContractHandler
 
 type ChannelResolverProvider = func() cross.ChannelResolver
 
@@ -269,7 +270,7 @@ func NewSimApp(
 		cross.DefaultResolverProvider(),
 		channelResolver,
 	)
-	contractHandler := contractHandlerProvider(app.ContractKeeper)
+	contractHandler := contractHandlerProvider(app.ContractKeeper, channelResolver)
 
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
 	crossModule := cross.NewAppModule(app.CrossKeeper, nil, contractHandler)
