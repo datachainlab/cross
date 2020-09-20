@@ -49,10 +49,9 @@ func (msg MsgInitiate) ValidateBasic() error {
 			if l != 2 {
 				return fmt.Errorf("For Commit Protocol 'simple', the number of ContractTransactions must be 2")
 			}
-			// TODO check if first element indicates self
-			// if src := msg.ContractTransactions[0].Source; src.Channel != "" || src.Port != "" {
-			// 	return fmt.Errorf("ContractTransactions[0] must be an empty source")
-			// }
+			if msg.ContractTransactions[0].ChainID != nil {
+				return fmt.Errorf("ContractTransactions[0].ChainID must be nil")
+			}
 		case COMMIT_PROTOCOL_TPC:
 		default:
 			return fmt.Errorf("unknown Commit Protocol '%v'", msg.CommitProtocol)
