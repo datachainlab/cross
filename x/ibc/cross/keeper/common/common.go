@@ -24,6 +24,7 @@ type Keeper struct {
 	scopedKeeper  capability.ScopedKeeper
 
 	resolverProvider types.ObjectResolverProvider
+	channelResolver  types.ChannelResolver
 }
 
 func NewKeeper(
@@ -33,6 +34,7 @@ func NewKeeper(
 	portKeeper types.PortKeeper,
 	scopedKeeper capability.ScopedKeeper,
 	resolverProvider types.ObjectResolverProvider,
+	channelResolver types.ChannelResolver,
 ) Keeper {
 	return Keeper{
 		cdc:              cdc,
@@ -41,6 +43,7 @@ func NewKeeper(
 		portKeeper:       portKeeper,
 		scopedKeeper:     scopedKeeper,
 		resolverProvider: resolverProvider,
+		channelResolver:  channelResolver,
 	}
 }
 
@@ -58,7 +61,8 @@ func (k Keeper) ScopedKeeper() capability.ScopedKeeper {
 
 func (k Keeper) SendPacket(
 	ctx sdk.Context,
-	payload []byte,
+	packetSender types.PacketSender,
+	payload types.PacketDataPayload,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
@@ -66,8 +70,9 @@ func (k Keeper) SendPacket(
 	timeoutHeight uint64,
 	timeoutTimestamp uint64,
 ) error {
+	data := types.NewPacketData(nil, payload.GetBytes())
 	// Wrap raw data with a container
-	data, err := types.MarshalPacketData(types.NewPacketData(nil, payload))
+	bz, err := types.MarshalPacketData(data)
 	if err != nil {
 		return err
 	}
@@ -78,7 +83,7 @@ func (k Keeper) SendPacket(
 		return channel.ErrSequenceSendNotFound
 	}
 	packet := channel.NewPacket(
-		data,
+		bz,
 		seq,
 		sourcePort,
 		sourceChannel,
@@ -92,7 +97,7 @@ func (k Keeper) SendPacket(
 		return sdkerrors.Wrap(channel.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
 
-	if err := k.channelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
+	if err := packetSender.SendPacket(ctx, channelCap, types.NewOutgoingPacket(packet, data, payload)); err != nil {
 		return err
 	}
 
@@ -339,6 +344,10 @@ func (k Keeper) GetContractResult(ctx sdk.Context, txID types.TxID, txIndex type
 func (k Keeper) RemoveContractResult(ctx sdk.Context, txID types.TxID, txIndex types.TxIndex) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.KeyContractResult(txID, txIndex))
+}
+
+func (k Keeper) ChannelResolver() types.ChannelResolver {
+	return k.channelResolver
 }
 
 func MakeTxID(ctx sdk.Context, msg types.MsgInitiate) types.TxID {

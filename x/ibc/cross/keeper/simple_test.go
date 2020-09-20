@@ -35,12 +35,16 @@ type SimpleKeeperTestSuite struct {
 }
 
 func (suite *SimpleKeeperTestSuite) SetupTest() {
-	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, func(k contract.Keeper) cross.ContractHandler {
-		return suite.createContractHandler(k, "c1")
-	})
-	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper) cross.ContractHandler {
-		return suite.createContractHandler(k, "c2")
-	})
+	suite.setup(types.ChannelInfoResolver{})
+}
+
+func (suite *SimpleKeeperTestSuite) setup(channelResolver types.ChannelResolver) {
+	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
+		return suite.createContractHandler(k, "c1", r)
+	}, func() types.ChannelResolver { return channelResolver }, nil)
+	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
+		return suite.createContractHandler(k, "c2", r)
+	}, func() types.ChannelResolver { return channelResolver }, nil)
 
 	suite.initiator = sdk.AccAddress("initiator")
 	suite.coordinator = sdk.AccAddress("coordinator")
@@ -127,6 +131,7 @@ func (suite *SimpleKeeperTestSuite) TestCall() {
 
 	txID, err := suite.app0.app.CrossKeeper.SimpleKeeper().SendCall(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.app0.app.ContractHandler,
 		msg,
 		msg.ContractTransactions,

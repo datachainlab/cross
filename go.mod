@@ -3,7 +3,7 @@ module github.com/datachainlab/cross
 go 1.14
 
 require (
-	github.com/bluele/interchain-simple-packet v0.0.0-20200910144230-4d0ddd5ec642
+	github.com/bluele/interchain-simple-packet v0.0.0-20200912044232-f9777fd0845d
 	github.com/cosmos/cosmos-sdk v0.34.4-0.20200423152229-f1fdde5d1b18
 	github.com/gorilla/mux v1.7.4
 	github.com/onsi/ginkgo v1.8.0 // indirect
@@ -18,3 +18,5 @@ require (
 )
 
 replace github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
+
+replace github.com/cosmos/cosmos-sdk => github.com/datachainlab/cosmos-sdk v0.34.4-0.20200917063033-63b3340b4252

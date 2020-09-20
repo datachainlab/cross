@@ -43,6 +43,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper
 // caller is Coordinator
 func (k Keeper) SendCall(
 	ctx sdk.Context,
+	packetSender types.PacketSender,
 	contractHandler types.ContractHandler,
 	msg types.MsgInitiate,
 	transactions []types.ContractTransaction,
@@ -58,12 +59,16 @@ func (k Keeper) SendCall(
 		return types.TxID{}, fmt.Errorf("coordinator '%x' already exists", txID)
 	}
 
-	tx0 := transactions[0]
-	tx1 := transactions[1]
-
 	lkr, err := types.MakeLinker(transactions)
 	if err != nil {
 		return types.TxID{}, err
+	}
+
+	tx0 := transactions[TX_INDEX_COORDINATOR]
+	tx1 := transactions[TX_INDEX_PARTICIPANT]
+
+	if !k.ChannelResolver().Capabilities().CrossChainCalls() && (len(tx0.Links) > 0 || len(tx1.Links) > 0) {
+		return types.TxID{}, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
 	objs0, err := lkr.Resolve(tx0.Links)
@@ -79,16 +84,26 @@ func (k Keeper) SendCall(
 		return types.TxID{}, err
 	}
 
-	c, found := k.ChannelKeeper().GetChannel(ctx, tx1.Source.Port, tx1.Source.Channel)
+	ch0, err := k.ChannelResolver().Resolve(ctx, tx0.ChainID)
+	if err != nil {
+		return types.TxID{}, err
+	}
+	ch1, err := k.ChannelResolver().Resolve(ctx, tx1.ChainID)
+	if err != nil {
+		return types.TxID{}, err
+	}
+
+	c, found := k.ChannelKeeper().GetChannel(ctx, ch1.Port, ch1.Channel)
 	if !found {
-		return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, tx1.Source.Channel)
+		return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, ch1.Channel)
 	}
 
 	data := simpletypes.NewPacketDataCall(msg.Sender, txID, types.NewContractTransactionInfo(tx1, objs1))
 	if err := k.SendPacket(
 		ctx,
-		data.GetBytes(),
-		tx1.Source.Port, tx1.Source.Channel,
+		packetSender,
+		data,
+		ch1.Port, ch1.Channel,
 		c.Counterparty.PortID, c.Counterparty.ChannelID,
 		data.GetTimeoutHeight(),
 		data.GetTimeoutTimestamp(),
@@ -99,7 +114,7 @@ func (k Keeper) SendCall(
 	co := types.NewCoordinatorInfo(
 		types.CO_STATUS_INIT,
 		[]string{CoordinatorConnectionID, hops[len(hops)-1]},
-		[]types.ChannelInfo{tx0.Source, tx1.Source},
+		[]types.ChannelInfo{*ch0, *ch1},
 	)
 	if err := co.Confirm(TX_INDEX_COORDINATOR, CoordinatorConnectionID); err != nil {
 		return types.TxID{}, err
@@ -124,6 +139,10 @@ func (k Keeper) ReceiveCallPacket(
 ) (uint8, error) {
 	if _, ok := k.GetTx(ctx, data.TxID, TX_INDEX_PARTICIPANT); ok {
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
+	}
+
+	if !k.ChannelResolver().Capabilities().CrossChainCalls() && len(data.TxInfo.LinkObjects) > 0 {
+		return 0, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
 	result := types.PREPARE_RESULT_OK

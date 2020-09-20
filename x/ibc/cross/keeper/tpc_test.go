@@ -42,28 +42,32 @@ type TPCKeeperTestSuite struct {
 }
 
 func (suite *TPCKeeperTestSuite) SetupTest() {
+	suite.setup(types.ChannelInfoResolver{}, types.NewNOPPacketMiddleware())
+}
+
+func (suite *TPCKeeperTestSuite) setup(channelResolver types.ChannelResolver, packetMiddleware types.PacketMiddleware) {
 	suite.initiator = sdk.AccAddress("initiator")
 	suite.signer1 = sdk.AccAddress("signer1")
 
-	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, simapp.DefaultContractHandlerProvider) // coordinator node
+	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, simapp.DefaultContractHandlerProvider, func() types.ChannelResolver { return channelResolver }, packetMiddleware) // coordinator node
 
-	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper) cross.ContractHandler {
-		return suite.createContractHandler(k, "c1")
-	})
-	suite.chd1 = suite.createContractHandler(contract.NewKeeper(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey)), "c1")
+	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
+		return suite.createContractHandler(k, "c1", r)
+	}, func() types.ChannelResolver { return channelResolver }, packetMiddleware)
+	suite.chd1 = suite.createContractHandler(contract.NewKeeper(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey)), "c1", channelResolver)
 
-	suite.app2 = suite.createAppWithHeader(abci.Header{ChainID: "app2"}, func(k contract.Keeper) cross.ContractHandler {
-		return suite.createContractHandler(k, "c2")
-	})
-	suite.chd2 = suite.createContractHandler(contract.NewKeeper(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey)), "c2")
+	suite.app2 = suite.createAppWithHeader(abci.Header{ChainID: "app2"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
+		return suite.createContractHandler(k, "c2", r)
+	}, func() types.ChannelResolver { return channelResolver }, packetMiddleware)
+	suite.chd2 = suite.createContractHandler(contract.NewKeeper(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey)), "c2", channelResolver)
 
 	suite.signer2 = sdk.AccAddress("signer2")
 	suite.signer3 = sdk.AccAddress("signer3")
 
-	suite.ch0to1 = cross.NewChannelInfo("testportzeroone", "testchannelzeroone") // app0 -> app1
-	suite.ch1to0 = cross.NewChannelInfo("testportonezero", "testchannelonezero") // app1 -> app0
-	suite.ch0to2 = cross.NewChannelInfo("testportzerotwo", "testchannelzerotwo") // app0 -> app2
-	suite.ch2to0 = cross.NewChannelInfo("testporttwozero", "testchanneltwozero") // app2 -> app0
+	suite.ch0to1 = cross.NewChannelInfo("cross", "testchannelone")  // app0 -> app1
+	suite.ch1to0 = cross.NewChannelInfo("cross", "testchannelzero") // app1 -> app0
+	suite.ch0to2 = cross.NewChannelInfo("cross", "testchanneltwo")  // app0 -> app2
+	suite.ch2to0 = cross.NewChannelInfo("cross", "testchannelzero") // app2 -> app0
 }
 
 func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
@@ -105,8 +109,9 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
+			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
 			msg,
 			msg.ContractTransactions,
@@ -152,8 +157,9 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
+			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
 			msg,
 			msg.ContractTransactions,
@@ -170,8 +176,9 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
+			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
 			msg,
 			msg.ContractTransactions,
@@ -188,8 +195,9 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
+			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
 			msg,
 			msg.ContractTransactions,
@@ -289,8 +297,9 @@ func (suite *TPCKeeperTestSuite) TestRelay() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	_, err = suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	_, err = suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
 		msg,
 		msg.ContractTransactions,
@@ -300,8 +309,9 @@ func (suite *TPCKeeperTestSuite) TestRelay() {
 	// Try to open a channel and connection between app0 and app1, app2
 	suite.openAllChannels()
 
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
 		msg,
 		msg.ContractTransactions,
@@ -582,8 +592,9 @@ func (suite *TPCKeeperTestSuite) TestAbort1() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
 		msg,
 		msg.ContractTransactions,
@@ -653,8 +664,9 @@ func (suite *TPCKeeperTestSuite) TestAbort2() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
 		msg,
 		msg.ContractTransactions,
@@ -730,8 +742,9 @@ func (suite *TPCKeeperTestSuite) TestAbort3() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
 		msg,
 		msg.ContractTransactions,
@@ -818,8 +831,9 @@ func (suite *TPCKeeperTestSuite) TestStateConstraint() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
 		msg,
 		msg.ContractTransactions,
@@ -896,7 +910,30 @@ func (suite *TPCKeeperTestSuite) TestStateConstraint() {
 	}
 }
 
+/*
+TrustedChannelInfoResolver just returns a given ChannelInfo as is.
+CAUTION: This assumes that the coordinator and participant have the same channel ID and port ID for a chain.
+*/
+type TrustedChannelInfoResolver struct {
+	types.ChannelInfoResolver
+}
+
+// Capabilities implements ChannelResolver.Capabilities
+func (r TrustedChannelInfoResolver) Capabilities() types.ChannelResolverCapabilities {
+	return channelResolverCapabilities{crossChainCalls: true}
+}
+
+type channelResolverCapabilities struct {
+	crossChainCalls bool
+}
+
+func (c channelResolverCapabilities) CrossChainCalls() bool {
+	return c.crossChainCalls
+}
+
 func (suite *TPCKeeperTestSuite) TestCrossChainCall() {
+	suite.setup(TrustedChannelInfoResolver{}, types.NewNOPPacketMiddleware())
+
 	// First, issue some token to signer1
 	store, _, err := suite.chd2.Handle(
 		cross.WithSigners(suite.app2.ctx, []sdk.AccAddress{suite.signer1}),
@@ -950,8 +987,9 @@ func (suite *TPCKeeperTestSuite) TestCrossChainCall() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
+		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
 		msg,
 		msg.ContractTransactions,
@@ -991,11 +1029,9 @@ func (suite *TPCKeeperTestSuite) testPreparePacket(actx *appContext, src, dst cr
 	suite.NoError(err)
 	suite.Equal(expectedPrepareResult, result)
 	tx, ok := actx.app.CrossKeeper.TPCKeeper().GetTx(ctx, txID, txIndex)
-	if suite.True(ok) {
-		suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
-	}
+	suite.Require().True(ok)
+	suite.Equal(cross.TX_STATUS_PREPARE, tx.Status)
 	suite.Equal(expectedPrepareResult, tx.PrepareResult)
-
 	writer()
 }
 
@@ -1005,7 +1041,7 @@ func (suite *TPCKeeperTestSuite) testConfirmPrepareResult(actx *appContext, ack 
 		return false, false, err
 	}
 	if canMulticast {
-		return canMulticast, isCommitable, actx.app.CrossKeeper.TPCKeeper().MulticastCommitPacket(actx.ctx, txID, isCommitable)
+		return canMulticast, isCommitable, actx.app.CrossKeeper.TPCKeeper().MulticastPacketCommit(actx.ctx, types.NewSimplePacketSender(actx.app.IBCKeeper.ChannelKeeper), txID, isCommitable)
 	} else {
 		return canMulticast, isCommitable, nil
 	}

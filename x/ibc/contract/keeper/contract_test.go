@@ -8,6 +8,7 @@ import (
 
 	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	crosstypes "github.com/datachainlab/cross/x/ibc/cross/types"
 	lock "github.com/datachainlab/cross/x/ibc/store/lock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -36,7 +37,7 @@ func TestContractHandler(t *testing.T) {
 	k := NewKeeper(testcdc, stk)
 	h := NewContractHandler(k, func(kvs sdk.KVStore, tp cross.StateConstraintType) cross.State {
 		return lock.NewStore(kvs, cross.ExactMatchStateConstraint)
-	})
+	}, crosstypes.ChannelInfoResolver{})
 	c := makeContract()
 	contractID := "contract0"
 	h.AddRoute(contractID, c)

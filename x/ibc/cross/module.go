@@ -82,18 +82,23 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 	keeper                        Keeper
+	msgHandler                    sdk.Handler
 	packetReceiver                PacketReceiver
 	packetAcknowledgementReceiver PacketAcknowledgementReceiver
 	contractHandler               ContractHandler
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k Keeper, contractHandler ContractHandler) AppModule {
+func NewAppModule(k Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) AppModule {
+	if packetMiddleware == nil {
+		packetMiddleware = types.NewNOPPacketMiddleware()
+	}
 	return AppModule{
 		AppModuleBasic:                AppModuleBasic{},
 		keeper:                        k,
-		packetReceiver:                NewPacketReceiver(k, contractHandler),
-		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(k, contractHandler),
+		msgHandler:                    NewHandler(k, packetMiddleware, contractHandler),
+		packetReceiver:                NewPacketReceiver(k, packetMiddleware, contractHandler),
+		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(k, packetMiddleware, contractHandler),
 		contractHandler:               contractHandler,
 	}
 }
@@ -113,7 +118,7 @@ func (am AppModule) Route() string {
 
 // NewHandler returns new Handler
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.keeper, am.contractHandler)
+	return am.msgHandler
 }
 
 // QuerierRoute returns module name
@@ -259,8 +264,8 @@ func (am AppModule) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	acknowledgement []byte,
 ) (*sdk.Result, error) {
-	var ack types.PacketAcknowledgement
-	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+	ack, err := types.UnmarshalJSONIncomingPacketAcknowledgement(types.ModuleCdc, acknowledgement)
+	if err != nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
 	}
 	am.keeper.RemoveUnacknowledgedPacket(ctx, packet.SourcePort, packet.SourceChannel, packet.Sequence)

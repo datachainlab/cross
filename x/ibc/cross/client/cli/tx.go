@@ -62,7 +62,7 @@ func GetCreateMsgInitiateCmd(cdc *codec.Codec) *cobra.Command {
 				channelInfo := channels[i]
 				parts := strings.Split(channelInfo, ":")
 				tx := types.ContractTransaction{
-					Source: types.ChannelInfo{
+					ChainID: types.ChannelInfo{
 						Channel: parts[0],
 						Port:    parts[1],
 					},

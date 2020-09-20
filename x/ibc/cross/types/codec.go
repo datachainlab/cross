@@ -16,6 +16,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgInitiate{}, "cross/MsgInitiate", nil)
 	cdc.RegisterConcrete(ContractTransaction{}, "cross/ContractTransaction", nil)
 	cdc.RegisterConcrete(ContractTransactions{}, "cross/ContractTransactions", nil)
+	cdc.RegisterInterface((*ChainID)(nil), nil)
 	cdc.RegisterConcrete(ChannelInfo{}, "cross/ChannelInfo", nil)
 	cdc.RegisterConcrete(ReturnValue{}, "cross/ReturnValue", nil)
 	cdc.RegisterConcrete(CallResultLink{}, "cross/CallResultLink", nil)
@@ -23,7 +24,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*Object)(nil), nil)
 	cdc.RegisterConcrete(ConstantValueObject{}, "cross/ConstantValueObject", nil)
 	cdc.RegisterInterface((*PacketDataPayload)(nil), nil)
-	cdc.RegisterInterface((*PacketAcknowledgement)(nil), nil)
+	cdc.RegisterInterface((*PacketAcknowledgementPayload)(nil), nil)
 	cdc.RegisterInterface((*OP)(nil), nil)
 	cdc.RegisterInterface((*ContractHandlerResult)(nil), nil)
 }

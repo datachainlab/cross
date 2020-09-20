@@ -31,8 +31,9 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper
 	}
 }
 
-func (k Keeper) MulticastPreparePacket(
+func (k Keeper) MulticastPacketPrepare(
 	ctx sdk.Context,
+	packetSender types.PacketSender,
 	sender sdk.AccAddress,
 	msg types.MsgInitiate,
 	transactions []types.ContractTransaction,
@@ -54,20 +55,34 @@ func (k Keeper) MulticastPreparePacket(
 	if err != nil {
 		return types.TxID{}, err
 	}
-	for id, t := range transactions {
-		src := t.Source
-		c, found := k.ChannelKeeper().GetChannel(ctx, src.Port, src.Channel)
-		if !found {
-			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, t.Source.Channel)
+	for id, tx := range transactions {
+		var objs []types.Object
+		if len(tx.Links) > 0 {
+			if !k.ChannelResolver().Capabilities().CrossChainCalls() {
+				return types.TxID{}, errors.New("this channelResolver cannot support the cross-chain calls feature")
+			}
+			objs, err = lkr.Resolve(tx.Links)
+			if err != nil {
+				return types.TxID{}, err
+			}
+		} else {
+			objs = nil
 		}
-		objs, err := lkr.Resolve(t.Links)
+
+		src, err := k.ChannelResolver().Resolve(ctx, tx.ChainID)
 		if err != nil {
 			return types.TxID{}, err
 		}
-		data := tpctypes.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(t, objs))
+		c, found := k.ChannelKeeper().GetChannel(ctx, src.Port, src.Channel)
+		if !found {
+			return types.TxID{}, sdkerrors.Wrap(channel.ErrChannelNotFound, src.Channel)
+		}
+
+		data := tpctypes.NewPacketDataPrepare(sender, txID, types.TxIndex(id), types.NewContractTransactionInfo(tx, objs))
 		if err := k.SendPacket(
 			ctx,
-			data.GetBytes(),
+			packetSender,
+			data,
 			src.Port, src.Channel,
 			c.Counterparty.PortID, c.Counterparty.ChannelID,
 			data.GetTimeoutHeight(),
@@ -94,6 +109,10 @@ func (k Keeper) Prepare(
 ) (uint8, error) {
 	if _, ok := k.GetTx(ctx, data.TxID, data.TxIndex); ok {
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxID)
+	}
+
+	if !k.ChannelResolver().Capabilities().CrossChainCalls() && len(data.TxInfo.LinkObjects) > 0 {
+		return 0, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
 	result := types.PREPARE_RESULT_OK
@@ -163,8 +182,9 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 	return canMulticast, co.Decision == types.CO_DECISION_COMMIT, nil
 }
 
-func (k Keeper) MulticastCommitPacket(
+func (k Keeper) MulticastPacketCommit(
 	ctx sdk.Context,
+	packetSender types.PacketSender,
 	txID types.TxID,
 	isCommittable bool,
 ) error {
@@ -183,7 +203,8 @@ func (k Keeper) MulticastCommitPacket(
 		data := tpctypes.NewPacketDataCommit(txID, types.TxIndex(id), isCommittable)
 		if err := k.SendPacket(
 			ctx,
-			data.GetBytes(),
+			packetSender,
+			data,
 			c.Port,
 			c.Channel,
 			ch.GetCounterparty().GetPortID(),

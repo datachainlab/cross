@@ -66,7 +66,7 @@ func (p PacketDataCall) Type() string {
 	return TypeCall
 }
 
-var _ types.PacketAcknowledgement = (*PacketCallAcknowledgement)(nil)
+var _ types.PacketAcknowledgementPayload = (*PacketCallAcknowledgement)(nil)
 
 type PacketCallAcknowledgement struct {
 	Status uint8
