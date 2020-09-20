@@ -42,23 +42,23 @@ type TPCKeeperTestSuite struct {
 }
 
 func (suite *TPCKeeperTestSuite) SetupTest() {
-	suite.setup(types.ChannelInfoResolver{})
+	suite.setup(types.ChannelInfoResolver{}, types.NewNOPPacketMiddleware())
 }
 
-func (suite *TPCKeeperTestSuite) setup(channelResolver types.ChannelResolver) {
+func (suite *TPCKeeperTestSuite) setup(channelResolver types.ChannelResolver, packetMiddleware types.PacketMiddleware) {
 	suite.initiator = sdk.AccAddress("initiator")
 	suite.signer1 = sdk.AccAddress("signer1")
 
-	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, simapp.DefaultContractHandlerProvider, func() types.ChannelResolver { return channelResolver }) // coordinator node
+	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, simapp.DefaultContractHandlerProvider, func() types.ChannelResolver { return channelResolver }, packetMiddleware) // coordinator node
 
 	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
 		return suite.createContractHandler(k, "c1", r)
-	}, func() types.ChannelResolver { return channelResolver })
+	}, func() types.ChannelResolver { return channelResolver }, packetMiddleware)
 	suite.chd1 = suite.createContractHandler(contract.NewKeeper(suite.app1.cdc, suite.app1.app.GetKey(cross.StoreKey)), "c1", channelResolver)
 
 	suite.app2 = suite.createAppWithHeader(abci.Header{ChainID: "app2"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
 		return suite.createContractHandler(k, "c2", r)
-	}, func() types.ChannelResolver { return channelResolver })
+	}, func() types.ChannelResolver { return channelResolver }, packetMiddleware)
 	suite.chd2 = suite.createContractHandler(contract.NewKeeper(suite.app2.cdc, suite.app2.app.GetKey(cross.StoreKey)), "c2", channelResolver)
 
 	suite.signer2 = sdk.AccAddress("signer2")
@@ -932,7 +932,7 @@ func (c channelResolverCapabilities) CrossChainCalls() bool {
 }
 
 func (suite *TPCKeeperTestSuite) TestCrossChainCall() {
-	suite.setup(TrustedChannelInfoResolver{})
+	suite.setup(TrustedChannelInfoResolver{}, types.NewNOPPacketMiddleware())
 
 	// First, issue some token to signer1
 	store, _, err := suite.chd2.Handle(

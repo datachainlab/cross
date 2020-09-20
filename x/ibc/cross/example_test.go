@@ -609,7 +609,7 @@ func (suite *ExampleTestSuite) createAppWithHeader(
 	balances ...bank.Balance,
 ) *appContext {
 	isCheckTx := false
-	app := simapp.SetupWithGenesisAccounts(header.ChainID, contractHanderProvider, channelResolverProvider, anteHandlerProvider, genAccs, balances...)
+	app := simapp.SetupWithGenesisAccounts(header.ChainID, contractHanderProvider, channelResolverProvider, anteHandlerProvider, nil, genAccs, balances...)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	privVal := tmtypes.NewMockPV()
 	pub, err := privVal.GetPubKey()

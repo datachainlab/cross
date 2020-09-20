@@ -98,6 +98,7 @@ func replayTxs(rootDir string) error {
 		simapp.DefaultContractHandlerProvider,
 		simapp.DefaultChannelResolverProvider,
 		simapp.DefaultAnteHandlerProvider,
+		nil,
 		baseapp.SetPruning(store.PruneEverything), // nothing
 	)
 

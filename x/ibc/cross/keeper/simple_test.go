@@ -41,10 +41,10 @@ func (suite *SimpleKeeperTestSuite) SetupTest() {
 func (suite *SimpleKeeperTestSuite) setup(channelResolver types.ChannelResolver) {
 	suite.app0 = suite.createAppWithHeader(abci.Header{ChainID: "app0"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
 		return suite.createContractHandler(k, "c1", r)
-	}, func() types.ChannelResolver { return channelResolver })
+	}, func() types.ChannelResolver { return channelResolver }, nil)
 	suite.app1 = suite.createAppWithHeader(abci.Header{ChainID: "app1"}, func(k contract.Keeper, r types.ChannelResolver) cross.ContractHandler {
 		return suite.createContractHandler(k, "c2", r)
-	}, func() types.ChannelResolver { return channelResolver })
+	}, func() types.ChannelResolver { return channelResolver }, nil)
 
 	suite.initiator = sdk.AccAddress("initiator")
 	suite.coordinator = sdk.AccAddress("coordinator")

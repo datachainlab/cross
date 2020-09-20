@@ -305,12 +305,12 @@ func (suite *KeeperTestSuite) openChannels(
 }
 
 func (suite *KeeperTestSuite) createApp(chainID string) *appContext {
-	return suite.createAppWithHeader(abci.Header{ChainID: chainID}, simapp.DefaultContractHandlerProvider, simapp.DefaultChannelResolverProvider)
+	return suite.createAppWithHeader(abci.Header{ChainID: chainID}, simapp.DefaultContractHandlerProvider, simapp.DefaultChannelResolverProvider, nil)
 }
 
-func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header, contractHandlerProvider simapp.ContractHandlerProvider, channelResolverProvider simapp.ChannelResolverProvider) *appContext {
+func (suite *KeeperTestSuite) createAppWithHeader(header abci.Header, contractHandlerProvider simapp.ContractHandlerProvider, channelResolverProvider simapp.ChannelResolverProvider, packetMiddleware types.PacketMiddleware) *appContext {
 	isCheckTx := false
-	app := simapp.SetupWithOptions(isCheckTx, contractHandlerProvider, channelResolverProvider, simapp.DefaultAnteHandlerProvider)
+	app := simapp.SetupWithOptions(isCheckTx, contractHandlerProvider, channelResolverProvider, simapp.DefaultAnteHandlerProvider, packetMiddleware)
 	ctx := app.BaseApp.NewContext(isCheckTx, header)
 	ctx = ctx.WithLogger(log.NewTMLogger(os.Stdout))
 	if testing.Verbose() {
