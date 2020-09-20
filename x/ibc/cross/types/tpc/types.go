@@ -33,7 +33,6 @@ type PacketDataPrepare struct {
 	TxID    types.TxID
 	TxIndex types.TxIndex
 	TxInfo  types.ContractTransactionInfo
-	// DNS-ID
 }
 
 func NewPacketDataPrepare(
