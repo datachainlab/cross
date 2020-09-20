@@ -8,13 +8,19 @@ import (
 
 // ChainID represents an ID of chain that contains a contract function to be called
 type ChainID interface {
-	String() string
+	Type() string
 	Equal(ChainID) bool
+	String() string
+}
+
+// Type implements ChainID.Type
+func (ci ChannelInfo) Type() string {
+	return "channelinfo"
 }
 
 // String implements ChainID.String
 func (ci ChannelInfo) String() string {
-	return fmt.Sprintf("%v/%v", ci.Channel, ci.Port)
+	return fmt.Sprintf("%v/%v/%v", ci.Type(), ci.Channel, ci.Port)
 }
 
 // Equal implements ChainID.Equal
@@ -38,6 +44,7 @@ type channelResolverCapabilities struct {
 	crossChainCalls bool
 }
 
+// CrossChainCalls implements ChannelResolverCapabilities.CrossChainCalls
 func (c channelResolverCapabilities) CrossChainCalls() bool {
 	return c.crossChainCalls
 }
