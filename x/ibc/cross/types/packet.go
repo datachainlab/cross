@@ -1,140 +1,266 @@
 package types
 
 import (
-	"math"
+	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sptypes "github.com/bluele/interchain-simple-packet/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 )
 
-const (
-	PREPARE_RESULT_OK uint8 = iota + 1
-	PREPARE_RESULT_FAILED
+type (
+	Header                    = sptypes.Header
+	PacketData                = sptypes.PacketData
+	PacketAcknowledgementData = PacketData
 )
 
-type PacketData interface {
+// NewPacketData returns a new packet data
+func NewPacketData(h *Header, payload []byte) PacketData {
+	if h == nil {
+		h = &Header{}
+	}
+	return sptypes.NewSimplePacketData(*h, payload)
+}
+
+// PacketDataPayload defines the interface of packet data's payload
+type PacketDataPayload interface {
 	ValidateBasic() error
 	GetBytes() []byte
-	GetTimeoutHeight() uint64
-	GetTimeoutTimestamp() uint64
 	Type() string
 }
 
-type PacketAcknowledgement interface {
+// PacketAcknowledgementPayload defines the interface of packet ack's payload
+type PacketAcknowledgementPayload interface {
 	ValidateBasic() error
 	GetBytes() []byte
 	Type() string
 }
 
-var _ PacketData = (*PacketDataPrepare)(nil)
-
-type PacketDataPrepare struct {
-	Sender  sdk.AccAddress
-	TxID    TxID
-	TxIndex TxIndex
-	TxInfo  ContractTransactionInfo
+func MarshalPacketData(data PacketData) ([]byte, error) {
+	bz, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return bz, nil
 }
 
-func NewPacketDataPrepare(sender sdk.AccAddress, txID TxID, txIndex TxIndex, txInfo ContractTransactionInfo) PacketDataPrepare {
-	return PacketDataPrepare{Sender: sender, TxID: txID, TxIndex: txIndex, TxInfo: txInfo}
+func UnmarshalJSONPacketData(bz []byte, pd *PacketData) error {
+	return json.Unmarshal(bz, pd)
 }
 
-func (p PacketDataPrepare) ValidateBasic() error {
-	if err := p.TxInfo.ValidateBasic(); err != nil {
+func UnmarshalJSONPacketDataPayload(cdc *codec.Codec, bz []byte, pd *PacketData, ptr interface{}) error {
+	if err := UnmarshalJSONPacketData(bz, pd); err != nil {
 		return err
 	}
-	return nil
+	return cdc.UnmarshalJSON(pd.Payload, ptr)
 }
 
-func (p PacketDataPrepare) GetBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
+func UnmarshalJSONIncomingPacket(cdc *codec.Codec, raw exported.PacketI) (IncomingPacket, error) {
+	var pd PacketData
+	var payload PacketDataPayload
+	if err := UnmarshalJSONPacketDataPayload(cdc, raw.GetData(), &pd, &payload); err != nil {
+		return nil, err
+	}
+	return NewIncomingPacket(raw, pd, payload), nil
 }
 
-func (p PacketDataPrepare) GetTimeoutHeight() uint64 {
-	return math.MaxUint64
+// IncomingPacket defines the interface of incoming packet
+type IncomingPacket interface {
+	exported.PacketI
+	PacketData() PacketData
+	Header() Header
+	Payload() PacketDataPayload
 }
 
-func (p PacketDataPrepare) GetTimeoutTimestamp() uint64 {
-	return 0
+var _ IncomingPacket = (*incomingPacket)(nil)
+
+type incomingPacket struct {
+	exported.PacketI
+	packetData PacketData
+	payload    PacketDataPayload
 }
 
-func (p PacketDataPrepare) Type() string {
-	return TypePrepare
+// NewIncomingPacket returns a new IncomingPacket
+func NewIncomingPacket(raw exported.PacketI, packetData PacketData, payload PacketDataPayload) IncomingPacket {
+	return &incomingPacket{
+		PacketI:    raw,
+		packetData: packetData,
+		payload:    payload,
+	}
 }
 
-var _ PacketAcknowledgement = (*PacketPrepareAcknowledgement)(nil)
-
-type PacketPrepareAcknowledgement struct {
-	Status uint8
+// PacketData implements IncomingPacket.PacketData
+func (p incomingPacket) PacketData() PacketData {
+	return p.packetData
 }
 
-func NewPacketPrepareAcknowledgement(status uint8) PacketPrepareAcknowledgement {
-	return PacketPrepareAcknowledgement{Status: status}
+// Header implements IncomingPacket.Header
+func (p incomingPacket) Header() Header {
+	return p.packetData.Header
 }
 
-func (p PacketPrepareAcknowledgement) ValidateBasic() error {
-	return nil
+// Payload implements IncomingPacket.Payload
+func (p incomingPacket) Payload() PacketDataPayload {
+	return p.payload
 }
 
-func (p PacketPrepareAcknowledgement) GetBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
+// OutgoingPacket defines the interface of outgoing packet
+type OutgoingPacket interface {
+	IncomingPacket
+	SetPacketData(header Header, payload PacketDataPayload)
 }
 
-func (p PacketPrepareAcknowledgement) Type() string {
-	return TypePrepareResult
+var _ OutgoingPacket = (*outgoingPacket)(nil)
+
+type outgoingPacket struct {
+	exported.PacketI
+	packetData PacketData
+	payload    PacketDataPayload
 }
 
-func (p PacketPrepareAcknowledgement) IsOK() bool {
-	return p.Status == PREPARE_RESULT_OK
+// NewOutgoingPacket returns a new OutgoingPacket
+func NewOutgoingPacket(raw exported.PacketI, packetData PacketData, payload PacketDataPayload) OutgoingPacket {
+	return &outgoingPacket{
+		PacketI:    raw,
+		packetData: packetData,
+		payload:    payload,
+	}
 }
 
-var _ PacketData = (*PacketDataCommit)(nil)
-
-type PacketDataCommit struct {
-	TxID          TxID
-	TxIndex       TxIndex
-	IsCommittable bool
+// PacketData implements Outgoing.PacketData
+func (p outgoingPacket) PacketData() PacketData {
+	return p.packetData
 }
 
-func NewPacketDataCommit(txID TxID, txIndex TxIndex, isCommittable bool) PacketDataCommit {
-	return PacketDataCommit{TxID: txID, TxIndex: txIndex, IsCommittable: isCommittable}
+// Header implements Outgoing.Header
+func (p outgoingPacket) Header() Header {
+	return p.packetData.Header
 }
 
-func (p PacketDataCommit) ValidateBasic() error {
-	return nil
+// Payload implements Outgoing.Payload
+func (p outgoingPacket) Payload() PacketDataPayload {
+	return p.payload
 }
 
-func (p PacketDataCommit) GetBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
+// SetPacketData implements Outgoing.SetPacketData
+func (p *outgoingPacket) SetPacketData(header Header, payload PacketDataPayload) {
+	p.payload = payload
+	p.packetData = NewPacketData(&header, payload.GetBytes())
 }
 
-func (p PacketDataCommit) GetTimeoutHeight() uint64 {
-	return math.MaxUint64
+// GetData implements Outgoing.GetData
+func (p outgoingPacket) GetData() []byte {
+	bz, err := MarshalPacketData(p.packetData)
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }
 
-func (p PacketDataCommit) GetTimeoutTimestamp() uint64 {
-	return 0
+func MarshalJSONPacketAcknowledgementData(data PacketAcknowledgementData) ([]byte, error) {
+	bz, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return bz, nil
 }
 
-func (p PacketDataCommit) Type() string {
-	return TypeCommit
+func UnmarshalJSONPacketAcknowledgementData(bz []byte, ad *PacketAcknowledgementData) error {
+	return json.Unmarshal(bz, ad)
 }
 
-var _ PacketAcknowledgement = (*PacketCommitAcknowledgement)(nil)
-
-type PacketCommitAcknowledgement struct{}
-
-func NewPacketCommitAcknowledgement() PacketCommitAcknowledgement {
-	return PacketCommitAcknowledgement{}
+// NewPacketAcknowledgementData returns a new PacketAcknowledgementData
+func NewPacketAcknowledgementData(h *Header, payload PacketAcknowledgementPayload) PacketAcknowledgementData {
+	if h == nil {
+		h = new(Header)
+	}
+	return PacketAcknowledgementData{
+		Header:  *h,
+		Payload: payload.GetBytes(),
+	}
 }
 
-func (p PacketCommitAcknowledgement) ValidateBasic() error {
-	return nil
+// IncomingPacketAcknowledgement defines the interface of incoming packet acknowledgement
+type IncomingPacketAcknowledgement interface {
+	Data() PacketAcknowledgementData
+	Header() Header
+	Payload() PacketAcknowledgementPayload
 }
 
-func (p PacketCommitAcknowledgement) GetBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(p))
+type incomingPacketAcknowledgement struct {
+	data    PacketAcknowledgementData
+	payload PacketAcknowledgementPayload
 }
 
-func (p PacketCommitAcknowledgement) Type() string {
-	return TypeAckCommit
+var _ IncomingPacketAcknowledgement = (*incomingPacketAcknowledgement)(nil)
+
+// NewIncomingPacketAcknowledgement returns a new IncomingPacketAcknowledgement
+func NewIncomingPacketAcknowledgement(h *Header, payload PacketAcknowledgementPayload) IncomingPacketAcknowledgement {
+	return incomingPacketAcknowledgement{data: NewPacketAcknowledgementData(h, payload), payload: payload}
+}
+
+// Data implements IncomingPacketAcknowledgement.Data
+func (a incomingPacketAcknowledgement) Data() PacketAcknowledgementData {
+	return a.data
+}
+
+// Header implements IncomingPacketAcknowledgement.Header
+func (a incomingPacketAcknowledgement) Header() Header {
+	return a.data.Header
+}
+
+// Payload implements IncomingPacketAcknowledgement.Payload
+func (a incomingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
+	return a.payload
+}
+
+func UnmarshalJSONIncomingPacketAcknowledgement(cdc *codec.Codec, bz []byte) (IncomingPacketAcknowledgement, error) {
+	var pd PacketAcknowledgementData
+	var payload PacketAcknowledgementPayload
+	if err := UnmarshalJSONPacketDataPayload(cdc, bz, &pd, &payload); err != nil {
+		return nil, err
+	}
+	return NewIncomingPacketAcknowledgement(&pd.Header, payload), nil
+}
+
+// OutgoingPacketAcknowledgement defines the interface of outgoing packet acknowledgement
+type OutgoingPacketAcknowledgement interface {
+	IncomingPacketAcknowledgement
+	SetData(header Header, payload PacketAcknowledgementPayload)
+}
+
+type outgoingPacketAcknowledgement struct {
+	data    PacketAcknowledgementData
+	payload PacketAcknowledgementPayload
+}
+
+// NewOutgoingPacketAcknowledgement returns a new OutgoingPacketAcknowledgement
+func NewOutgoingPacketAcknowledgement(h *Header, payload PacketAcknowledgementPayload) OutgoingPacketAcknowledgement {
+	return &outgoingPacketAcknowledgement{
+		data:    NewPacketAcknowledgementData(h, payload),
+		payload: payload,
+	}
+}
+
+var _ OutgoingPacketAcknowledgement = (*outgoingPacketAcknowledgement)(nil)
+
+// Data implements OutgoingPacketAcknowledgement.Data
+func (a outgoingPacketAcknowledgement) Data() PacketAcknowledgementData {
+	return a.data
+}
+
+// Header implements OutgoingPacketAcknowledgement.Header
+func (a outgoingPacketAcknowledgement) Header() Header {
+	return a.data.Header
+}
+
+// Payload implements OutgoingPacketAcknowledgement.Payload
+func (a outgoingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
+	return a.payload
+}
+
+// Payload implements OutgoingPacketAcknowledgement.SetData
+func (a outgoingPacketAcknowledgement) SetData(header Header, payload PacketAcknowledgementPayload) {
+	a.data = NewPacketAcknowledgementData(&header, payload)
+	a.payload = payload
 }

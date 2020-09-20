@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
@@ -46,12 +47,12 @@ var DefaultConsensusParams = &abci.ConsensusParams{
 
 // Setup initializes a new SimApp. A Nop logger is set in SimApp.
 func Setup(isCheckTx bool) *SimApp {
-	return SetupWithContractHandlerProvider(isCheckTx, DefaultContractHandlerProvider, DefaultAnteHandlerProvider)
+	return SetupWithOptions(isCheckTx, DefaultContractHandlerProvider, DefaultChannelResolverProvider, DefaultAnteHandlerProvider, nil)
 }
 
-func SetupWithContractHandlerProvider(isCheckTx bool, contractHandlerProvider ContractHandlerProvider, anteHandlerProvider AnteHandlerProvider) *SimApp {
+func SetupWithOptions(isCheckTx bool, contractHandlerProvider ContractHandlerProvider, channelResolverProvider ChannelResolverProvider, anteHandlerProvider AnteHandlerProvider, packetMiddleware types.PacketMiddleware) *SimApp {
 	db := dbm.NewMemDB()
-	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, anteHandlerProvider)
+	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, channelResolverProvider, anteHandlerProvider, packetMiddleware)
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
 		genesisState := simapp.NewDefaultGenesisState()
@@ -75,9 +76,9 @@ func SetupWithContractHandlerProvider(isCheckTx bool, contractHandlerProvider Co
 
 // SetupWithGenesisAccounts initializes a new SimApp with the provided genesis
 // accounts and possible balances.
-func SetupWithGenesisAccounts(chainID string, contractHandlerProvider ContractHandlerProvider, anteHandlerProvider AnteHandlerProvider, genAccs []authexported.GenesisAccount, balances ...bank.Balance) *SimApp {
+func SetupWithGenesisAccounts(chainID string, contractHandlerProvider ContractHandlerProvider, channelResolverProvider ChannelResolverProvider, anteHandlerProvider AnteHandlerProvider, packetMiddleware types.PacketMiddleware, genAccs []authexported.GenesisAccount, balances ...bank.Balance) *SimApp {
 	db := dbm.NewMemDB()
-	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, anteHandlerProvider)
+	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 0, contractHandlerProvider, channelResolverProvider, anteHandlerProvider, packetMiddleware)
 
 	// initialize the chain with the passed in genesis accounts
 	genesisState := simapp.NewDefaultGenesisState()

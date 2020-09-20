@@ -62,7 +62,7 @@ func GetCreateMsgInitiateCmd(cdc *codec.Codec) *cobra.Command {
 				channelInfo := channels[i]
 				parts := strings.Split(channelInfo, ":")
 				tx := types.ContractTransaction{
-					Source: types.ChannelInfo{
+					ChainID: types.ChannelInfo{
 						Channel: parts[0],
 						Port:    parts[1],
 					},
@@ -87,6 +87,7 @@ func GetCreateMsgInitiateCmd(cdc *codec.Codec) *cobra.Command {
 				txs,
 				timeout,
 				nonce,
+				types.COMMIT_PROTOCOL_TPC,
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err

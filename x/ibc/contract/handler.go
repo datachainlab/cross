@@ -23,7 +23,7 @@ func NewHandler(k Keeper, contractHandler cross.ContractHandler, router types.Se
 func handleContractCall(ctx sdk.Context, msg MsgContractCall, k Keeper, contractHandler cross.ContractHandler, router types.ServerRouter) (*sdk.Result, error) {
 	var rs cross.ObjectResolver
 	if keeper.IsSimulation(ctx) {
-		rs = types.NewHTTPResolver(router)
+		rs = types.NewHTTPObjectResolver(router)
 	} else {
 		rs = cross.NewFakeResolver()
 	}

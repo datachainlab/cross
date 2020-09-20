@@ -18,6 +18,8 @@ import (
 	"github.com/datachainlab/cross/x/ibc/cross/client/cli"
 	"github.com/datachainlab/cross/x/ibc/cross/client/rest"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
+	"github.com/datachainlab/cross/x/ibc/cross/types/simple"
+	"github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -41,6 +43,8 @@ func (AppModuleBasic) Name() string {
 // RegisterCodec returns RegisterCodec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	RegisterCodec(cdc)
+	simple.RegisterCodec(cdc)
+	tpc.RegisterCodec(cdc)
 }
 
 // DefaultGenesis returns default genesis state
@@ -78,18 +82,23 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 	keeper                        Keeper
+	msgHandler                    sdk.Handler
 	packetReceiver                PacketReceiver
 	packetAcknowledgementReceiver PacketAcknowledgementReceiver
 	contractHandler               ContractHandler
 }
 
 // NewAppModule creates a new AppModule Object
-func NewAppModule(k Keeper, contractHandler ContractHandler) AppModule {
+func NewAppModule(k Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) AppModule {
+	if packetMiddleware == nil {
+		packetMiddleware = types.NewNOPPacketMiddleware()
+	}
 	return AppModule{
 		AppModuleBasic:                AppModuleBasic{},
 		keeper:                        k,
-		packetReceiver:                NewPacketReceiver(k, contractHandler),
-		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(k),
+		msgHandler:                    NewHandler(k, packetMiddleware, contractHandler),
+		packetReceiver:                NewPacketReceiver(k, packetMiddleware, contractHandler),
+		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(k, packetMiddleware, contractHandler),
 		contractHandler:               contractHandler,
 	}
 }
@@ -109,7 +118,7 @@ func (am AppModule) Route() string {
 
 // NewHandler returns new Handler
 func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.keeper)
+	return am.msgHandler
 }
 
 // QuerierRoute returns module name
@@ -255,8 +264,8 @@ func (am AppModule) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	acknowledgement []byte,
 ) (*sdk.Result, error) {
-	var ack types.PacketAcknowledgement
-	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+	ack, err := types.UnmarshalJSONIncomingPacketAcknowledgement(types.ModuleCdc, acknowledgement)
+	if err != nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
 	}
 	am.keeper.RemoveUnacknowledgedPacket(ctx, packet.SourcePort, packet.SourceChannel, packet.Sequence)

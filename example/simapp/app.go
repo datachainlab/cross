@@ -7,7 +7,7 @@ import (
 	simappcontract "github.com/datachainlab/cross/example/simapp/contract"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
-	"github.com/datachainlab/cross/x/ibc/relayer"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -76,7 +76,6 @@ var (
 		transfer.AppModuleBasic{},
 		cross.AppModuleBasic{},
 		contract.AppModuleBasic{},
-		relayer.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -139,6 +138,7 @@ type SimApp struct {
 	ScopedIBCKeeper      capability.ScopedKeeper
 	ScopedTransferKeeper capability.ScopedKeeper
 	ScopedCrossKeeper    capability.ScopedKeeper
+	ContractHandler      cross.ContractHandler
 
 	// the module manager
 	mm *module.Manager
@@ -147,14 +147,19 @@ type SimApp struct {
 	sm *module.SimulationManager
 }
 
-type ContractHandlerProvider = func(contract.Keeper) cross.ContractHandler
+type ContractHandlerProvider = func(contract.Keeper, types.ChannelResolver) cross.ContractHandler
+
+type ChannelResolverProvider = func() cross.ChannelResolver
 
 type AnteHandlerProvider = func(*SimApp) sdk.AnteHandler
 
 // NewSimApp returns a reference to an initialized SimApp.
 func NewSimApp(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool, skipUpgradeHeights map[int64]bool,
-	homePath string, invCheckPeriod uint, contractHandlerProvider ContractHandlerProvider, anteHandlerProvider AnteHandlerProvider, baseAppOptions ...func(*bam.BaseApp),
+	homePath string, invCheckPeriod uint,
+	contractHandlerProvider ContractHandlerProvider, channelResolverProvider ChannelResolverProvider, anteHandlerProvider AnteHandlerProvider,
+	packetMiddleware types.PacketMiddleware,
+	baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
 
 	// TODO: Remove cdc in favor of appCodec once all modules are migrated.
@@ -258,17 +263,20 @@ func NewSimApp(
 		scopedTransferKeeper,
 	)
 	app.ContractKeeper = contract.NewKeeper(app.cdc, keys[contract.StoreKey])
+
+	channelResolver := channelResolverProvider()
 	app.CrossKeeper = cross.NewKeeper(
 		app.cdc, keys[cross.StoreKey],
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper,
 		cross.DefaultResolverProvider(),
+		channelResolver,
 	)
-	contractHandler := contractHandlerProvider(app.ContractKeeper)
+	contractHandler := contractHandlerProvider(app.ContractKeeper, channelResolver)
 
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
-	crossModule := cross.NewAppModule(app.CrossKeeper, contractHandler)
+	crossModule := cross.NewAppModule(app.CrossKeeper, packetMiddleware, contractHandler)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := port.NewRouter()
@@ -368,6 +376,7 @@ func NewSimApp(
 	app.ScopedIBCKeeper = scopedIBCKeeper
 	app.ScopedTransferKeeper = scopedTransferKeeper
 	app.ScopedCrossKeeper = scopedCrossKeeper
+	app.ContractHandler = contractHandler
 
 	return app
 }
@@ -480,4 +489,8 @@ func DefaultAnteHandlerProvider(app *SimApp) sdk.AnteHandler {
 		app.AccountKeeper, app.BankKeeper, *app.IBCKeeper,
 		ante.DefaultSigVerificationGasConsumer,
 	)
+}
+
+func DefaultChannelResolverProvider() cross.ChannelResolver {
+	return cross.ChannelInfoResolver{}
 }

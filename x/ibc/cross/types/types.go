@@ -12,10 +12,22 @@ const (
 	CO_STATUS_NONE uint8 = iota
 	CO_STATUS_INIT
 	CO_STATUS_DECIDED // abort or commit
+)
 
+const (
 	CO_DECISION_NONE uint8 = iota
 	CO_DECISION_COMMIT
 	CO_DECISION_ABORT
+)
+
+const (
+	COMMIT_PROTOCOL_SIMPLE uint8 = iota // Default
+	COMMIT_PROTOCOL_TPC                 // Two-phase commit
+)
+
+const (
+	PREPARE_RESULT_OK uint8 = iota + 1
+	PREPARE_RESULT_FAILED
 )
 
 const (
@@ -54,13 +66,13 @@ func (ContractHandlerAbortResult) GetEvents() sdk.Events {
 }
 
 type CoordinatorInfo struct {
-	Transactions []string      // {TransactionID => ConnectionID}
-	Channels     []ChannelInfo // {TransactionID => Channel}
+	Transactions []string      // {TxIndex => ConnectionID}
+	Channels     []ChannelInfo // {TxIndex => Channel}
 
 	Status                uint8
 	Decision              uint8
-	ConfirmedTransactions []TxIndex // [TransactionID]
-	Acks                  []TxIndex // [TransactionID]
+	ConfirmedTransactions []TxIndex // [TxIndex]
+	Acks                  []TxIndex // [TxIndex]
 }
 
 func NewCoordinatorInfo(status uint8, tss []string, channels []ChannelInfo) CoordinatorInfo {

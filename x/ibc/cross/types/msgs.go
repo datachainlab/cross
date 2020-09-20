@@ -8,18 +8,23 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const TypeInitiate = "cross_initiate"
+
 var _ sdk.Msg = (*MsgInitiate)(nil)
 
+// MsgInitiate initiates a Cross-chain transaction
 type MsgInitiate struct {
 	Sender               sdk.AccAddress
 	ChainID              string // chainID of Coordinator node
 	ContractTransactions []ContractTransaction
 	TimeoutHeight        int64 // Timeout for this msg
 	Nonce                uint64
+	CommitProtocol       uint8 // Commit type
 }
 
-func NewMsgInitiate(sender sdk.AccAddress, chainID string, transactions []ContractTransaction, timeoutHeight int64, nonce uint64) MsgInitiate {
-	return MsgInitiate{Sender: sender, ChainID: chainID, ContractTransactions: transactions, TimeoutHeight: timeoutHeight, Nonce: nonce}
+// NewMsgInitiate returns MsgInitiate
+func NewMsgInitiate(sender sdk.AccAddress, chainID string, transactions []ContractTransaction, timeoutHeight int64, nonce uint64, cp uint8) MsgInitiate {
+	return MsgInitiate{Sender: sender, ChainID: chainID, ContractTransactions: transactions, TimeoutHeight: timeoutHeight, Nonce: nonce, CommitProtocol: cp}
 }
 
 // Route implements sdk.Msg
@@ -38,7 +43,21 @@ func (msg MsgInitiate) ValidateBasic() error {
 		return errors.New("this msg includes no transisions")
 	} else if l > MaxContractTransactoinNum {
 		return fmt.Errorf("The number of ContractTransactions exceeds limit: %v > %v", l, MaxContractTransactoinNum)
+	} else {
+		switch msg.CommitProtocol {
+		case COMMIT_PROTOCOL_SIMPLE:
+			if l != 2 {
+				return fmt.Errorf("For Commit Protocol 'simple', the number of ContractTransactions must be 2")
+			}
+			if msg.ContractTransactions[0].ChainID != nil {
+				return fmt.Errorf("ContractTransactions[0].ChainID must be nil")
+			}
+		case COMMIT_PROTOCOL_TPC:
+		default:
+			return fmt.Errorf("unknown Commit Protocol '%v'", msg.CommitProtocol)
+		}
 	}
+
 	for id, st := range msg.ContractTransactions {
 		if err := st.ValidateBasic(); err != nil {
 			return err
@@ -118,7 +137,7 @@ func (rv *ReturnValue) Equal(bz []byte) bool {
 }
 
 type ContractTransaction struct {
-	Source          ChannelInfo      `json:"source" yaml:"source"`
+	ChainID         ChainID          `json:"chain_id" yaml:"chain_id"`
 	Signers         []sdk.AccAddress `json:"signers" yaml:"signers"`
 	CallInfo        ContractCallInfo `json:"call_info" yaml:"call_info"`
 	StateConstraint StateConstraint  `json:"state_constraint" yaml:"state_constraint"`
@@ -126,9 +145,9 @@ type ContractTransaction struct {
 	Links           []Link           `json:"links" yaml:"links"`
 }
 
-func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo ContractCallInfo, sc StateConstraint, rv *ReturnValue, links []Link) ContractTransaction {
+func NewContractTransaction(chainID ChainID, signers []sdk.AccAddress, callInfo ContractCallInfo, sc StateConstraint, rv *ReturnValue, links []Link) ContractTransaction {
 	return ContractTransaction{
-		Source:          src,
+		ChainID:         chainID,
 		Signers:         signers,
 		CallInfo:        callInfo,
 		StateConstraint: sc,
@@ -138,9 +157,6 @@ func NewContractTransaction(src ChannelInfo, signers []sdk.AccAddress, callInfo 
 }
 
 func (t ContractTransaction) ValidateBasic() error {
-	if err := t.Source.ValidateBasic(); err != nil {
-		return err
-	}
 	if len(t.Signers) == 0 {
 		return errors.New("Signers must not be empty")
 	}

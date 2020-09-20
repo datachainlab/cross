@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/ibc/contract/types"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	crosstypes "github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
 var _ cross.ContractHandler = (*contractHandler)(nil)
@@ -42,15 +43,16 @@ type Contract interface {
 type StateProvider = func(sdk.KVStore, cross.StateConstraintType) cross.State
 
 type contractHandler struct {
-	keeper        Keeper
-	routes        map[string]Contract
-	stateProvider StateProvider
+	keeper          Keeper
+	routes          map[string]Contract
+	stateProvider   StateProvider
+	channelResolver crosstypes.ChannelResolver
 }
 
 var _ cross.ContractHandler = (*contractHandler)(nil)
 
-func NewContractHandler(k Keeper, stateProvider StateProvider) *contractHandler {
-	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider}
+func NewContractHandler(k Keeper, stateProvider StateProvider, channelResolver crosstypes.ChannelResolver) *contractHandler {
+	return &contractHandler{keeper: k, routes: make(map[string]Contract), stateProvider: stateProvider, channelResolver: channelResolver}
 }
 
 func (h *contractHandler) Handle(ctx sdk.Context, callInfo cross.ContractCallInfo, rtInfo cross.ContractRuntimeInfo) (state cross.State, res cross.ContractHandlerResult, err error) {
@@ -142,10 +144,11 @@ func (c ccontext) runtimeInfo() cross.ContractRuntimeInfo {
 	return c.rtInfo
 }
 
-func CallExternalFunc(ctx Context, callInfo types.ContractCallInfo, signers []sdk.AccAddress) []byte {
+// CallExternalFunc calls a contract function on external chain
+func CallExternalFunc(ctx Context, id crosstypes.ChainID, callInfo types.ContractCallInfo, signers []sdk.AccAddress) []byte {
 	rs := ctx.runtimeInfo().ExternalObjectResolver
 	key := cross.MakeObjectKey(callInfo.Bytes(), signers)
-	obj, err := rs.Resolve(key)
+	obj, err := rs.Resolve(id, key)
 	if err != nil {
 		panic(err)
 	}

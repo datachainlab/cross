@@ -9,6 +9,7 @@ import (
 	"github.com/datachainlab/cross/example/simapp"
 	"github.com/datachainlab/cross/x/ibc/contract"
 	"github.com/datachainlab/cross/x/ibc/cross"
+	"github.com/datachainlab/cross/x/ibc/cross/types"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -163,7 +164,7 @@ func (suite *HandlerTestSuite) queryProof(key []byte) (proof commitmentexported.
 }
 
 func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
-	handler := cross.NewHandler(suite.app.CrossKeeper)
+	handler := cross.NewHandler(suite.app.CrossKeeper, types.NewNOPPacketMiddleware(), suite.app.ContractHandler)
 	coordinator := sdk.AccAddress("coordinator")
 
 	signer0 := sdk.AccAddress("signerzero")
@@ -202,7 +203,7 @@ func (suite *HandlerTestSuite) TestHandleMsgInitiate() {
 		),
 	}
 
-	msg := cross.NewMsgInitiate(coordinator, "", tss, 256, nonce)
+	msg := cross.NewMsgInitiate(coordinator, "", tss, 256, nonce, cross.COMMIT_PROTOCOL_TPC)
 	res, err := handler(suite.ctx, msg)
 	suite.Require().Error(err)
 	suite.Require().Nil(res, "%+v", res) // channel does not exist

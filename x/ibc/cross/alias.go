@@ -2,6 +2,7 @@ package cross
 
 import (
 	"github.com/datachainlab/cross/x/ibc/cross/keeper"
+	"github.com/datachainlab/cross/x/ibc/cross/keeper/common"
 	"github.com/datachainlab/cross/x/ibc/cross/types"
 )
 
@@ -20,17 +21,14 @@ const (
 	CO_DECISION_COMMIT = types.CO_DECISION_COMMIT
 	CO_DECISION_ABORT  = types.CO_DECISION_ABORT
 
+	COMMIT_PROTOCOL_SIMPLE = types.COMMIT_PROTOCOL_SIMPLE
+	COMMIT_PROTOCOL_TPC    = types.COMMIT_PROTOCOL_TPC
+
 	TX_STATUS_PREPARE = types.TX_STATUS_PREPARE
 	TX_STATUS_COMMIT  = types.TX_STATUS_COMMIT
 	TX_STATUS_ABORT   = types.TX_STATUS_ABORT
 
-	PREPARE_RESULT_OK     = types.PREPARE_RESULT_OK
-	PREPARE_RESULT_FAILED = types.PREPARE_RESULT_FAILED
-
-	TypeInitiate      = types.TypeInitiate
-	TypePrepare       = types.TypePrepare
-	TypePrepareResult = types.TypePrepareResult
-	TypeCommit        = types.TypeCommit
+	TypeInitiate = types.TypeInitiate
 
 	NoStateConstraint         = types.NoStateConstraint
 	ExactMatchStateConstraint = types.ExactMatchStateConstraint
@@ -40,27 +38,23 @@ const (
 
 // nolint
 var (
-	NewKeeper                       = keeper.NewKeeper
-	NewQuerier                      = keeper.NewQuerier
-	MakeTxID                        = keeper.MakeTxID
-	MakeStoreTransactionID          = keeper.MakeStoreTransactionID
-	ModuleCdc                       = types.ModuleCdc
-	RegisterCodec                   = types.RegisterCodec
-	SignersFromContext              = types.SignersFromContext
-	WithSigners                     = types.WithSigners
-	NewMsgInitiate                  = types.NewMsgInitiate
-	NewContractTransaction          = types.NewContractTransaction
-	NewStateConstraint              = types.NewStateConstraint
-	NewReturnValue                  = types.NewReturnValue
-	NewChannelInfo                  = types.NewChannelInfo
-	NewPacketDataPrepare            = types.NewPacketDataPrepare
-	NewPacketPrepareAcknowledgement = types.NewPacketPrepareAcknowledgement
-	NewPacketDataCommit             = types.NewPacketDataCommit
-	NewPacketCommitAcknowledgement  = types.NewPacketCommitAcknowledgement
-	NewCallResultLink               = types.NewCallResultLink
-	MakeObjectKey                   = types.MakeObjectKey
-	DefaultResolverProvider         = types.DefaultResolverProvider
-	NewFakeResolver                 = types.NewFakeResolver
+	NewKeeper               = keeper.NewKeeper
+	NewQuerier              = keeper.NewQuerier
+	MakeTxID                = common.MakeTxID
+	MakeStoreTransactionID  = common.MakeStoreTransactionID
+	ModuleCdc               = types.ModuleCdc
+	RegisterCodec           = types.RegisterCodec
+	SignersFromContext      = types.SignersFromContext
+	WithSigners             = types.WithSigners
+	NewMsgInitiate          = types.NewMsgInitiate
+	NewContractTransaction  = types.NewContractTransaction
+	NewStateConstraint      = types.NewStateConstraint
+	NewReturnValue          = types.NewReturnValue
+	NewChannelInfo          = types.NewChannelInfo
+	NewCallResultLink       = types.NewCallResultLink
+	MakeObjectKey           = types.MakeObjectKey
+	DefaultResolverProvider = types.DefaultResolverProvider
+	NewFakeResolver         = types.NewFakeResolver
 )
 
 // nolint
@@ -69,12 +63,8 @@ type (
 	ContractHandler              = types.ContractHandler
 	ContractHandlerResult        = types.ContractHandlerResult
 	MsgInitiate                  = types.MsgInitiate
-	PacketData                   = types.PacketData
-	PacketAcknowledgement        = types.PacketAcknowledgement
-	PacketDataPrepare            = types.PacketDataPrepare
-	PacketPrepareAcknowledgement = types.PacketPrepareAcknowledgement
-	PacketDataCommit             = types.PacketDataCommit
-	PacketCommitAcknowledgement  = types.PacketCommitAcknowledgement
+	PacketDataPayload            = types.PacketDataPayload
+	PacketAcknowledgementPayload = types.PacketAcknowledgementPayload
 	OP                           = types.OP
 	OPs                          = types.OPs
 	State                        = types.State
@@ -99,4 +89,6 @@ type (
 	ObjectType                   = types.ObjectType
 	Link                         = types.Link
 	LinkType                     = types.LinkType
+	ChannelResolver              = types.ChannelResolver
+	ChannelInfoResolver          = types.ChannelInfoResolver
 )
