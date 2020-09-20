@@ -8,7 +8,13 @@ import (
 
 // ChainID represents an ID of chain that contains a contract function to be called
 type ChainID interface {
+	String() string
 	Equal(ChainID) bool
+}
+
+// String implements ChainID.String
+func (ci ChannelInfo) String() string {
+	return fmt.Sprintf("%v/%v", ci.Channel, ci.Port)
 }
 
 // Equal implements ChainID.Equal

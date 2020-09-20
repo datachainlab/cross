@@ -18,7 +18,7 @@ type HTTPResolver struct {
 }
 
 type ServerRouter interface {
-	Route(bz []byte) (cross.Object, error)
+	Route(id types.ChainID, bz []byte) (cross.Object, error)
 }
 
 var _ cross.ObjectResolver = (*HTTPResolver)(nil)
@@ -28,7 +28,7 @@ func NewHTTPResolver(router ServerRouter) HTTPResolver {
 }
 
 func (rs HTTPResolver) Resolve(id types.ChainID, bz []byte) (cross.Object, error) {
-	return rs.Router.Route(bz)
+	return rs.Router.Route(id, bz)
 }
 
 var _ cross.Object = (*HTTPObject)(nil)
@@ -70,25 +70,33 @@ func (o HTTPObject) Evaluate(_ []byte) ([]byte, error) {
 }
 
 type HTTPServerRouter struct {
-	servers map[string]*HTTPServerInfo
+	servers map[string]map[string]*HTTPServerInfo
 }
 
 var _ ServerRouter = (*HTTPServerRouter)(nil)
 
 func NewHTTPServerRouter() *HTTPServerRouter {
-	return &HTTPServerRouter{servers: make(map[string]*HTTPServerInfo)}
+	return &HTTPServerRouter{servers: make(map[string]map[string]*HTTPServerInfo)}
 }
 
-func (r *HTTPServerRouter) AddRoute(id string, info HTTPServerInfo) {
-	r.servers[id] = &info
+func (r *HTTPServerRouter) AddRoute(chainID types.ChainID, id string, info HTTPServerInfo) {
+	cidStr := chainID.String()
+	if r.servers[cidStr] == nil {
+		r.servers[cidStr] = make(map[string]*HTTPServerInfo)
+	}
+	r.servers[cidStr][id] = &info
 }
 
-func (r HTTPServerRouter) Route(bz []byte) (cross.Object, error) {
+func (r HTTPServerRouter) Route(chainID types.ChainID, bz []byte) (cross.Object, error) {
 	call, err := DecodeContractCallInfo(bz)
 	if err != nil {
 		return nil, err
 	}
-	info, ok := r.servers[call.ID]
+	m := r.servers[chainID.String()]
+	if m == nil {
+		return nil, fmt.Errorf("chainID '%v' not found", chainID.String())
+	}
+	info, ok := m[call.ID]
 	if !ok {
 		return nil, fmt.Errorf("id '%v' not found", call.ID)
 	}
