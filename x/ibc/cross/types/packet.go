@@ -22,12 +22,14 @@ func NewPacketData(h *Header, payload []byte) PacketData {
 	return sptypes.NewSimplePacketData(*h, payload)
 }
 
+// PacketDataPayload defines the interface of packet data's payload
 type PacketDataPayload interface {
 	ValidateBasic() error
 	GetBytes() []byte
 	Type() string
 }
 
+// PacketAcknowledgementPayload defines the interface of packet ack's payload
 type PacketAcknowledgementPayload interface {
 	ValidateBasic() error
 	GetBytes() []byte
@@ -62,6 +64,7 @@ func UnmarshalIncomingPacket(cdc *codec.Codec, raw exported.PacketI) (IncomingPa
 	return NewIncomingPacket(raw, pd, payload), nil
 }
 
+// IncomingPacket defines the interface of incoming packet
 type IncomingPacket interface {
 	exported.PacketI
 	PacketData() PacketData
@@ -77,6 +80,7 @@ type incomingPacket struct {
 	payload    PacketDataPayload
 }
 
+// NewIncomingPacket returns a new IncomingPacket
 func NewIncomingPacket(raw exported.PacketI, packetData PacketData, payload PacketDataPayload) IncomingPacket {
 	return &incomingPacket{
 		PacketI:    raw,
@@ -85,18 +89,22 @@ func NewIncomingPacket(raw exported.PacketI, packetData PacketData, payload Pack
 	}
 }
 
+// PacketData implements IncomingPacket.PacketData
 func (p incomingPacket) PacketData() PacketData {
 	return p.packetData
 }
 
+// Header implements IncomingPacket.Header
 func (p incomingPacket) Header() Header {
 	return p.packetData.Header
 }
 
+// Payload implements IncomingPacket.Payload
 func (p incomingPacket) Payload() PacketDataPayload {
 	return p.payload
 }
 
+// OutgoingPacket defines the interface of outgoing packet
 type OutgoingPacket interface {
 	IncomingPacket
 	SetPacketData(header Header, payload PacketDataPayload)
@@ -110,6 +118,7 @@ type outgoingPacket struct {
 	payload    PacketDataPayload
 }
 
+// NewOutgoingPacket returns a new OutgoingPacket
 func NewOutgoingPacket(raw exported.PacketI, packetData PacketData, payload PacketDataPayload) OutgoingPacket {
 	return &outgoingPacket{
 		PacketI:    raw,
@@ -118,23 +127,28 @@ func NewOutgoingPacket(raw exported.PacketI, packetData PacketData, payload Pack
 	}
 }
 
+// PacketData implements Outgoing.PacketData
 func (p outgoingPacket) PacketData() PacketData {
 	return p.packetData
 }
 
+// Header implements Outgoing.Header
 func (p outgoingPacket) Header() Header {
 	return p.packetData.Header
 }
 
+// Payload implements Outgoing.Payload
 func (p outgoingPacket) Payload() PacketDataPayload {
 	return p.payload
 }
 
+// SetPacketData implements Outgoing.SetPacketData
 func (p *outgoingPacket) SetPacketData(header Header, payload PacketDataPayload) {
 	p.payload = payload
 	p.packetData = NewPacketData(&header, payload.GetBytes())
 }
 
+// GetData implements Outgoing.GetData
 func (p outgoingPacket) GetData() []byte {
 	bz, err := MarshalPacketData(p.packetData)
 	if err != nil {
@@ -143,7 +157,7 @@ func (p outgoingPacket) GetData() []byte {
 	return bz
 }
 
-func MarshalPacketAcknowledgementData(data PacketAcknowledgementData) ([]byte, error) {
+func MarshalJSONPacketAcknowledgementData(data PacketAcknowledgementData) ([]byte, error) {
 	bz, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -151,10 +165,11 @@ func MarshalPacketAcknowledgementData(data PacketAcknowledgementData) ([]byte, e
 	return bz, nil
 }
 
-func UnmarshalPacketAcknowledgementData(bz []byte, ad *PacketAcknowledgementData) error {
+func UnmarshalJSONPacketAcknowledgementData(bz []byte, ad *PacketAcknowledgementData) error {
 	return json.Unmarshal(bz, ad)
 }
 
+// NewPacketAcknowledgementData returns a new PacketAcknowledgementData
 func NewPacketAcknowledgementData(h *Header, payload PacketAcknowledgementPayload) PacketAcknowledgementData {
 	if h == nil {
 		h = new(Header)
@@ -165,6 +180,7 @@ func NewPacketAcknowledgementData(h *Header, payload PacketAcknowledgementPayloa
 	}
 }
 
+// IncomingPacketAcknowledgement defines the interface of incoming packet acknowledgement
 type IncomingPacketAcknowledgement interface {
 	Data() PacketAcknowledgementData
 	Header() Header
@@ -178,18 +194,22 @@ type incomingPacketAcknowledgement struct {
 
 var _ IncomingPacketAcknowledgement = (*incomingPacketAcknowledgement)(nil)
 
+// NewIncomingPacketAcknowledgement returns a new IncomingPacketAcknowledgement
 func NewIncomingPacketAcknowledgement(h *Header, payload PacketAcknowledgementPayload) IncomingPacketAcknowledgement {
 	return incomingPacketAcknowledgement{data: NewPacketAcknowledgementData(h, payload), payload: payload}
 }
 
+// Data implements IncomingPacketAcknowledgement.Data
 func (a incomingPacketAcknowledgement) Data() PacketAcknowledgementData {
 	return a.data
 }
 
+// Header implements IncomingPacketAcknowledgement.Header
 func (a incomingPacketAcknowledgement) Header() Header {
 	return a.data.Header
 }
 
+// Payload implements IncomingPacketAcknowledgement.Payload
 func (a incomingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
 	return a.payload
 }
@@ -203,6 +223,7 @@ func UnmarshalIncomingPacketAcknowledgement(cdc *codec.Codec, bz []byte) (Incomi
 	return NewIncomingPacketAcknowledgement(&pd.Header, payload), nil
 }
 
+// OutgoingPacketAcknowledgement defines the interface of outgoing packet acknowledgement
 type OutgoingPacketAcknowledgement interface {
 	IncomingPacketAcknowledgement
 	SetData(header Header, payload PacketAcknowledgementPayload)
@@ -213,6 +234,7 @@ type outgoingPacketAcknowledgement struct {
 	payload PacketAcknowledgementPayload
 }
 
+// NewOutgoingPacketAcknowledgement returns a new OutgoingPacketAcknowledgement
 func NewOutgoingPacketAcknowledgement(h *Header, payload PacketAcknowledgementPayload) OutgoingPacketAcknowledgement {
 	return &outgoingPacketAcknowledgement{
 		data:    NewPacketAcknowledgementData(h, payload),
@@ -222,18 +244,22 @@ func NewOutgoingPacketAcknowledgement(h *Header, payload PacketAcknowledgementPa
 
 var _ OutgoingPacketAcknowledgement = (*outgoingPacketAcknowledgement)(nil)
 
+// Data implements OutgoingPacketAcknowledgement.Data
 func (a outgoingPacketAcknowledgement) Data() PacketAcknowledgementData {
 	return a.data
 }
 
+// Header implements OutgoingPacketAcknowledgement.Header
 func (a outgoingPacketAcknowledgement) Header() Header {
 	return a.data.Header
 }
 
+// Payload implements OutgoingPacketAcknowledgement.Payload
 func (a outgoingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
 	return a.payload
 }
 
+// Payload implements OutgoingPacketAcknowledgement.SetData
 func (a outgoingPacketAcknowledgement) SetData(header Header, payload PacketAcknowledgementPayload) {
 	a.data = NewPacketAcknowledgementData(&header, payload)
 	a.payload = payload

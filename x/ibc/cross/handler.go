@@ -59,7 +59,7 @@ func NewPacketReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, c
 		if err = as.SendACK(ctx, ack); err != nil {
 			return nil, err
 		}
-		bz, err := types.MarshalPacketAcknowledgementData(ack.Data())
+		bz, err := types.MarshalJSONPacketAcknowledgementData(ack.Data())
 		if err != nil {
 			return nil, err
 		}

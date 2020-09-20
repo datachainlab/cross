@@ -358,7 +358,7 @@ func (suite *ExampleTestSuite) buildMsgAndDoRelay(packet channeltypes.Packet, se
 }
 
 func (suite *ExampleTestSuite) buildAckMsgAndDoRelay(ack types.OutgoingPacketAcknowledgement, packet channeltypes.Packet, sender, receiver *appContext, txID cross.TxID, relayer keyring.Info, txBuilder authtypes.TxBuilder, seq uint64) {
-	ackBytes, err := types.MarshalPacketAcknowledgementData(ack.Data())
+	ackBytes, err := types.MarshalJSONPacketAcknowledgementData(ack.Data())
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
