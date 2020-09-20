@@ -31,7 +31,7 @@ func NewKeeper(cdc *codec.Codec, storeKey sdk.StoreKey, ck common.Keeper) Keeper
 	}
 }
 
-func (k Keeper) MulticastPreparePacket(
+func (k Keeper) MulticastPacketPrepare(
 	ctx sdk.Context,
 	packetSender types.PacketSender,
 	sender sdk.AccAddress,
@@ -182,7 +182,7 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 	return canMulticast, co.Decision == types.CO_DECISION_COMMIT, nil
 }
 
-func (k Keeper) MulticastCommitPacket(
+func (k Keeper) MulticastPacketCommit(
 	ctx sdk.Context,
 	packetSender types.PacketSender,
 	txID types.TxID,

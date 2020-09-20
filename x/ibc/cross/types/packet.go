@@ -44,21 +44,21 @@ func MarshalPacketData(data PacketData) ([]byte, error) {
 	return bz, nil
 }
 
-func UnmarshalPacketData(bz []byte, pd *PacketData) error {
+func UnmarshalJSONPacketData(bz []byte, pd *PacketData) error {
 	return json.Unmarshal(bz, pd)
 }
 
-func UnmarshalPacketDataPayload(cdc *codec.Codec, bz []byte, pd *PacketData, ptr interface{}) error {
-	if err := UnmarshalPacketData(bz, pd); err != nil {
+func UnmarshalJSONPacketDataPayload(cdc *codec.Codec, bz []byte, pd *PacketData, ptr interface{}) error {
+	if err := UnmarshalJSONPacketData(bz, pd); err != nil {
 		return err
 	}
 	return cdc.UnmarshalJSON(pd.Payload, ptr)
 }
 
-func UnmarshalIncomingPacket(cdc *codec.Codec, raw exported.PacketI) (IncomingPacket, error) {
+func UnmarshalJSONIncomingPacket(cdc *codec.Codec, raw exported.PacketI) (IncomingPacket, error) {
 	var pd PacketData
 	var payload PacketDataPayload
-	if err := UnmarshalPacketDataPayload(cdc, raw.GetData(), &pd, &payload); err != nil {
+	if err := UnmarshalJSONPacketDataPayload(cdc, raw.GetData(), &pd, &payload); err != nil {
 		return nil, err
 	}
 	return NewIncomingPacket(raw, pd, payload), nil
@@ -214,10 +214,10 @@ func (a incomingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
 	return a.payload
 }
 
-func UnmarshalIncomingPacketAcknowledgement(cdc *codec.Codec, bz []byte) (IncomingPacketAcknowledgement, error) {
+func UnmarshalJSONIncomingPacketAcknowledgement(cdc *codec.Codec, bz []byte) (IncomingPacketAcknowledgement, error) {
 	var pd PacketAcknowledgementData
 	var payload PacketAcknowledgementPayload
-	if err := UnmarshalPacketDataPayload(cdc, bz, &pd, &payload); err != nil {
+	if err := UnmarshalJSONPacketDataPayload(cdc, bz, &pd, &payload); err != nil {
 		return nil, err
 	}
 	return NewIncomingPacketAcknowledgement(&pd.Header, payload), nil

@@ -109,7 +109,7 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
 			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
@@ -157,7 +157,7 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
 			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
@@ -176,7 +176,7 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
 			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
@@ -195,7 +195,7 @@ func (suite *TPCKeeperTestSuite) TestInitiateMsg() {
 			nonce,
 			cross.COMMIT_PROTOCOL_TPC,
 		)
-		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+		_, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 			suite.app0.ctx,
 			types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 			suite.initiator,
@@ -297,7 +297,7 @@ func (suite *TPCKeeperTestSuite) TestRelay() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	_, err = suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	_, err = suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
 		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
@@ -309,7 +309,7 @@ func (suite *TPCKeeperTestSuite) TestRelay() {
 	// Try to open a channel and connection between app0 and app1, app2
 	suite.openAllChannels()
 
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
 		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
@@ -592,7 +592,7 @@ func (suite *TPCKeeperTestSuite) TestAbort1() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
 		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
@@ -664,7 +664,7 @@ func (suite *TPCKeeperTestSuite) TestAbort2() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
 		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
@@ -742,7 +742,7 @@ func (suite *TPCKeeperTestSuite) TestAbort3() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
 		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
@@ -831,7 +831,7 @@ func (suite *TPCKeeperTestSuite) TestStateConstraint() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
 		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
@@ -987,7 +987,7 @@ func (suite *TPCKeeperTestSuite) TestCrossChainCall() {
 		nonce,
 		cross.COMMIT_PROTOCOL_TPC,
 	)
-	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPreparePacket(
+	txID, err := suite.app0.app.CrossKeeper.TPCKeeper().MulticastPacketPrepare(
 		suite.app0.ctx,
 		types.NewSimplePacketSender(suite.app0.app.IBCKeeper.ChannelKeeper),
 		suite.initiator,
@@ -1041,7 +1041,7 @@ func (suite *TPCKeeperTestSuite) testConfirmPrepareResult(actx *appContext, ack 
 		return false, false, err
 	}
 	if canMulticast {
-		return canMulticast, isCommitable, actx.app.CrossKeeper.TPCKeeper().MulticastCommitPacket(actx.ctx, types.NewSimplePacketSender(actx.app.IBCKeeper.ChannelKeeper), txID, isCommitable)
+		return canMulticast, isCommitable, actx.app.CrossKeeper.TPCKeeper().MulticastPacketCommit(actx.ctx, types.NewSimplePacketSender(actx.app.IBCKeeper.ChannelKeeper), txID, isCommitable)
 	} else {
 		return canMulticast, isCommitable, nil
 	}

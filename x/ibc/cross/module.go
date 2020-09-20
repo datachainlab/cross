@@ -264,7 +264,7 @@ func (am AppModule) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	acknowledgement []byte,
 ) (*sdk.Result, error) {
-	ack, err := types.UnmarshalIncomingPacketAcknowledgement(types.ModuleCdc, acknowledgement)
+	ack, err := types.UnmarshalJSONIncomingPacketAcknowledgement(types.ModuleCdc, acknowledgement)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
 	}

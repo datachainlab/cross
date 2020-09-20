@@ -13,7 +13,7 @@ import (
 	tpctypes "github.com/datachainlab/cross/x/ibc/cross/types/tpc"
 )
 
-// NewHandler returns a handler
+// NewHandler returns a new sdk.Handler
 func NewHandler(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx, ps, err := packetMiddleware.HandleMsg(ctx, msg, types.NewSimplePacketSender(keeper.ChannelKeeper()))
@@ -29,11 +29,13 @@ func NewHandler(keeper Keeper, packetMiddleware types.PacketMiddleware, contract
 	}
 }
 
+// PacketReceiver is a receiver that handles a packet
 type PacketReceiver func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error)
 
+// NewPacketReceiver returns a new PacketReceiver
 func NewPacketReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) PacketReceiver {
 	return func(ctx sdk.Context, packet channeltypes.Packet) (*sdk.Result, error) {
-		ip, err := types.UnmarshalIncomingPacket(types.ModuleCdc, packet)
+		ip, err := types.UnmarshalJSONIncomingPacket(types.ModuleCdc, packet)
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
 		}
@@ -70,11 +72,13 @@ func NewPacketReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, c
 	}
 }
 
+// PacketAcknowledgementReceiver is a packet acknowledgement receiver
 type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Packet, ack types.IncomingPacketAcknowledgement) (*sdk.Result, error)
 
+// NewPacketAcknowledgementReceiver returns a PacketAcknowledgementReceiver
 func NewPacketAcknowledgementReceiver(keeper Keeper, packetMiddleware types.PacketMiddleware, contractHandler ContractHandler) PacketAcknowledgementReceiver {
 	return func(ctx sdk.Context, packet channeltypes.Packet, ack types.IncomingPacketAcknowledgement) (*sdk.Result, error) {
-		pi, err := types.UnmarshalIncomingPacket(types.ModuleCdc, packet)
+		pi, err := types.UnmarshalJSONIncomingPacket(types.ModuleCdc, packet)
 		if err != nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
 		}
@@ -115,7 +119,7 @@ func handleMsgInitiate(ctx sdk.Context, k Keeper, packetSender types.PacketSende
 		}
 		data = txID[:]
 	case types.COMMIT_PROTOCOL_TPC:
-		txID, err := k.TPCKeeper().MulticastPreparePacket(ctx, packetSender, msg.Sender, msg, msg.ContractTransactions)
+		txID, err := k.TPCKeeper().MulticastPacketPrepare(ctx, packetSender, msg.Sender, msg, msg.ContractTransactions)
 		if err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 		}
@@ -149,12 +153,13 @@ func handlePacketCallAcknowledgement(ctx sdk.Context, k simple.Keeper, contractH
 }
 
 /*
+Phase: prepare
 Precondition:
-- Given proof of packet is valid.
+- Given proof of packet commitment is valid.
 Steps:
-- Try to apply given contract transaction to our state.
-- If it was success, precommit these changes and get locks for concerned keys. Furthermore, send a Prepacket with status 'OK' to coordinator.
-- If it was failed, discard theses changes. Furthermore, send a Prepacket with status 'Failed' to coordinator.
+- Process given contract transaction(but donesn't commit)
+- If it was success, precommit these changes and get locks for concerned keys. Furthermore, send an ack packet with status 'OK' to coordinator.
+- If it was failed, discard theses changes. Furthermore, send an ack packet with status 'Failed' to coordinator.
 */
 func handlePacketDataPrepare(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataPrepare) (res []byte, ack types.OutgoingPacketAcknowledgement, err error) {
 	status, err := k.Prepare(ctx, contractHandler, packet.DestinationPort, packet.DestinationChannel, data)
@@ -166,12 +171,11 @@ func handlePacketDataPrepare(ctx sdk.Context, k tpc.Keeper, contractHandler Cont
 
 /*
 Precondition:
-- Given proof of packet is valid.
+- Given proof of packet commitment is valid.
 Steps:
-- Verify PrepareResultPacket
-- If packet status is 'Failed', we send a CommitPacket with status 'Abort' to all participants.
-- If packet status is 'OK' and all packets are confirmed, we send a CommitPacket with status 'Commit' to all participants.
-- If packet status is 'OK' and we haven't confirmed all packets yet, we wait for next packet receiving.
+- If PacketPrepareAcknowledgement.Status is 'Failed', we send a CommitPacket with status 'Abort' to all participants.
+- If PacketPrepareAcknowledgement.Status is 'OK' and all packets are confirmed, we send a CommitPacket with status 'Commit' to all participants.
+- If PacketPrepareAcknowledgement.Status is 'OK' and we haven't confirmed all packets yet, we wait for next packet receiving.
 */
 func handlePacketPrepareAcknowledgement(ctx sdk.Context, k tpc.Keeper, packetSender types.PacketSender, packet channeltypes.Packet, ack tpctypes.PacketPrepareAcknowledgement, data tpctypes.PacketDataPrepare) ([]byte, error) {
 	canMulticast, isCommitable, err := k.ReceivePrepareAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, data.TxID, data.TxIndex)
@@ -179,7 +183,7 @@ func handlePacketPrepareAcknowledgement(ctx sdk.Context, k tpc.Keeper, packetSen
 		return nil, sdkerrors.Wrap(types.ErrFailedRecievePrepareResult, err.Error())
 	}
 	if canMulticast {
-		if err := k.MulticastCommitPacket(ctx, packetSender, data.TxID, isCommitable); err != nil {
+		if err := k.MulticastPacketCommit(ctx, packetSender, data.TxID, isCommitable); err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedMulticastCommitPacket, err.Error())
 		}
 		return nil, nil
@@ -189,11 +193,12 @@ func handlePacketPrepareAcknowledgement(ctx sdk.Context, k tpc.Keeper, packetSen
 }
 
 /*
+Phase: commit
 Precondition:
-- Given proof of packet is valid.
+- Given proof of packet commitment is valid.
 Steps:
-- If PacketDataCommit indicates committable, commit precommitted state and unlock locked keys.
-- If PacketDataCommit indicates uncommittable, rollback precommitted state and unlock locked keys.
+- If PacketDataCommit.IsCommittable is true, commit the changes that are stored at prepare-phase to the state store. After that remove locks.
+- If PacketDataCommit.IsCommittable is false, discard the changes that are stored at prepare-phase. After that remove locks.
 */
 func handlePacketDataCommit(ctx sdk.Context, k tpc.Keeper, contractHandler ContractHandler, packet channeltypes.Packet, data tpctypes.PacketDataCommit) (res []byte, ack types.OutgoingPacketAcknowledgement, err error) {
 	r, err := k.ReceiveCommitPacket(ctx, contractHandler, packet.SourcePort, packet.SourceChannel, packet.DestinationPort, packet.DestinationChannel, data)
