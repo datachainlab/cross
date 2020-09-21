@@ -3,7 +3,7 @@ module github.com/datachainlab/cross
 go 1.14
 
 require (
-	github.com/bluele/interchain-simple-packet v0.0.0-20200912044232-f9777fd0845d
+	github.com/bluele/interchain-simple-packet v0.0.0-20200921011237-118864bc041e
 	github.com/cosmos/cosmos-sdk v0.34.4-0.20200423152229-f1fdde5d1b18
 	github.com/gorilla/mux v1.7.4
 	github.com/onsi/ginkgo v1.8.0 // indirect
