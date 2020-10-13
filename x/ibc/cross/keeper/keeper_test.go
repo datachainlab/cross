@@ -223,7 +223,7 @@ func (suite *KeeperTestSuite) createContractHandler(k contract.Keeper, cid strin
 				amount := unmarshalCoins(
 					contract.CallExternalFunc(ctx, types.NewChannelInfo("cross", "testchanneltwo"), contract.NewContractCallInfo("c2", "lock-coin", args), []sdk.AccAddress{sender}),
 				)
-				setBalance(store, sender, amount)
+				setBalance(store, sender, getBalanceOf(store, sender).Add(amount...))
 				return marshalCoins(amount), nil
 			},
 		},
