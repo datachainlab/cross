@@ -33,6 +33,8 @@ Please see [here](./docs/spec/02_smart_contract.md#how-to-execute-a-smart-contra
 
 For specs and documents, see [here](./docs/spec).
 
+Japanese documents can be found [here](https://github.com/datachainlab/public-docs/blob/master/cross/concepts_ja.md).
+
 ## FAQ
 
 Please see [here](./docs/spec/XX_faq.md).
