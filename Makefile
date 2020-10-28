@@ -1,12 +1,14 @@
-
-.PHONY: build test
-
+.PHONY: build
 build:
-	go build -mod readonly -o build/simappd ./example/cmd/simappd
-	go build -mod readonly -o build/simappcli ./example/cmd/simappcli
 
+.PHONY: protoc
+protoc:
+	bash ./scripts/protocgen.sh
+
+.PHONY: test
 test:
 	go test -v -count=1 ./x/... ./example/...
 
+.PHONY: e2e-test
 e2e-test:
 	$(MAKE) -C ./tests e2e-test

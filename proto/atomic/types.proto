@@ -1,0 +1,6 @@
+syntax = "proto3";
+package cross.atomic;
+
+option go_package = "github.com/datachainlab/cross/x/ibc/atomic/types";
+
+message GenesisState {}
