@@ -23,3 +23,8 @@ const (
 	// PortID defines the portID of this module
 	PortID = "cross"
 )
+
+const (
+	CommitProtocolSimple uint32 = iota // Simple commit
+	CommitProtocolTPC                  // Two-phase commit
+)

@@ -51,10 +51,27 @@ func (msg MsgInitiate) GetSignBytes() []byte {
 }
 
 // GetSigners implements sdk.Msg
+// GetSigners returns the addresses that must sign the transaction.
+// Addresses are returned in a deterministic order.
+// Duplicate addresses will be omitted.
 func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
-	valAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+	seen := map[string]bool{}
+	signers := []sdk.AccAddress{mustAccAddressFromBech32(msg.Sender)}
+	for _, t := range msg.ContractTransactions {
+		for _, addr := range t.Signers {
+			if !seen[addr] {
+				signers = append(signers, mustAccAddressFromBech32(addr))
+				seen[addr] = true
+			}
+		}
+	}
+	return signers
+}
+
+func mustAccAddressFromBech32(s string) sdk.AccAddress {
+	addr, err := sdk.AccAddressFromBech32(s)
 	if err != nil {
 		panic(err)
 	}
-	return []sdk.AccAddress{valAddr}
+	return addr
 }

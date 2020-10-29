@@ -14,13 +14,15 @@ import (
 	"github.com/datachainlab/cross/x/core/keeper/simple"
 	"github.com/datachainlab/cross/x/core/keeper/tpc"
 	"github.com/datachainlab/cross/x/core/types"
+	"github.com/datachainlab/cross/x/packets"
 )
 
 type Keeper struct {
-	m            codec.Marshaler
-	storeKey     sdk.StoreKey
-	portKeeper   types.PortKeeper
-	scopedKeeper capabilitykeeper.ScopedKeeper
+	m                codec.Marshaler
+	storeKey         sdk.StoreKey
+	portKeeper       types.PortKeeper
+	scopedKeeper     capabilitykeeper.ScopedKeeper
+	packetMiddleware packets.PacketMiddleware
 
 	simpleKeeper simple.Keeper
 	tpcKeeper    tpc.Keeper
@@ -34,9 +36,20 @@ func NewKeeper(
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
+	packetMiddleware packets.PacketMiddleware,
 ) Keeper {
 	// TODO set fields to values
 	return Keeper{}
+}
+
+// SimpleKeeper returns the simple commit keeper
+func (k Keeper) SimpleKeeper() simple.Keeper {
+	return k.simpleKeeper
+}
+
+// TPCKeeper returns the two-phase commit keeper
+func (k Keeper) TPCKeeper() tpc.Keeper {
+	return k.tpcKeeper
 }
 
 // Logger returns a logger instance

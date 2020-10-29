@@ -7,6 +7,12 @@ import "gogoproto/gogo.proto";
 import "ibc/core/client/v1/client.proto";
 import "google/protobuf/any.proto";
 
+// Msg defines the cross Msg service.
+service Msg {
+  // Initiate defines a rpc handler method for MsgInitiate.
+  rpc Initiate(MsgInitiate) returns (MsgInitiateResponse);
+}
+
 message MsgInitiate {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
@@ -53,3 +59,6 @@ message ReturnValue {
 
   bytes value = 1;
 }
+
+// MsgInitiateResponse defines the Msg/Initiate response type.
+message MsgInitiateResponse {}
