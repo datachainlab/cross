@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/bluele/interchain-simple-packet v0.0.0-20200921011237-118864bc041e
-	github.com/cosmos/cosmos-sdk v0.34.4-0.20201028133923-d83fc46b970c
+	github.com/cosmos/cosmos-sdk v0.34.4-0.20201028192045-82f15f306e8a
 	github.com/gogo/protobuf v1.3.1
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.15.2
