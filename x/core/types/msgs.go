@@ -3,6 +3,7 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 )
 
 // msg types
@@ -11,6 +12,18 @@ const (
 )
 
 var _ sdk.Msg = (*MsgInitiate)(nil)
+
+// NewMsgInitiate creates a new MsgInitiate instance
+func NewMsgInitiate(
+	sender sdk.AccAddress, receiver string,
+	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
+) *MsgInitiate {
+	return &MsgInitiate{
+		Sender:           sender.String(),
+		TimeoutHeight:    timeoutHeight,
+		TimeoutTimestamp: timeoutTimestamp,
+	}
+}
 
 // Route implements sdk.Msg
 func (MsgInitiate) Route() string {
