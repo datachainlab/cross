@@ -6,6 +6,7 @@ import (
 	sptypes "github.com/bluele/interchain-simple-packet/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	"github.com/datachainlab/cross/x/utils"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -55,7 +56,7 @@ func UnmarshalJSONIncomingPacket(m codec.Marshaler, raw exported.PacketI) (Incom
 	if err := UnmarshalJSONPacketData(raw.GetData(), &pd); err != nil {
 		return nil, err
 	}
-	if err := UnmarshalJSONAny(m, &payload, pd.Payload); err != nil {
+	if err := utils.UnmarshalJSONAny(m, &payload, pd.Payload); err != nil {
 		return nil, err
 	}
 	return NewIncomingPacket(raw, pd, payload), nil
@@ -142,7 +143,7 @@ func (p outgoingPacket) Payload() PacketDataPayload {
 // SetPacketData implements Outgoing.SetPacketData
 func (p *outgoingPacket) SetPacketData(m codec.JSONMarshaler, header Header, payload PacketDataPayload) {
 	p.payload = payload
-	p.packetData = NewPacketData(&header, MustMarshalJSONAny(m, payload))
+	p.packetData = NewPacketData(&header, utils.MustMarshalJSONAny(m, payload))
 }
 
 // GetData implements Outgoing.GetData
@@ -173,7 +174,7 @@ func NewPacketAcknowledgementData(m codec.JSONMarshaler, h *Header, payload Pack
 	}
 	return PacketAcknowledgementData{
 		Header:  *h,
-		Payload: MustMarshalJSONAny(m, payload),
+		Payload: utils.MustMarshalJSONAny(m, payload),
 	}
 }
 
@@ -218,7 +219,7 @@ func UnmarshalJSONIncomingPacketAcknowledgement(m codec.Marshaler, bz []byte) (I
 	if err := UnmarshalJSONPacketData(bz, &pd); err != nil {
 		return nil, err
 	}
-	if err := UnmarshalJSONAny(m, &payload, pd.Payload); err != nil {
+	if err := utils.UnmarshalJSONAny(m, &payload, pd.Payload); err != nil {
 		return nil, err
 	}
 

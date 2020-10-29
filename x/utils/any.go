@@ -1,4 +1,4 @@
-package packets
+package utils
 
 import (
 	"github.com/gogo/protobuf/proto"

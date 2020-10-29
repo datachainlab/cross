@@ -15,11 +15,11 @@ var _ sdk.Msg = (*MsgInitiate)(nil)
 
 // NewMsgInitiate creates a new MsgInitiate instance
 func NewMsgInitiate(
-	sender sdk.AccAddress, receiver string,
+	sender AccountAddress, receiver string,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgInitiate {
 	return &MsgInitiate{
-		Sender:           sender.String(),
+		Sender:           sender,
 		TimeoutHeight:    timeoutHeight,
 		TimeoutTimestamp: timeoutTimestamp,
 	}
@@ -38,7 +38,7 @@ func (MsgInitiate) Type() string {
 // ValidateBasic performs a basic check of the MsgInitiate fields.
 // NOTE: timeout height or timestamp values can be 0 to disable the timeout.
 func (msg MsgInitiate) ValidateBasic() error {
-	if msg.Sender == "" {
+	if len(msg.Sender) == 0 {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing sender address")
 	}
 	return nil
@@ -56,22 +56,15 @@ func (msg MsgInitiate) GetSignBytes() []byte {
 // Duplicate addresses will be omitted.
 func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
 	seen := map[string]bool{}
-	signers := []sdk.AccAddress{mustAccAddressFromBech32(msg.Sender)}
+	signers := []sdk.AccAddress{msg.Sender.AccAddress()}
 	for _, t := range msg.ContractTransactions {
-		for _, addr := range t.Signers {
+		for _, s := range t.Signers {
+			addr := s.AccAddress().String()
 			if !seen[addr] {
-				signers = append(signers, mustAccAddressFromBech32(addr))
+				signers = append(signers, s.AccAddress())
 				seen[addr] = true
 			}
 		}
 	}
 	return signers
-}
-
-func mustAccAddressFromBech32(s string) sdk.AccAddress {
-	addr, err := sdk.AccAddressFromBech32(s)
-	if err != nil {
-		panic(err)
-	}
-	return addr
 }

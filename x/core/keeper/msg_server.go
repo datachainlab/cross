@@ -19,6 +19,16 @@ func (k Keeper) Initiate(goCtx context.Context, msg *types.MsgInitiate) (*types.
 		return nil, err
 	}
 
+	// Validations
+
+	if ctx.ChainID() != msg.ChainId {
+		return nil, fmt.Errorf("unexpected chainID: '%v' != '%v'", ctx.ChainID(), msg.ChainId)
+	} else if ctx.BlockHeight() >= int64(msg.TimeoutHeight.GetVersionHeight()) {
+		return nil, fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
+	}
+
+	// Initiate a transaction
+
 	var data []byte
 	switch msg.CommitProtocol {
 	case types.CommitProtocolSimple:

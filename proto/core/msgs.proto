@@ -17,20 +17,21 @@ message MsgInitiate {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  string sender = 1;
-  uint64 nonce  = 2;
-  uint32 commit_protocol = 3;
+  bytes  sender   = 1 [(gogoproto.casttype) = "AccountAddress"];
+  string chain_id = 2;
+  uint64 nonce    = 3;
+  uint32 commit_protocol = 4;
 
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.
-  ibc.core.client.v1.Height timeout_height = 4
+  ibc.core.client.v1.Height timeout_height = 5
       [(gogoproto.moretags) = "yaml:\"timeout_height\"", (gogoproto.nullable) = false];
   // Timeout timestamp (in nanoseconds) relative to the current block timestamp.
   // The timeout is disabled when set to 0.
-  uint64 timeout_timestamp = 5
+  uint64 timeout_timestamp = 6
     [(gogoproto.moretags) = "yaml:\"timeout_timestamp\""];
 
-  repeated ContractTransaction contract_transactions = 6 [(gogoproto.nullable) = false];
+  repeated ContractTransaction contract_transactions = 7 [(gogoproto.nullable) = false];
 }
 
 message ContractTransaction {
@@ -38,8 +39,8 @@ message ContractTransaction {
   option (gogoproto.goproto_getters) = false;
 
   google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = false];
-  repeated string signers      = 2;
-  bytes call_info = 3;
+  repeated bytes signers      = 2 [(gogoproto.casttype) = "AccountAddress"];
+  bytes call_info = 3 [(gogoproto.casttype) = "ContractCallInfo"];
   StateConstraint state_constraint = 4 [(gogoproto.nullable) = false];
   ReturnValue return_value = 5;
   repeated google.protobuf.Any links = 6 [(gogoproto.nullable) = false];
