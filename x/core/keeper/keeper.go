@@ -9,7 +9,7 @@ import (
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	"github.com/datachainlab/cross/x/ibc/atomic/types"
+	"github.com/datachainlab/cross/x/core/types"
 )
 
 type Keeper struct {

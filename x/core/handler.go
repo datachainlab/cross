@@ -1,12 +1,12 @@
-package atomic
+package core
 
 import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/datachainlab/cross/x/ibc/atomic/keeper"
-	"github.com/datachainlab/cross/x/ibc/atomic/types"
+	"github.com/datachainlab/cross/x/core/keeper"
+	"github.com/datachainlab/cross/x/core/types"
 )
 
 // NewHandler ...

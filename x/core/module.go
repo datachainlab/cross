@@ -1,4 +1,4 @@
-package atomic
+package core
 
 import (
 	"encoding/json"
@@ -20,9 +20,9 @@ import (
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/05-port/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	"github.com/datachainlab/cross/x/ibc/atomic/client/cli"
-	"github.com/datachainlab/cross/x/ibc/atomic/keeper"
-	"github.com/datachainlab/cross/x/ibc/atomic/types"
+	"github.com/datachainlab/cross/x/core/client/cli"
+	"github.com/datachainlab/cross/x/core/keeper"
+	"github.com/datachainlab/cross/x/core/types"
 )
 
 var (

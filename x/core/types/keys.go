@@ -2,11 +2,11 @@ package types
 
 const (
 	// ModuleName defines the module name
-	ModuleName = "atomic"
+	ModuleName = "cross"
 
-	// Version defines the current version the Atomic
+	// Version defines the current version the Cross
 	// module supports
-	Version = "atomic-1"
+	Version = "cross-1"
 
 	// StoreKey defines the primary module store key
 	StoreKey = ModuleName
@@ -21,5 +21,5 @@ const (
 	MemStoreKey = "mem_capability"
 
 	// PortID defines the portID of this module
-	PortID = "atomic"
+	PortID = "cross"
 )

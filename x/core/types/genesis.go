@@ -1,6 +1,6 @@
 package types
 
-// NewGenesisState creates a new atomic module GenesisState instance.
+// NewGenesisState creates a new cross module GenesisState instance.
 func NewGenesisState() *GenesisState {
 	return &GenesisState{}
 }

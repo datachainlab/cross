@@ -4,7 +4,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/datachainlab/cross/x/ibc/atomic/types"
+	"github.com/datachainlab/cross/x/core/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
