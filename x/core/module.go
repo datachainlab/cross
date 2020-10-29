@@ -23,6 +23,7 @@ import (
 	"github.com/datachainlab/cross/x/core/client/cli"
 	"github.com/datachainlab/cross/x/core/keeper"
 	"github.com/datachainlab/cross/x/core/types"
+	"github.com/datachainlab/cross/x/packets"
 )
 
 var (
@@ -91,12 +92,14 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
-	keeper keeper.Keeper
+	keeper           keeper.Keeper
+	packetMiddleware packets.PacketMiddleware
 }
 
-func NewAppModule(keeper keeper.Keeper) AppModule {
+func NewAppModule(keeper keeper.Keeper, packetMiddleware packets.PacketMiddleware) AppModule {
 	return AppModule{
-		keeper: keeper,
+		keeper:           keeper,
+		packetMiddleware: packetMiddleware,
 	}
 }
 
@@ -107,7 +110,7 @@ func (am AppModule) Name() string {
 
 // Route returns the capability module's message routing key.
 func (am AppModule) Route() sdk.Route {
-	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
+	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper, am.packetMiddleware))
 }
 
 // QuerierRoute returns the capability module's query routing key.
