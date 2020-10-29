@@ -10,65 +10,6 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
-type (
-	TxIndex = uint8
-)
-
-// Link is a link to an Object that is referenced in the call to the contract
-type Link interface {
-	Type() LinkType
-	SourceIndex() TxIndex
-}
-
-// LinkType is a type of link
-type LinkType = uint8
-
-const (
-	// LinkTypeCallResult is LinkType that indicates a link with an object returned from external contract call
-	LinkTypeCallResult LinkType = iota + 1
-)
-
-var _ Link = (*CallResultLink)(nil)
-
-// CallResultLink is a link with an object returned from external contract call
-type CallResultLink struct {
-	ContractTransactionIndex TxIndex
-}
-
-// NewCallResultLink returns CallResultLink
-func NewCallResultLink(idx TxIndex) CallResultLink {
-	return CallResultLink{ContractTransactionIndex: idx}
-}
-
-// Type implements Link.Type
-func (l CallResultLink) Type() LinkType {
-	return LinkTypeCallResult
-}
-
-// SourceIndex implements Link.SourceIndex
-func (l CallResultLink) SourceIndex() TxIndex {
-	return l.ContractTransactionIndex
-}
-
-type returnObject struct {
-	obj Object
-	err error
-}
-
-type lazyObject func() returnObject
-
-func makeLazyObject(f func() returnObject) lazyObject {
-	var v returnObject
-	var once sync.Once
-	return func() returnObject {
-		once.Do(func() {
-			v = f()
-			f = nil // so that f can now be GC'ed
-		})
-		return v
-	}
-}
-
 // Linker resolves links that each ContractTransaction has.
 type Linker struct {
 	objects map[TxIndex]lazyObject
@@ -97,9 +38,9 @@ func MakeLinker(m codec.Marshaler, txs []ContractTransaction) (*Linker, error) {
 func (lkr Linker) Resolve(lks []Link) ([]Object, error) {
 	var objects []Object
 	for _, lk := range lks {
-		lzObj, ok := lkr.objects[lk.SourceIndex()]
+		lzObj, ok := lkr.objects[lk.SrcIndex]
 		if !ok {
-			return nil, fmt.Errorf("idx '%v' not found", lk.SourceIndex())
+			return nil, fmt.Errorf("idx '%v' not found", lk.SrcIndex)
 		}
 		ret := lzObj()
 		if ret.err != nil {
@@ -108,6 +49,25 @@ func (lkr Linker) Resolve(lks []Link) ([]Object, error) {
 		objects = append(objects, ret.obj)
 	}
 	return objects, nil
+}
+
+type returnObject struct {
+	obj Object
+	err error
+}
+
+type lazyObject func() returnObject
+
+func makeLazyObject(f func() returnObject) lazyObject {
+	var v returnObject
+	var once sync.Once
+	return func() returnObject {
+		once.Do(func() {
+			v = f()
+			f = nil // so that f can now be GC'ed
+		})
+		return v
+	}
 }
 
 // MakeObjectKey returns a key that can be used to identify a contract call

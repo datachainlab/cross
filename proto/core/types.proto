@@ -1,6 +1,0 @@
-syntax = "proto3";
-package cross.core;
-
-option go_package = "github.com/datachainlab/cross/x/core/types";
-
-message GenesisState {}

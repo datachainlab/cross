@@ -7,6 +7,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+type TxIndex = uint32
+
 type AccountAddress []byte
 
 func (ac AccountAddress) AccAddress() sdk.AccAddress {
