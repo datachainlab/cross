@@ -37,7 +37,7 @@ func NewKeeper(
 func (k Keeper) SendCall(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,
-	txID []byte,
+	txID types.TxID,
 	transactions []types.ContractTransaction,
 ) ([]byte, error) {
 	lkr, err := types.MakeLinker(k.cdc, transactions)
@@ -56,6 +56,7 @@ func (k Keeper) SendCall(
 	if err != nil {
 		return nil, err
 	}
+	_, _ = tx1, objs0
 
 	panic("not implemented error")
 }

@@ -18,3 +18,7 @@ var (
 	// defined at the application level.
 	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 )
+
+func PackOPs(ops []OP) ([]codectypes.Any, error) {
+	panic("not implemented error")
+}

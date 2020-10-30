@@ -38,9 +38,10 @@ func MakeLinker(m codec.Marshaler, txs []ContractTransaction) (*Linker, error) {
 func (lkr Linker) Resolve(lks []Link) ([]Object, error) {
 	var objects []Object
 	for _, lk := range lks {
-		lzObj, ok := lkr.objects[lk.SrcIndex]
+		idx := lk.GetSrcIndex()
+		lzObj, ok := lkr.objects[idx]
 		if !ok {
-			return nil, fmt.Errorf("idx '%v' not found", lk.SrcIndex)
+			return nil, fmt.Errorf("idx '%v' not found", idx)
 		}
 		ret := lzObj()
 		if ret.err != nil {

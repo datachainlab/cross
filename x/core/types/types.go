@@ -2,12 +2,16 @@ package types
 
 import (
 	"bytes"
+	"fmt"
+	"math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type TxIndex = uint32
+type TxID = []byte
+
+type TxIndex = uint8
 
 type AccountAddress []byte
 
@@ -54,4 +58,37 @@ func (rv *ReturnValue) Equal(other *ReturnValue) bool {
 	}
 }
 
+func (lk Link) ValidateBasic() error {
+	if lk.SrcIndex > math.MaxUint8 {
+		return fmt.Errorf("src_index value is overflow: %v", lk.SrcIndex)
+	}
+	return nil
+}
+
+func (lk Link) GetSrcIndex() TxIndex {
+	return TxIndex(lk.SrcIndex)
+}
+
 type ContractCallInfo []byte
+
+type ContractRuntimeInfo struct {
+	StateConstraintType    StateConstraintType
+	ExternalObjectResolver ObjectResolver
+}
+
+type StateConstraintType = uint32
+
+const (
+	NoStateConstraint         StateConstraintType = iota // NoStateConstraint indicates that no constraints on the state before and after the precommit is performed
+	ExactMatchStateConstraint                            // ExactMatchStateConstraint indicates the constraint on state state before and after the precommit is performed
+	PreStateConstraint                                   // PreStateConstraint indicates the constraint on state before the precommit is performed
+	PostStateConstraint                                  // PostStateConstraint indicates the constraint on state after the precommit is performed
+)
+
+func NewStateConstraint(tp StateConstraintType, ops []OP) StateConstraint {
+	anyOPs, err := PackOPs(ops)
+	if err != nil {
+		panic(err)
+	}
+	return StateConstraint{Type: tp, Ops: anyOPs}
+}

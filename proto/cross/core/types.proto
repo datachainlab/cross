@@ -5,6 +5,7 @@ option go_package = "github.com/datachainlab/cross/x/core/types";
 
 import "gogoproto/gogo.proto";
 import "google/protobuf/any.proto";
+import "tendermint/abci/types.proto";
 
 message ContractTransaction {
   option (gogoproto.equal)           = false;
@@ -22,14 +23,14 @@ message Link {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  uint32 src_index = 1 [(gogoproto.casttype) = "TxIndex"];
+  uint32 src_index = 1;
 }
 
 message StateConstraint {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  uint32 type = 1;
+  uint32 type = 1 [(gogoproto.casttype) = "StateConstraintType"];
   repeated google.protobuf.Any ops = 2 [(gogoproto.nullable) = false];
 }
 
@@ -38,6 +39,16 @@ message ReturnValue {
   option (gogoproto.goproto_getters) = false;
 
   bytes value = 1;
+}
+
+message ContractHandlerResult {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  bytes data = 1;
+  repeated tendermint.abci.Event events = 2 [
+    (gogoproto.nullable) = false
+  ];
 }
 
 message GenesisState {}

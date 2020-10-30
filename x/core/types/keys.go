@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 const (
 	// ModuleName defines the module name
 	ModuleName = "cross"
@@ -28,3 +30,25 @@ const (
 	CommitProtocolSimple uint32 = iota // Simple commit
 	CommitProtocolTPC                  // Two-phase commit
 )
+
+const (
+	KeyCoordinatorPrefix uint8 = iota
+	KeyTxPrefix
+	KeyContractResultPrefix
+	KeyUnacknowledgedPacketPrefix
+)
+
+// KeyPrefixBytes return the key prefix bytes from a URL string format
+func KeyPrefixBytes(prefix uint8) []byte {
+	return []byte(fmt.Sprintf("%d/", prefix))
+}
+
+func KeyContractResult(txID TxID, txIndex TxIndex) []byte {
+	return append(
+		append(
+			KeyPrefixBytes(KeyContractResultPrefix),
+			txID[:]...,
+		),
+		txIndex,
+	)
+}
