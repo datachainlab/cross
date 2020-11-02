@@ -3,11 +3,10 @@ package types
 import "github.com/datachainlab/cross/x/core/types"
 
 func NewPacketDataCall(
-	sender types.AccountAddress,
 	txID types.TxID,
 	txInfo types.ContractTransactionInfo,
 ) PacketDataCall {
-	return PacketDataCall{Sender: sender, TxId: txID, TxInfo: txInfo}
+	return PacketDataCall{TxId: txID, TxInfo: txInfo}
 }
 
 func (p PacketDataCall) ValidateBasic() error {

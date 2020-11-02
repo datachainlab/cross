@@ -17,25 +17,23 @@ type (
 )
 
 // NewPacketData returns a new packet data
-func NewPacketData(h *Header, payload []byte) PacketData {
+func NewPacketData(h *Header, payloadJSON []byte) PacketData {
 	if h == nil {
 		h = &Header{}
 	}
-	return sptypes.NewSimplePacketData(*h, payload)
+	return sptypes.NewSimplePacketData(*h, payloadJSON)
 }
 
 // PacketDataPayload defines the interface of packet data's payload
 type PacketDataPayload interface {
 	proto.Message
 	ValidateBasic() error
-	Type() string
 }
 
 // PacketAcknowledgementPayload defines the interface of packet ack's payload
 type PacketAcknowledgementPayload interface {
 	proto.Message
 	ValidateBasic() error
-	Type() string
 }
 
 func MarshalPacketData(data PacketData) ([]byte, error) {

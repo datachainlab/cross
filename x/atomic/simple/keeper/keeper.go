@@ -4,8 +4,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+
 	commonkeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
+	simpletypes "github.com/datachainlab/cross/x/atomic/simple/types"
 	"github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -83,13 +86,24 @@ func (k Keeper) SendCall(
 	if !found {
 		return types.TxID{}, sdkerrors.Wrap(channeltypes.ErrChannelNotFound, ch1.Channel)
 	}
-	_, _, _ = objs1, ch0, c
-	// TODO define packets for simple commit
-	// data := simpletypes.NewPacketDataCall(msg.Sender, txID, types.NewContractTransactionInfo(tx1, objs1))
-
 	if err := k.PrepareCommit(ctx, txID, TxIndexCoordinator, tx0, objs0); err != nil {
 		return nil, err
 	}
+
+	// TODO define packets for simple commit
+	payload := simpletypes.NewPacketDataCall(txID, types.NewContractTransactionInfo(tx1, objs1))
+	if err := k.SendPacket(
+		ctx,
+		packetSender,
+		&payload,
+		ch1.Port, ch1.Channel,
+		c.Counterparty.PortId, c.Counterparty.ChannelId,
+		clienttypes.NewHeight(0, 0),
+		0,
+	); err != nil {
+		return nil, err
+	}
+	_ = ch0
 
 	panic("not implemented error")
 }
