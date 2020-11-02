@@ -16,10 +16,11 @@ type Keeper struct {
 	channelKeeper types.ChannelKeeper
 	portKeeper    types.PortKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
+	commitStore   types.CommitStore
 
 	contractHandler  types.ContractHandler
 	resolverProvider types.ObjectResolverProvider
-	// channelResolver  types.ChannelResolver
+	channelResolver  types.ChannelResolver
 }
 
 func NewKeeper(
@@ -29,6 +30,7 @@ func NewKeeper(
 	portKeeper types.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 	contractHandler types.ContractHandler,
+	commitStore types.CommitStore,
 ) Keeper {
 	return Keeper{
 		cdc:             cdc,
@@ -36,12 +38,17 @@ func NewKeeper(
 		channelKeeper:   channelKeeper,
 		portKeeper:      portKeeper,
 		scopedKeeper:    scopedKeeper,
+		commitStore:     commitStore,
 		contractHandler: contractHandler,
 	}
 }
 
 func (k Keeper) ChannelKeeper() types.ChannelKeeper {
 	return k.channelKeeper
+}
+
+func (k Keeper) ChannelResolver() types.ChannelResolver {
+	return k.channelResolver
 }
 
 func (k Keeper) PrepareCommit(
@@ -56,10 +63,7 @@ func (k Keeper) PrepareCommit(
 		return err
 	}
 	k.SetContractResult(ctx, txID, txIndex, *res)
-	ctxID := makeContractTransactionID(txID, txIndex)
-	_ = ctxID
-	// return store.Precommit(ctxID)
-	panic("not implemented error")
+	return k.commitStore.Precommit(ctx, makeContractTransactionID(txID, txIndex))
 }
 
 func (k Keeper) processTransaction(

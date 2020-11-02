@@ -57,4 +57,9 @@ message OPs {
   repeated google.protobuf.Any items = 1 [(gogoproto.nullable) = false];
 }
 
+message ChannelInfo {
+  string port = 1;
+  string channel = 2;
+}
+
 message GenesisState {}
