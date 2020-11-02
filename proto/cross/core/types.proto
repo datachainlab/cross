@@ -31,7 +31,7 @@ message StateConstraint {
   option (gogoproto.goproto_getters) = false;
 
   uint32 type = 1 [(gogoproto.casttype) = "StateConstraintType"];
-  repeated google.protobuf.Any ops = 2 [(gogoproto.nullable) = false];
+  OPs ops = 2;
 }
 
 message ReturnValue {
@@ -52,6 +52,8 @@ message ContractHandlerResult {
 }
 
 message OPs {
+  option (gogoproto.equal)           = true;
+
   repeated google.protobuf.Any items = 1 [(gogoproto.nullable) = false];
 }
 

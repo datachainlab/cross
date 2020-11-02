@@ -84,15 +84,15 @@ func (s CommitStore) Set(ctx sdk.Context, key, value []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.ModeFromContext(ctx.Context()) {
+	switch types.CommitModeFromContext(ctx.Context()) {
 	case types.BasicMode:
 		s.stateStore.Set(ctx, key, value)
 		return
 	case types.AtomicMode:
-		OPManagerFromContext(ctx.Context()).AddWrite(key, value)
+		opManagerFromContext(ctx.Context()).AddWrite(key, value)
 		return
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.ModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -100,11 +100,11 @@ func (s CommitStore) Get(ctx sdk.Context, key []byte) []byte {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.ModeFromContext(ctx.Context()) {
+	switch types.CommitModeFromContext(ctx.Context()) {
 	case types.BasicMode:
 		return s.stateStore.Get(ctx, key)
 	case types.AtomicMode:
-		opmgr := OPManagerFromContext(ctx.Context())
+		opmgr := opManagerFromContext(ctx.Context())
 		v, ok := opmgr.GetUpdatedValue(key)
 		opmgr.AddRead(key, v)
 		if ok {
@@ -113,7 +113,7 @@ func (s CommitStore) Get(ctx sdk.Context, key []byte) []byte {
 			return s.stateStore.Get(ctx, key)
 		}
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.ModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -121,11 +121,11 @@ func (s CommitStore) Has(ctx sdk.Context, key []byte) bool {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.ModeFromContext(ctx.Context()) {
+	switch types.CommitModeFromContext(ctx.Context()) {
 	case types.BasicMode:
 		return s.stateStore.Has(ctx, key)
 	case types.AtomicMode:
-		opmgr := OPManagerFromContext(ctx.Context())
+		opmgr := opManagerFromContext(ctx.Context())
 		v, ok := opmgr.GetUpdatedValue(key)
 		opmgr.AddRead(key, v)
 		if ok {
@@ -134,7 +134,7 @@ func (s CommitStore) Has(ctx sdk.Context, key []byte) bool {
 			return s.stateStore.Has(ctx, key)
 		}
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.ModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -142,14 +142,14 @@ func (s CommitStore) Delete(ctx sdk.Context, key []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.ModeFromContext(ctx.Context()) {
+	switch types.CommitModeFromContext(ctx.Context()) {
 	case types.BasicMode:
 		s.stateStore.Delete(ctx, key)
 		return
 	case types.AtomicMode:
-		OPManagerFromContext(ctx.Context()).AddWrite(key, nil)
+		opManagerFromContext(ctx.Context()).AddWrite(key, nil)
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.ModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -157,7 +157,7 @@ func (s CommitStore) Precommit(ctx sdk.Context, id []byte) error {
 	if s.txStore.Has(ctx, id) {
 		return fmt.Errorf("id '%x' already exists", id)
 	}
-	lks := OPManagerFromContext(ctx.Context()).LockOPs()
+	lks := opManagerFromContext(ctx.Context()).LockOPs()
 	ops, err := convertLockOPsToOPs(lks)
 	if err != nil {
 		return err
@@ -209,7 +209,7 @@ func (s CommitStore) Commit(ctx sdk.Context, id []byte) error {
 }
 
 func (s CommitStore) CommitImmediately(ctx sdk.Context) {
-	lks := OPManagerFromContext(ctx.Context()).LockOPs()
+	lks := opManagerFromContext(ctx.Context()).LockOPs()
 	s.apply(ctx, lks)
 }
 

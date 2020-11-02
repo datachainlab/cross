@@ -2,7 +2,6 @@ package store
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -258,16 +257,6 @@ func (m *noOPManager) AddRead(k, v []byte) {}
 
 func (m noOPManager) OPs() types.OPs {
 	return types.OPs{}
-}
-
-type opManagerContextKey struct{}
-
-func OPManagerFromContext(ctx context.Context) OPManager {
-	return ctx.Value(opManagerContextKey{}).(OPManager)
-}
-
-func ContextWithOPManager(ctx context.Context, opmgr OPManager) context.Context {
-	return context.WithValue(ctx, opManagerContextKey{}, opmgr)
 }
 
 func convertOPsToLockOPs(m codec.Marshaler, ops types.OPs) ([]LockOP, error) {

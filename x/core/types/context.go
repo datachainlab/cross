@@ -2,12 +2,16 @@ package types
 
 import "context"
 
-type modeContextKey struct{}
+type contractRuntimeInfoContextKey struct{}
 
-func ModeFromContext(ctx context.Context) Mode {
-	return ctx.Value(modeContextKey{}).(Mode)
+func ContractRuntimeFromContext(ctx context.Context) ContractRuntimeInfo {
+	return ctx.Value(contractRuntimeInfoContextKey{}).(ContractRuntimeInfo)
 }
 
-func ContextWithMode(ctx context.Context, mode Mode) context.Context {
-	return context.WithValue(ctx, modeContextKey{}, mode)
+func ContextWithContractRuntimeInfo(ctx context.Context, runtimeInfo ContractRuntimeInfo) context.Context {
+	return context.WithValue(ctx, contractRuntimeInfoContextKey{}, runtimeInfo)
+}
+
+func CommitModeFromContext(ctx context.Context) CommitMode {
+	return ContractRuntimeFromContext(ctx).CommitMode
 }

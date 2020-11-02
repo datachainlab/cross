@@ -19,6 +19,14 @@ var (
 	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 )
 
-func PackOPs(ops []OP) ([]codectypes.Any, error) {
-	panic("not implemented error")
+func PackOPs(opItems []OP) (*OPs, error) {
+	var ops OPs
+	for _, it := range opItems {
+		var any codectypes.Any
+		if err := any.Pack(it); err != nil {
+			return nil, err
+		}
+		ops.Items = append(ops.Items, any)
+	}
+	return &ops, nil
 }

@@ -4,10 +4,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type Mode = uint8
+type CommitMode = uint8
 
 const (
-	BasicMode Mode = iota + 1
+	BasicMode CommitMode = iota + 1
 	AtomicMode
 )
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	proto "github.com/gogo/protobuf/proto"
 )
 
 type TxID = []byte
@@ -72,6 +73,7 @@ func (lk Link) GetSrcIndex() TxIndex {
 type ContractCallInfo []byte
 
 type ContractRuntimeInfo struct {
+	CommitMode             CommitMode
 	StateConstraintType    StateConstraintType
 	ExternalObjectResolver ObjectResolver
 }
@@ -85,10 +87,14 @@ const (
 	PostStateConstraint                                  // PostStateConstraint indicates the constraint on state after the precommit is performed
 )
 
-func NewStateConstraint(tp StateConstraintType, ops []OP) StateConstraint {
-	anyOPs, err := PackOPs(ops)
+func NewStateConstraint(tp StateConstraintType, opItems []OP) StateConstraint {
+	ops, err := PackOPs(opItems)
 	if err != nil {
 		panic(err)
 	}
-	return StateConstraint{Type: tp, Ops: anyOPs}
+	return StateConstraint{Type: tp, Ops: ops}
+}
+
+type OP interface {
+	proto.Message
 }

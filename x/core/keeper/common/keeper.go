@@ -51,9 +51,7 @@ func (k Keeper) PrepareCommit(
 	tx types.ContractTransaction,
 	links []types.Object,
 ) error {
-	// TODO setup context with storeManager?
-
-	res, err := k.processTransaction(ctx, txIndex, tx, links)
+	res, err := k.processTransaction(ctx, txIndex, tx, links, types.AtomicMode)
 	if err != nil {
 		return err
 	}
@@ -69,20 +67,28 @@ func (k Keeper) processTransaction(
 	txIndex types.TxIndex,
 	tx types.ContractTransaction,
 	links []types.Object,
+	commitMode types.CommitMode,
 ) (res *types.ContractHandlerResult, err error) {
+	// TODO resolverProvider can be moved into contract package?
 	rs, err := k.resolverProvider(links)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build a context
-	goCtx := sdk.WrapSDKContext(ctx)
-	runtimeInfo := types.ContractRuntimeInfo{
-		StateConstraintType: tx.StateConstraint.Type, ExternalObjectResolver: rs,
-	}
-	// TODO set context to this
-	_ = runtimeInfo
-	if err := k.contractHandler.Handle(goCtx, tx.CallInfo); err != nil {
+	// Setup a context
+	goCtx := types.SetupContractContext(
+		sdk.WrapSDKContext(ctx),
+		types.ContractRuntimeInfo{
+			CommitMode:             commitMode,
+			StateConstraintType:    tx.StateConstraint.Type,
+			ExternalObjectResolver: rs,
+		},
+	)
+	ops, err := k.contractHandler(
+		goCtx,
+		tx.CallInfo,
+	)
+	if err != nil {
 		return nil, err
 	}
 
@@ -90,10 +96,9 @@ func (k Keeper) processTransaction(
 		return nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.Data)
 	}
 
-	// TODO
-	// if ops := store.OPs(); !ops.Equal(tx.StateConstraint.OPs) {
-	// 	return nil, nil, fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), tx.StateConstraint.OPs.String())
-	// }
+	if !tx.StateConstraint.Ops.Equal(ops) {
+		return nil, fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), tx.StateConstraint.Ops.String())
+	}
 
 	return res, nil
 }

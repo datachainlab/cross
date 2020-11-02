@@ -2,26 +2,31 @@ package types
 
 import (
 	"context"
-
-	"github.com/gogo/protobuf/proto"
 )
 
-type ContractHandler interface {
-	Handle(ctx context.Context, callInfo ContractCallInfo) error
+type ContractHandler func(ctx context.Context, callInfo ContractCallInfo) (*OPs, error)
+
+type ContractHandleDecorator interface {
+	Handle(ctx context.Context, callInfo ContractCallInfo) (newCtx context.Context, err error)
 }
 
-type OP interface {
-	proto.Message
-}
-
-func (ops OPs) Equal(other OPs) bool {
-	if len(ops.Items) != len(other.Items) {
-		return false
+func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) ContractHandler {
+	if h == nil {
+		panic("ContractHandler cannot be nil")
 	}
-	for i, op := range ops.Items {
-		if !op.Equal(other.Items[i]) {
-			return false
+	return func(ctx context.Context, callInfo ContractCallInfo) (*OPs, error) {
+		var err error
+		for _, dec := range decs {
+			ctx, err = dec.Handle(ctx, callInfo)
+			if err != nil {
+				return nil, err
+			}
 		}
+		return h(ctx, callInfo)
 	}
-	return true
+}
+
+func SetupContractContext(ctx context.Context, runtimeInfo ContractRuntimeInfo) context.Context {
+	ctx = ContextWithContractRuntimeInfo(ctx, runtimeInfo)
+	return ctx
 }
