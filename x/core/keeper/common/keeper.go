@@ -51,6 +51,8 @@ func (k Keeper) PrepareCommit(
 	tx types.ContractTransaction,
 	links []types.Object,
 ) error {
+	// TODO setup context with storeManager?
+
 	res, err := k.processTransaction(ctx, txIndex, tx, links)
 	if err != nil {
 		return err
