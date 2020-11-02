@@ -62,4 +62,12 @@ message ChannelInfo {
   string channel = 2;
 }
 
+message ContractTransactionInfo {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  ContractTransaction tx = 1 [(gogoproto.nullable) = false];
+  // []Object
+}
+
 message GenesisState {}

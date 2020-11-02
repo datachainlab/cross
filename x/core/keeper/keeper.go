@@ -10,9 +10,9 @@ import (
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	"github.com/datachainlab/cross/x/core/keeper/common"
-	"github.com/datachainlab/cross/x/core/keeper/simple"
-	"github.com/datachainlab/cross/x/core/keeper/tpc"
+	commonkeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
+	simplekeeper "github.com/datachainlab/cross/x/atomic/simple/keeper"
+	tpckeeper "github.com/datachainlab/cross/x/atomic/tpc/keeper"
 	"github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -24,9 +24,9 @@ type Keeper struct {
 	scopedKeeper     capabilitykeeper.ScopedKeeper
 	packetMiddleware packets.PacketMiddleware
 
-	simpleKeeper simple.Keeper
-	tpcKeeper    tpc.Keeper
-	common.Keeper
+	simpleKeeper simplekeeper.Keeper
+	tpcKeeper    tpckeeper.Keeper
+	commonkeeper.Keeper
 }
 
 // NewKeeper creates a new instance of Cross Keeper
@@ -37,18 +37,31 @@ func NewKeeper(
 	portKeeper types.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 	packetMiddleware packets.PacketMiddleware,
+	contractHandler types.ContractHandler,
+	commitStore types.CommitStore,
 ) Keeper {
-	// TODO set fields to values
-	return Keeper{}
+	ck := commonkeeper.NewKeeper(m, storeKey, channelKeeper, portKeeper, scopedKeeper, contractHandler, commitStore)
+	return Keeper{
+		m:                m,
+		storeKey:         storeKey,
+		portKeeper:       portKeeper,
+		scopedKeeper:     scopedKeeper,
+		packetMiddleware: packetMiddleware,
+
+		simpleKeeper: simplekeeper.NewKeeper(m, storeKey, ck),
+		// TODO set this:
+		// tpcKeeper:
+		Keeper: ck,
+	}
 }
 
 // SimpleKeeper returns the simple commit keeper
-func (k Keeper) SimpleKeeper() simple.Keeper {
+func (k Keeper) SimpleKeeper() simplekeeper.Keeper {
 	return k.simpleKeeper
 }
 
 // TPCKeeper returns the two-phase commit keeper
-func (k Keeper) TPCKeeper() tpc.Keeper {
+func (k Keeper) TPCKeeper() tpckeeper.Keeper {
 	return k.tpcKeeper
 }
 

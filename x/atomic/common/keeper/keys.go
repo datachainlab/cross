@@ -1,4 +1,4 @@
-package common
+package keeper
 
 import "github.com/datachainlab/cross/x/core/types"
 

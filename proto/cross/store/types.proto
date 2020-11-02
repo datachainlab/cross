@@ -1,5 +1,5 @@
 syntax = "proto3";
-package cross.core;
+package cross.store;
 
 option go_package = "github.com/datachainlab/cross/x/store";
 

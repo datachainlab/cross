@@ -149,3 +149,14 @@ func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*Channel
 func (r ChannelInfoResolver) Capabilities() ChannelResolverCapabilities {
 	return channelResolverCapabilities{crossChainCalls: false}
 }
+
+// TODO set txInfo to linkObjects
+func NewContractTransactionInfo(tx ContractTransaction, linkObjects []Object) ContractTransactionInfo {
+	return ContractTransactionInfo{
+		Tx: tx,
+	}
+}
+
+func (ti ContractTransactionInfo) ValidateBasic() error {
+	return nil
+}

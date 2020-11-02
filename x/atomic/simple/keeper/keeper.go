@@ -1,11 +1,11 @@
-package simple
+package keeper
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	"github.com/datachainlab/cross/x/core/keeper/common"
+	commonkeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
 	"github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -19,13 +19,13 @@ type Keeper struct {
 	cdc      codec.Marshaler
 	storeKey sdk.StoreKey
 
-	common.Keeper
+	commonkeeper.Keeper
 }
 
 func NewKeeper(
 	cdc codec.Marshaler,
 	storeKey sdk.StoreKey,
-	ck common.Keeper,
+	ck commonkeeper.Keeper,
 ) Keeper {
 	return Keeper{
 		cdc:      cdc,
