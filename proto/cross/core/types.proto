@@ -51,4 +51,8 @@ message ContractHandlerResult {
   ];
 }
 
+message OPs {
+  repeated google.protobuf.Any items = 1 [(gogoproto.nullable) = false];
+}
+
 message GenesisState {}

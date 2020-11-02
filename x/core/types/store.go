@@ -27,5 +27,5 @@ type CommitStore interface {
 	Precommit(ctx sdk.Context, id []byte) error
 	Abort(ctx sdk.Context, id []byte) error
 	Commit(ctx sdk.Context, id []byte) error
-	CommitImmediately(ctx sdk.Context) error
+	CommitImmediately(ctx sdk.Context)
 }

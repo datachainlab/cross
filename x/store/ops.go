@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/core/types"
 )
@@ -171,11 +173,11 @@ func (m *readWriteOPManager) AddRead(k, v []byte) {
 }
 
 func (m readWriteOPManager) OPs() types.OPs {
-	ops := make(types.OPs, 0, len(m.ops))
-	for _, op := range m.ops {
-		ops = append(ops, op)
+	ops, err := convertOPItemsToOPs(m.ops)
+	if err != nil {
+		panic(err)
 	}
-	return ops
+	return *ops
 }
 
 type readOPManager struct {
@@ -195,15 +197,19 @@ func (m *readOPManager) AddRead(k, v []byte) {
 }
 
 func (m readOPManager) OPs() types.OPs {
-	ops := make(types.OPs, 0, len(m.ops))
+	items := make([]OP, 0, len(m.ops))
 	for _, op := range m.ops {
 		if op.Type() == OpTypeRead {
-			ops = append(ops, op)
+			items = append(items, op)
 		} else {
 			continue
 		}
 	}
-	return ops
+	ops, err := convertOPItemsToOPs(items)
+	if err != nil {
+		panic(err)
+	}
+	return *ops
 }
 
 type writeOPManager struct {
@@ -221,15 +227,19 @@ func newWriteOPManager() *writeOPManager {
 func (m *writeOPManager) AddRead(k, v []byte) {}
 
 func (m writeOPManager) OPs() types.OPs {
-	ops := make(types.OPs, 0, len(m.ops))
+	items := make([]OP, 0, len(m.ops))
 	for _, op := range m.ops {
 		if op.Type() == OpTypeWrite {
-			ops = append(ops, op)
+			items = append(items, op)
 		} else {
 			continue
 		}
 	}
-	return ops
+	ops, err := convertOPItemsToOPs(items)
+	if err != nil {
+		panic(err)
+	}
+	return *ops
 }
 
 type noOPManager struct {
@@ -258,4 +268,40 @@ func OPManagerFromContext(ctx context.Context) OPManager {
 
 func ContextWithOPManager(ctx context.Context, opmgr OPManager) context.Context {
 	return context.WithValue(ctx, opManagerContextKey{}, opmgr)
+}
+
+func convertOPsToLockOPs(m codec.Marshaler, ops types.OPs) ([]LockOP, error) {
+	var lks []LockOP
+	for _, op := range ops.Items {
+		var lk LockOP
+		if err := m.UnpackAny(&op, &lk); err != nil {
+			return nil, err
+		}
+		lks = append(lks, lk)
+	}
+	return lks, nil
+}
+
+func convertLockOPsToOPs(lks []LockOP) (*types.OPs, error) {
+	var ops types.OPs
+	for _, lk := range lks {
+		var any codectypes.Any
+		if err := any.Pack(lk); err != nil {
+			return nil, err
+		}
+		ops.Items = append(ops.Items, any)
+	}
+	return &ops, nil
+}
+
+func convertOPItemsToOPs(items []OP) (*types.OPs, error) {
+	var ops types.OPs
+	for _, it := range items {
+		var any codectypes.Any
+		if err := any.Pack(it); err != nil {
+			return nil, err
+		}
+		ops.Items = append(ops.Items, any)
+	}
+	return &ops, nil
 }

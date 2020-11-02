@@ -3,9 +3,11 @@ package store
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/core/types"
+	"github.com/gogo/protobuf/proto"
 )
 
 var _ types.Store = (*Store)(nil)
@@ -49,18 +51,22 @@ func (s Store) Delete(ctx sdk.Context, key []byte) {
 
 type CommitStore struct {
 	storeKey   sdk.StoreKey
+	m          codec.Marshaler
 	stateStore types.Store
 	lockStore  LockStore
+	txStore    types.Store
 }
 
 var _ types.CommitStore = (*CommitStore)(nil)
 var _ types.Store = (*CommitStore)(nil)
 
-func NewCommitStore(storeKey sdk.StoreKey) CommitStore {
+func NewCommitStore(m codec.Marshaler, storeKey sdk.StoreKey) CommitStore {
 	return CommitStore{
 		storeKey:   storeKey,
+		m:          m,
 		stateStore: NewStore(storeKey).Prefix([]byte{0}),
 		lockStore:  newLockStore(NewStore(storeKey).Prefix([]byte{1})),
+		txStore:    NewStore(storeKey).Prefix([]byte{2}),
 	}
 }
 
@@ -148,17 +154,77 @@ func (s CommitStore) Delete(ctx sdk.Context, key []byte) {
 }
 
 func (s CommitStore) Precommit(ctx sdk.Context, id []byte) error {
+	if s.txStore.Has(ctx, id) {
+		return fmt.Errorf("id '%x' already exists", id)
+	}
+	lks := OPManagerFromContext(ctx.Context()).LockOPs()
+	ops, err := convertLockOPsToOPs(lks)
+	if err != nil {
+		return err
+	}
+	bz, err := proto.Marshal(ops)
+	if err != nil {
+		return err
+	}
+	s.txStore.Set(ctx, id, bz)
+	for _, lk := range lks {
+		s.lockStore.Lock(ctx, lk.Key())
+	}
 	return nil
 }
 
 func (s CommitStore) Abort(ctx sdk.Context, id []byte) error {
+	bz := s.txStore.Get(ctx, id)
+	if bz == nil {
+		return fmt.Errorf("id '%x' not found", id)
+	}
+	var ops types.OPs
+	if err := proto.Unmarshal(bz, &ops); err != nil {
+		return err
+	}
+	lks, err := convertOPsToLockOPs(s.m, ops)
+	if err != nil {
+		return err
+	}
+	s.clean(ctx, id, lks)
 	return nil
 }
 
 func (s CommitStore) Commit(ctx sdk.Context, id []byte) error {
+	bz := s.txStore.Get(ctx, id)
+	if bz == nil {
+		return fmt.Errorf("id '%x' not found", id)
+	}
+	var ops types.OPs
+	if err := proto.Unmarshal(bz, &ops); err != nil {
+		return err
+	}
+	lks, err := convertOPsToLockOPs(s.m, ops)
+	if err != nil {
+		return err
+	}
+	s.apply(ctx, lks)
+	s.clean(ctx, id, lks)
 	return nil
 }
 
-func (s CommitStore) CommitImmediately(ctx sdk.Context) error {
-	return nil
+func (s CommitStore) CommitImmediately(ctx sdk.Context) {
+	lks := OPManagerFromContext(ctx.Context()).LockOPs()
+	s.apply(ctx, lks)
+}
+
+func (s CommitStore) apply(ctx sdk.Context, ops []LockOP) {
+	for _, op := range ops {
+		op.ApplyTo(s.stateStore.KVStore(ctx))
+	}
+}
+
+func (s CommitStore) clean(ctx sdk.Context, id []byte, ops []LockOP) {
+	if !s.txStore.Has(ctx, id) {
+		panic(fmt.Errorf("id '%x' not found", id))
+	}
+	s.txStore.Delete(ctx, id)
+	for _, op := range ops {
+		s.lockStore.Unlock(ctx, op.Key())
+	}
 }
