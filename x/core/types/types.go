@@ -14,6 +14,8 @@ type TxID = []byte
 
 type TxIndex = uint8
 
+type TxIndexSlice = []TxIndex
+
 type AccountAddress []byte
 
 func (ac AccountAddress) AccAddress() sdk.AccAddress {

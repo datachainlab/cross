@@ -7,6 +7,9 @@ import "gogoproto/gogo.proto";
 import "cross/core/types.proto";
 
 message PacketDataCall {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
   bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
   cross.core.ContractTransactionInfo tx_info = 2 [(gogoproto.nullable) = false];
 }

@@ -1,0 +1,34 @@
+syntax = "proto3";
+package cross.atomic.common;
+
+option go_package = "github.com/datachainlab/cross/x/atomic/common/types";
+
+import "gogoproto/gogo.proto";
+import "cross/core/types.proto";
+
+message CoordinatorState {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  repeated cross.core.ChannelInfo channels = 1 [(gogoproto.nullable) = false];
+  CoordinatorPhase phase = 2;
+  CoordinatorDecision decision = 3;
+  bytes confirmed_txs = 4 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxIndexSlice"];
+  bytes acks = 5 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxIndexSlice"];
+}
+
+enum CoordinatorPhase {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  COORDINATOR_PHASE_NONE    = 0;
+  COORDINATOR_PHASE_PREPARE = 1;
+  COORDINATOR_PHASE_COMMIT  = 2;
+}
+
+enum CoordinatorDecision {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  COORDINATOR_DECISION_NONE   = 0;
+  COORDINATOR_DECISION_COMMIT = 1;
+  COORDINATOR_DECISION_ABORT  = 2;
+}
