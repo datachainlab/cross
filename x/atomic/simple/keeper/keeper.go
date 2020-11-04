@@ -22,21 +22,18 @@ const (
 )
 
 type Keeper struct {
-	cdc      codec.Marshaler
-	storeKey sdk.StoreKey
+	cdc codec.Marshaler
 
 	commonkeeper.Keeper
 }
 
 func NewKeeper(
 	cdc codec.Marshaler,
-	storeKey sdk.StoreKey,
 	ck commonkeeper.Keeper,
 ) Keeper {
 	return Keeper{
-		cdc:      cdc,
-		storeKey: storeKey,
-		Keeper:   ck,
+		cdc:    cdc,
+		Keeper: ck,
 	}
 }
 

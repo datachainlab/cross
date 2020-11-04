@@ -40,7 +40,7 @@ func NewKeeper(
 	contractHandler types.ContractHandler,
 	commitStore types.CommitStore,
 ) Keeper {
-	ck := commonkeeper.NewKeeper(m, storeKey, channelKeeper, portKeeper, scopedKeeper, contractHandler, commitStore)
+	ck := commonkeeper.NewKeeper(m, storeKey, types.KeyAtomicKeeperPrefixBytes(), channelKeeper, portKeeper, scopedKeeper, contractHandler, commitStore)
 	return Keeper{
 		m:                m,
 		storeKey:         storeKey,
@@ -48,10 +48,9 @@ func NewKeeper(
 		scopedKeeper:     scopedKeeper,
 		packetMiddleware: packetMiddleware,
 
-		simpleKeeper: simplekeeper.NewKeeper(m, storeKey, ck),
-		// TODO set this:
-		// tpcKeeper:
-		Keeper: ck,
+		simpleKeeper: simplekeeper.NewKeeper(m, ck),
+		tpcKeeper:    tpckeeper.NewKeeper(),
+		Keeper:       ck,
 	}
 }
 

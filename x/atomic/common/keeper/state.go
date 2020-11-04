@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/datachainlab/cross/x/atomic/common/types"
@@ -8,14 +9,12 @@ import (
 )
 
 func (k Keeper) SetContractResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, result crosstypes.ContractHandlerResult) {
-	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(&result)
-	store.Set(crosstypes.KeyContractResult(txID, txIndex), bz)
+	k.store(ctx).Set(types.KeyContractResult(txID, txIndex), bz)
 }
 
 func (k Keeper) GetContractResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) *crosstypes.ContractHandlerResult {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(crosstypes.KeyContractResult(txID, txIndex))
+	bz := k.store(ctx).Get(types.KeyContractResult(txID, txIndex))
 	if bz == nil {
 		return nil
 	}
@@ -25,19 +24,16 @@ func (k Keeper) GetContractResult(ctx sdk.Context, txID crosstypes.TxID, txIndex
 }
 
 func (k Keeper) RemoveContractResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) {
-	store := ctx.KVStore(k.storeKey)
-	store.Delete(crosstypes.KeyContractResult(txID, txIndex))
+	k.store(ctx).Delete(types.KeyContractResult(txID, txIndex))
 }
 
 func (k Keeper) SetCoordinatorState(ctx sdk.Context, txID crosstypes.TxID, cs types.CoordinatorState) {
-	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(&cs)
-	store.Set(crosstypes.KeyCoordinatorState(txID), bz)
+	k.store(ctx).Set(types.KeyCoordinatorState(txID), bz)
 }
 
 func (k Keeper) GetCoordinatorState(ctx sdk.Context, txID crosstypes.TxID) (*types.CoordinatorState, bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(crosstypes.KeyCoordinatorState(txID))
+	bz := k.store(ctx).Get(types.KeyCoordinatorState(txID))
 	if bz == nil {
 		return nil, false
 	}
@@ -47,18 +43,20 @@ func (k Keeper) GetCoordinatorState(ctx sdk.Context, txID crosstypes.TxID) (*typ
 }
 
 func (k Keeper) SetContractTransactionState(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, txState types.ContractTransactionState) {
-	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(&txState)
-	store.Set(crosstypes.KeyContractTransactionState(txID, txIndex), bz)
+	k.store(ctx).Set(types.KeyContractTransactionState(txID, txIndex), bz)
 }
 
 func (k Keeper) GetContractTransactionState(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) (*types.ContractTransactionState, bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(crosstypes.KeyContractTransactionState(txID, txIndex))
+	bz := k.store(ctx).Get(types.KeyContractTransactionState(txID, txIndex))
 	if bz == nil {
 		return nil, false
 	}
 	var txState types.ContractTransactionState
 	k.cdc.MustUnmarshalBinaryBare(bz, &txState)
 	return &txState, true
+}
+
+func (k Keeper) store(ctx sdk.Context) sdk.KVStore {
+	return prefix.NewStore(ctx.KVStore(k.storeKey), k.keyPrefix)
 }
