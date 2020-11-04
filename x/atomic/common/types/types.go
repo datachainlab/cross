@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/datachainlab/cross/x/core/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
 // NewCoordinatorState creates a new instance of CoordinatorState
-func NewCoordinatorState(commitFlowType CommitFlowType, phase CoordinatorPhase, channels []types.ChannelInfo) CoordinatorState {
+func NewCoordinatorState(commitFlowType CommitFlowType, phase CoordinatorPhase, channels []crosstypes.ChannelInfo) CoordinatorState {
 	return CoordinatorState{
 		Type:     commitFlowType,
 		Phase:    phase,
@@ -17,7 +17,7 @@ func NewCoordinatorState(commitFlowType CommitFlowType, phase CoordinatorPhase, 
 }
 
 // Confirm ...
-func (cs *CoordinatorState) Confirm(txIndex types.TxIndex, channel types.ChannelInfo) error {
+func (cs *CoordinatorState) Confirm(txIndex crosstypes.TxIndex, channel crosstypes.ChannelInfo) error {
 	for _, id := range cs.ConfirmedTxs {
 		if txIndex == id {
 			return errors.New("this tx is already confirmed")
@@ -35,7 +35,7 @@ func (cs *CoordinatorState) Confirm(txIndex types.TxIndex, channel types.Channel
 }
 
 // NewContractTransactionState creates a new instance of ContractTransactionState
-func NewContractTransactionState(status ContractTransactionStatus, prepareResult PrepareResult, coordinatorChannel types.ChannelInfo) ContractTransactionState {
+func NewContractTransactionState(status ContractTransactionStatus, prepareResult PrepareResult, coordinatorChannel crosstypes.ChannelInfo) ContractTransactionState {
 	return ContractTransactionState{
 		Status:             status,
 		PrepareResult:      prepareResult,

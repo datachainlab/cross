@@ -10,7 +10,7 @@ import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	"github.com/datachainlab/cross/x/core/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 	"github.com/datachainlab/cross/x/utils"
 )
@@ -19,24 +19,24 @@ type Keeper struct {
 	cdc      codec.Marshaler
 	storeKey sdk.StoreKey
 
-	channelKeeper types.ChannelKeeper
-	portKeeper    types.PortKeeper
+	channelKeeper crosstypes.ChannelKeeper
+	portKeeper    crosstypes.PortKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
-	commitStore   types.CommitStore
+	commitStore   crosstypes.CommitStore
 
-	contractHandler  types.ContractHandler
-	resolverProvider types.ObjectResolverProvider
-	channelResolver  types.ChannelResolver
+	contractHandler  crosstypes.ContractHandler
+	resolverProvider crosstypes.ObjectResolverProvider
+	channelResolver  crosstypes.ChannelResolver
 }
 
 func NewKeeper(
 	cdc codec.Marshaler,
 	storeKey sdk.StoreKey,
-	channelKeeper types.ChannelKeeper,
-	portKeeper types.PortKeeper,
+	channelKeeper crosstypes.ChannelKeeper,
+	portKeeper crosstypes.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
-	contractHandler types.ContractHandler,
-	commitStore types.CommitStore,
+	contractHandler crosstypes.ContractHandler,
+	commitStore crosstypes.CommitStore,
 ) Keeper {
 	return Keeper{
 		cdc:             cdc,
@@ -49,22 +49,22 @@ func NewKeeper(
 	}
 }
 
-func (k Keeper) ChannelKeeper() types.ChannelKeeper {
+func (k Keeper) ChannelKeeper() crosstypes.ChannelKeeper {
 	return k.channelKeeper
 }
 
-func (k Keeper) ChannelResolver() types.ChannelResolver {
+func (k Keeper) ChannelResolver() crosstypes.ChannelResolver {
 	return k.channelResolver
 }
 
 func (k Keeper) PrepareCommit(
 	ctx sdk.Context,
-	txID types.TxID,
-	txIndex types.TxIndex,
-	tx types.ContractTransaction,
-	links []types.Object,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
+	tx crosstypes.ContractTransaction,
+	links []crosstypes.Object,
 ) error {
-	res, err := k.processTransaction(ctx, txIndex, tx, links, types.AtomicMode)
+	res, err := k.processTransaction(ctx, txIndex, tx, links, crosstypes.AtomicMode)
 	if err != nil {
 		return err
 	}
@@ -74,11 +74,11 @@ func (k Keeper) PrepareCommit(
 
 func (k Keeper) processTransaction(
 	ctx sdk.Context,
-	txIndex types.TxIndex,
-	tx types.ContractTransaction,
-	links []types.Object,
-	commitMode types.CommitMode,
-) (res *types.ContractHandlerResult, err error) {
+	txIndex crosstypes.TxIndex,
+	tx crosstypes.ContractTransaction,
+	links []crosstypes.Object,
+	commitMode crosstypes.CommitMode,
+) (res *crosstypes.ContractHandlerResult, err error) {
 	// TODO resolverProvider can be moved into contract package?
 	rs, err := k.resolverProvider(links)
 	if err != nil {
@@ -86,9 +86,9 @@ func (k Keeper) processTransaction(
 	}
 
 	// Setup a context
-	goCtx := types.SetupContractContext(
+	goCtx := crosstypes.SetupContractContext(
 		sdk.WrapSDKContext(ctx),
-		types.ContractRuntimeInfo{
+		crosstypes.ContractRuntimeInfo{
 			CommitMode:             commitMode,
 			StateConstraintType:    tx.StateConstraint.Type,
 			ExternalObjectResolver: rs,
@@ -102,7 +102,7 @@ func (k Keeper) processTransaction(
 		return nil, err
 	}
 
-	if rv := tx.ReturnValue; !rv.IsNil() && !rv.Equal(types.NewReturnValue(res.Data)) {
+	if rv := tx.ReturnValue; !rv.IsNil() && !rv.Equal(crosstypes.NewReturnValue(res.Data)) {
 		return nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.Data)
 	}
 

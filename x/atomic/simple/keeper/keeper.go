@@ -11,14 +11,14 @@ import (
 
 	commonkeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
 	commontypes "github.com/datachainlab/cross/x/atomic/common/types"
-	simpletypes "github.com/datachainlab/cross/x/atomic/simple/types"
-	"github.com/datachainlab/cross/x/core/types"
+	types "github.com/datachainlab/cross/x/atomic/simple/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
 const (
-	TxIndexCoordinator types.TxIndex = 0
-	TxIndexParticipant types.TxIndex = 1
+	TxIndexCoordinator crosstypes.TxIndex = 0
+	TxIndexParticipant crosstypes.TxIndex = 1
 )
 
 type Keeper struct {
@@ -45,8 +45,8 @@ func NewKeeper(
 func (k Keeper) SendCall(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,
-	txID types.TxID,
-	transactions []types.ContractTransaction,
+	txID crosstypes.TxID,
+	transactions []crosstypes.ContractTransaction,
 ) error {
 	tx0 := transactions[TxIndexCoordinator]
 	tx1 := transactions[TxIndexParticipant]
@@ -74,7 +74,7 @@ func (k Keeper) SendCall(
 		return err
 	}
 
-	lkr, err := types.MakeLinker(k.cdc, transactions)
+	lkr, err := crosstypes.MakeLinker(k.cdc, transactions)
 	if err != nil {
 		return err
 	}
@@ -95,8 +95,7 @@ func (k Keeper) SendCall(
 		return err
 	}
 
-	// TODO define packets for simple commit
-	payload := simpletypes.NewPacketDataCall(txID, types.NewContractTransactionInfo(tx1, objs1))
+	payload := types.NewPacketDataCall(txID, crosstypes.NewContractTransactionInfo(tx1, objs1))
 	if err := k.SendPacket(
 		ctx,
 		packetSender,
@@ -112,7 +111,7 @@ func (k Keeper) SendCall(
 	cs := commontypes.NewCoordinatorState(
 		commontypes.COMMIT_FLOW_SIMPLE,
 		commontypes.COORDINATOR_PHASE_PREPARE,
-		[]types.ChannelInfo{*ch0, *ch1},
+		[]crosstypes.ChannelInfo{*ch0, *ch1},
 	)
 	if err := cs.Confirm(TxIndexCoordinator, *ch0); err != nil {
 		return err

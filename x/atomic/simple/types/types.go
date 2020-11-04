@@ -1,10 +1,12 @@
 package types
 
-import "github.com/datachainlab/cross/x/core/types"
+import (
+	crosstypes "github.com/datachainlab/cross/x/core/types"
+)
 
 func NewPacketDataCall(
-	txID types.TxID,
-	txInfo types.ContractTransactionInfo,
+	txID crosstypes.TxID,
+	txInfo crosstypes.ContractTransactionInfo,
 ) PacketDataCall {
 	return PacketDataCall{TxId: txID, TxInfo: txInfo}
 }
