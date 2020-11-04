@@ -29,19 +29,17 @@ func (k Keeper) Initiate(goCtx context.Context, msg *types.MsgInitiate) (*types.
 
 	// Initiate a transaction
 
-	var data []byte
+	// TODO fix dummy txID
+	txID := []byte("txID")
 	switch msg.CommitProtocol {
 	case types.CommitProtocolSimple:
-		// TODO set TxID
-		txID, err := k.SimpleKeeper().SendCall(ctx, ps, []byte("txid"), msg.ContractTransactions)
+		err := k.SimpleKeeper().SendCall(ctx, ps, txID, msg.ContractTransactions)
 		if err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 		}
-		data = txID[:]
 	default:
 		return nil, fmt.Errorf("unknown Commit protocol '%v'", msg.CommitProtocol)
 	}
-	_ = data
 
 	return &types.MsgInitiateResponse{}, nil
 }

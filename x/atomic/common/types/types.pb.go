@@ -25,22 +25,50 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+type CommitFlowType int32
+
+const (
+	COMMIT_FLOW_UNKNOWN CommitFlowType = 0
+	COMMIT_FLOW_SIMPLE  CommitFlowType = 1
+	COMMIT_FLOW_TPC     CommitFlowType = 2
+)
+
+var CommitFlowType_name = map[int32]string{
+	0: "COMMIT_FLOW_UNKNOWN",
+	1: "COMMIT_FLOW_SIMPLE",
+	2: "COMMIT_FLOW_TPC",
+}
+
+var CommitFlowType_value = map[string]int32{
+	"COMMIT_FLOW_UNKNOWN": 0,
+	"COMMIT_FLOW_SIMPLE":  1,
+	"COMMIT_FLOW_TPC":     2,
+}
+
+func (x CommitFlowType) String() string {
+	return proto.EnumName(CommitFlowType_name, int32(x))
+}
+
+func (CommitFlowType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_460c7def86bc66cc, []int{0}
+}
+
 type CoordinatorPhase int32
 
 const (
-	COORDINATOR_PHASE_NONE    CoordinatorPhase = 0
+	COORDINATOR_PHASE_UNKNOWN CoordinatorPhase = 0
 	COORDINATOR_PHASE_PREPARE CoordinatorPhase = 1
 	COORDINATOR_PHASE_COMMIT  CoordinatorPhase = 2
 )
 
 var CoordinatorPhase_name = map[int32]string{
-	0: "COORDINATOR_PHASE_NONE",
+	0: "COORDINATOR_PHASE_UNKNOWN",
 	1: "COORDINATOR_PHASE_PREPARE",
 	2: "COORDINATOR_PHASE_COMMIT",
 }
 
 var CoordinatorPhase_value = map[string]int32{
-	"COORDINATOR_PHASE_NONE":    0,
+	"COORDINATOR_PHASE_UNKNOWN": 0,
 	"COORDINATOR_PHASE_PREPARE": 1,
 	"COORDINATOR_PHASE_COMMIT":  2,
 }
@@ -50,27 +78,27 @@ func (x CoordinatorPhase) String() string {
 }
 
 func (CoordinatorPhase) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_460c7def86bc66cc, []int{0}
+	return fileDescriptor_460c7def86bc66cc, []int{1}
 }
 
 type CoordinatorDecision int32
 
 const (
-	CoordinatorDecision_COORDINATOR_DECISION_NONE   CoordinatorDecision = 0
-	CoordinatorDecision_COORDINATOR_DECISION_COMMIT CoordinatorDecision = 1
-	CoordinatorDecision_COORDINATOR_DECISION_ABORT  CoordinatorDecision = 2
+	COORDINATOR_DECISION_UNKNOWN CoordinatorDecision = 0
+	COORDINATOR_DECISION_COMMIT  CoordinatorDecision = 1
+	COORDINATOR_DECISION_ABORT   CoordinatorDecision = 2
 )
 
 var CoordinatorDecision_name = map[int32]string{
-	0: "COORDINATOR_DECISION_NONE",
+	0: "COORDINATOR_DECISION_UNKNOWN",
 	1: "COORDINATOR_DECISION_COMMIT",
 	2: "COORDINATOR_DECISION_ABORT",
 }
 
 var CoordinatorDecision_value = map[string]int32{
-	"COORDINATOR_DECISION_NONE":   0,
-	"COORDINATOR_DECISION_COMMIT": 1,
-	"COORDINATOR_DECISION_ABORT":  2,
+	"COORDINATOR_DECISION_UNKNOWN": 0,
+	"COORDINATOR_DECISION_COMMIT":  1,
+	"COORDINATOR_DECISION_ABORT":   2,
 }
 
 func (x CoordinatorDecision) String() string {
@@ -78,15 +106,75 @@ func (x CoordinatorDecision) String() string {
 }
 
 func (CoordinatorDecision) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_460c7def86bc66cc, []int{1}
+	return fileDescriptor_460c7def86bc66cc, []int{2}
+}
+
+type ContractTransactionStatus int32
+
+const (
+	CONTRACT_TRANSACTION_STATUS_UNKNOWN ContractTransactionStatus = 0
+	CONTRACT_TRANSACTION_STATUS_PREPARE ContractTransactionStatus = 1
+	CONTRACT_TRANSACTION_STATUS_COMMIT  ContractTransactionStatus = 2
+	CONTRACT_TRANSACTION_STATUS_ABORT   ContractTransactionStatus = 3
+)
+
+var ContractTransactionStatus_name = map[int32]string{
+	0: "CONTRACT_TRANSACTION_STATUS_UNKNOWN",
+	1: "CONTRACT_TRANSACTION_STATUS_PREPARE",
+	2: "CONTRACT_TRANSACTION_STATUS_COMMIT",
+	3: "CONTRACT_TRANSACTION_STATUS_ABORT",
+}
+
+var ContractTransactionStatus_value = map[string]int32{
+	"CONTRACT_TRANSACTION_STATUS_UNKNOWN": 0,
+	"CONTRACT_TRANSACTION_STATUS_PREPARE": 1,
+	"CONTRACT_TRANSACTION_STATUS_COMMIT":  2,
+	"CONTRACT_TRANSACTION_STATUS_ABORT":   3,
+}
+
+func (x ContractTransactionStatus) String() string {
+	return proto.EnumName(ContractTransactionStatus_name, int32(x))
+}
+
+func (ContractTransactionStatus) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_460c7def86bc66cc, []int{3}
+}
+
+type PrepareResult int32
+
+const (
+	PREPARE_RESULT_UNKNOWN PrepareResult = 0
+	PREPARE_RESULT_OK      PrepareResult = 1
+	PREPARE_RESULT_FAILED  PrepareResult = 2
+)
+
+var PrepareResult_name = map[int32]string{
+	0: "PREPARE_RESULT_UNKNOWN",
+	1: "PREPARE_RESULT_OK",
+	2: "PREPARE_RESULT_FAILED",
+}
+
+var PrepareResult_value = map[string]int32{
+	"PREPARE_RESULT_UNKNOWN": 0,
+	"PREPARE_RESULT_OK":      1,
+	"PREPARE_RESULT_FAILED":  2,
+}
+
+func (x PrepareResult) String() string {
+	return proto.EnumName(PrepareResult_name, int32(x))
+}
+
+func (PrepareResult) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_460c7def86bc66cc, []int{4}
 }
 
 type CoordinatorState struct {
-	Channels     []types.ChannelInfo                                     `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels"`
-	Phase        CoordinatorPhase                                        `protobuf:"varint,2,opt,name=phase,proto3,enum=cross.atomic.common.CoordinatorPhase" json:"phase,omitempty"`
-	Decision     CoordinatorDecision                                     `protobuf:"varint,3,opt,name=decision,proto3,enum=cross.atomic.common.CoordinatorDecision" json:"decision,omitempty"`
-	ConfirmedTxs github_com_datachainlab_cross_x_core_types.TxIndexSlice `protobuf:"bytes,4,opt,name=confirmed_txs,json=confirmedTxs,proto3,casttype=github.com/datachainlab/cross/x/core/types.TxIndexSlice" json:"confirmed_txs,omitempty"`
-	Acks         github_com_datachainlab_cross_x_core_types.TxIndexSlice `protobuf:"bytes,5,opt,name=acks,proto3,casttype=github.com/datachainlab/cross/x/core/types.TxIndexSlice" json:"acks,omitempty"`
+	Type         CommitFlowType                                          `protobuf:"varint,1,opt,name=type,proto3,enum=cross.atomic.common.CommitFlowType" json:"type,omitempty"`
+	Channels     []types.ChannelInfo                                     `protobuf:"bytes,2,rep,name=channels,proto3" json:"channels"`
+	Phase        CoordinatorPhase                                        `protobuf:"varint,3,opt,name=phase,proto3,enum=cross.atomic.common.CoordinatorPhase" json:"phase,omitempty"`
+	Decision     CoordinatorDecision                                     `protobuf:"varint,4,opt,name=decision,proto3,enum=cross.atomic.common.CoordinatorDecision" json:"decision,omitempty"`
+	ConfirmedTxs github_com_datachainlab_cross_x_core_types.TxIndexSlice `protobuf:"bytes,5,opt,name=confirmed_txs,json=confirmedTxs,proto3,casttype=github.com/datachainlab/cross/x/core/types.TxIndexSlice" json:"confirmed_txs,omitempty"`
+	Acks         github_com_datachainlab_cross_x_core_types.TxIndexSlice `protobuf:"bytes,6,opt,name=acks,proto3,casttype=github.com/datachainlab/cross/x/core/types.TxIndexSlice" json:"acks,omitempty"`
 }
 
 func (m *CoordinatorState) Reset()         { *m = CoordinatorState{} }
@@ -122,45 +210,104 @@ func (m *CoordinatorState) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CoordinatorState proto.InternalMessageInfo
 
+type ContractTransactionState struct {
+	Status             ContractTransactionStatus `protobuf:"varint,1,opt,name=status,proto3,enum=cross.atomic.common.ContractTransactionStatus" json:"status,omitempty"`
+	PrepareResult      PrepareResult             `protobuf:"varint,2,opt,name=prepare_result,json=prepareResult,proto3,enum=cross.atomic.common.PrepareResult" json:"prepare_result,omitempty"`
+	CoordinatorChannel types.ChannelInfo         `protobuf:"bytes,3,opt,name=coordinator_channel,json=coordinatorChannel,proto3" json:"coordinator_channel"`
+}
+
+func (m *ContractTransactionState) Reset()         { *m = ContractTransactionState{} }
+func (m *ContractTransactionState) String() string { return proto.CompactTextString(m) }
+func (*ContractTransactionState) ProtoMessage()    {}
+func (*ContractTransactionState) Descriptor() ([]byte, []int) {
+	return fileDescriptor_460c7def86bc66cc, []int{1}
+}
+func (m *ContractTransactionState) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ContractTransactionState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ContractTransactionState.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ContractTransactionState) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ContractTransactionState.Merge(m, src)
+}
+func (m *ContractTransactionState) XXX_Size() int {
+	return m.Size()
+}
+func (m *ContractTransactionState) XXX_DiscardUnknown() {
+	xxx_messageInfo_ContractTransactionState.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ContractTransactionState proto.InternalMessageInfo
+
 func init() {
+	proto.RegisterEnum("cross.atomic.common.CommitFlowType", CommitFlowType_name, CommitFlowType_value)
 	proto.RegisterEnum("cross.atomic.common.CoordinatorPhase", CoordinatorPhase_name, CoordinatorPhase_value)
 	proto.RegisterEnum("cross.atomic.common.CoordinatorDecision", CoordinatorDecision_name, CoordinatorDecision_value)
+	proto.RegisterEnum("cross.atomic.common.ContractTransactionStatus", ContractTransactionStatus_name, ContractTransactionStatus_value)
+	proto.RegisterEnum("cross.atomic.common.PrepareResult", PrepareResult_name, PrepareResult_value)
 	proto.RegisterType((*CoordinatorState)(nil), "cross.atomic.common.CoordinatorState")
+	proto.RegisterType((*ContractTransactionState)(nil), "cross.atomic.common.ContractTransactionState")
 }
 
 func init() { proto.RegisterFile("cross/atomic/common/types.proto", fileDescriptor_460c7def86bc66cc) }
 
 var fileDescriptor_460c7def86bc66cc = []byte{
-	// 455 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x93, 0xc1, 0x8a, 0xd3, 0x40,
-	0x1c, 0xc6, 0x93, 0xb6, 0x2b, 0x65, 0x5c, 0x25, 0xcc, 0xca, 0x1a, 0xa3, 0x26, 0x45, 0x10, 0xca,
-	0x1e, 0x12, 0xd8, 0x3d, 0x88, 0xee, 0xa9, 0x4d, 0x03, 0xe6, 0xd0, 0xa6, 0x4c, 0x73, 0xf2, 0x52,
-	0xa7, 0x93, 0xd9, 0x36, 0xd8, 0xce, 0xd4, 0xcc, 0x2c, 0xc4, 0x37, 0xd8, 0x8b, 0xe0, 0x23, 0x2c,
-	0xf8, 0x32, 0x7b, 0xdc, 0xa3, 0xa7, 0x45, 0xda, 0x8b, 0xcf, 0xe0, 0x49, 0x92, 0x59, 0x4b, 0x75,
-	0x03, 0x3d, 0xec, 0xad, 0xf0, 0xfd, 0xbe, 0xdf, 0xbf, 0x7c, 0x49, 0x80, 0x43, 0x32, 0x2e, 0x84,
-	0x87, 0x25, 0x5f, 0xa4, 0xc4, 0x23, 0x7c, 0xb1, 0xe0, 0xcc, 0x93, 0x5f, 0x96, 0x54, 0xb8, 0xcb,
-	0x8c, 0x4b, 0x0e, 0x0f, 0x4a, 0xc0, 0x55, 0x80, 0xab, 0x00, 0xeb, 0xc9, 0x94, 0x4f, 0x79, 0x99,
-	0x7b, 0xc5, 0x2f, 0x85, 0x5a, 0x87, 0xca, 0x45, 0x78, 0x46, 0xb7, 0x15, 0xaf, 0xbe, 0xd6, 0x81,
-	0xe1, 0x73, 0x9e, 0x25, 0x29, 0xc3, 0x92, 0x67, 0x23, 0x89, 0x25, 0x85, 0x6f, 0x41, 0x93, 0xcc,
-	0x30, 0x63, 0x74, 0x2e, 0x4c, 0xbd, 0x55, 0x6f, 0x3f, 0x3c, 0x7e, 0xea, 0xaa, 0x53, 0x45, 0xdf,
-	0xf5, 0x55, 0x16, 0xb2, 0x33, 0xde, 0x6d, 0x5c, 0xdd, 0x38, 0x1a, 0xda, 0xe0, 0xf0, 0x14, 0xec,
-	0x2d, 0x67, 0x58, 0x50, 0xb3, 0xd6, 0xd2, 0xdb, 0x8f, 0x8f, 0x5f, 0xbb, 0x15, 0x7f, 0xd1, 0xdd,
-	0x3a, 0x38, 0x2c, 0x60, 0xa4, 0x3a, 0xb0, 0x07, 0x9a, 0x09, 0x25, 0xa9, 0x48, 0x39, 0x33, 0xeb,
-	0x65, 0xbf, 0xbd, 0xab, 0xdf, 0xbb, 0xe5, 0xd1, 0xa6, 0x09, 0x3f, 0x82, 0x47, 0x84, 0xb3, 0xb3,
-	0x34, 0x5b, 0xd0, 0x64, 0x2c, 0x73, 0x61, 0x36, 0x5a, 0x7a, 0x7b, 0xbf, 0x7b, 0xfa, 0xfb, 0xc6,
-	0x79, 0x33, 0x4d, 0xe5, 0xec, 0x7c, 0x52, 0x78, 0xbc, 0x04, 0x4b, 0x4c, 0x66, 0x38, 0x65, 0x73,
-	0x3c, 0xf1, 0xd4, 0x3a, 0xf9, 0xf6, 0x3e, 0x71, 0x1e, 0xb2, 0x84, 0xe6, 0xa3, 0x79, 0x4a, 0x28,
-	0xda, 0xdf, 0x18, 0xe3, 0x5c, 0xc0, 0x08, 0x34, 0x30, 0xf9, 0x24, 0xcc, 0xbd, 0xfb, 0x8b, 0x4b,
-	0xd1, 0xbb, 0xe6, 0xc5, 0xa5, 0xa3, 0xfd, 0xba, 0x74, 0xb4, 0xa3, 0xcf, 0xff, 0x3c, 0x8e, 0x72,
-	0x1d, 0x68, 0x81, 0x43, 0x3f, 0x8a, 0x50, 0x2f, 0x1c, 0x74, 0xe2, 0x08, 0x8d, 0x87, 0xef, 0x3b,
-	0xa3, 0x60, 0x3c, 0x88, 0x06, 0x81, 0xa1, 0xc1, 0x97, 0xe0, 0xd9, 0xdd, 0x6c, 0x88, 0x82, 0x61,
-	0x07, 0x05, 0x86, 0x0e, 0x5f, 0x00, 0xf3, 0x6e, 0xec, 0x47, 0xfd, 0x7e, 0x18, 0x1b, 0x35, 0xab,
-	0x71, 0xf1, 0xdd, 0xd6, 0x8e, 0xce, 0xc1, 0x41, 0xc5, 0xa0, 0xff, 0x9b, 0x7b, 0x81, 0x1f, 0x8e,
-	0xc2, 0x68, 0xf0, 0xf7, 0xb0, 0x03, 0x9e, 0x57, 0xc6, 0xb7, 0x72, 0x1d, 0xda, 0xc0, 0xaa, 0x04,
-	0x3a, 0xdd, 0x08, 0xc5, 0x46, 0xad, 0xdb, 0xbf, 0x5a, 0xd9, 0xfa, 0xf5, 0xca, 0xd6, 0x7f, 0xae,
-	0x6c, 0xfd, 0xdb, 0xda, 0xd6, 0xae, 0xd7, 0xb6, 0xf6, 0x63, 0x6d, 0x6b, 0x1f, 0x4e, 0x76, 0x8d,
-	0x59, 0xf1, 0x45, 0x4c, 0x1e, 0x94, 0xef, 0xf3, 0xc9, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xca,
-	0x98, 0xb9, 0x48, 0x35, 0x03, 0x00, 0x00,
+	// 710 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x94, 0x31, 0x4f, 0xdb, 0x5a,
+	0x14, 0xc7, 0xed, 0x24, 0x20, 0x74, 0x1e, 0xf0, 0xf2, 0x6e, 0x1e, 0x60, 0xf2, 0x78, 0x4e, 0x5e,
+	0x10, 0xaf, 0x11, 0x43, 0x22, 0xc1, 0x80, 0x5a, 0x26, 0xc7, 0x49, 0x54, 0x8b, 0x60, 0xa7, 0xd7,
+	0x46, 0x48, 0x55, 0x25, 0xf7, 0xe2, 0x18, 0x62, 0x35, 0xf1, 0x8d, 0xec, 0x1b, 0x35, 0x2c, 0x5d,
+	0xba, 0x74, 0xec, 0x47, 0xa8, 0xd4, 0x6f, 0xc2, 0xc4, 0xc8, 0xd8, 0x09, 0xb5, 0xb0, 0xf4, 0x33,
+	0x74, 0xaa, 0x62, 0x9b, 0x60, 0xa8, 0x21, 0x43, 0xb7, 0xc4, 0xe7, 0xf7, 0xff, 0xff, 0xaf, 0xcf,
+	0x39, 0xbe, 0x50, 0xb0, 0x3c, 0xea, 0xfb, 0x55, 0xc2, 0x68, 0xdf, 0xb1, 0xaa, 0x16, 0xed, 0xf7,
+	0xa9, 0x5b, 0x65, 0xa7, 0x03, 0xdb, 0xaf, 0x0c, 0x3c, 0xca, 0x28, 0xca, 0x05, 0x40, 0x25, 0x04,
+	0x2a, 0x21, 0x90, 0xff, 0xfb, 0x84, 0x9e, 0xd0, 0xa0, 0x5e, 0x1d, 0xff, 0x0a, 0xd1, 0xfc, 0x72,
+	0xe8, 0x65, 0x51, 0xcf, 0x8e, 0x5b, 0x94, 0xce, 0xd2, 0x90, 0x95, 0x29, 0xf5, 0x3a, 0x8e, 0x4b,
+	0x18, 0xf5, 0x74, 0x46, 0x98, 0x8d, 0x76, 0x20, 0x33, 0x66, 0x04, 0xbe, 0xc8, 0x97, 0x17, 0xb7,
+	0xd6, 0x2b, 0x09, 0x31, 0x15, 0x99, 0xf6, 0xfb, 0x0e, 0x6b, 0xf6, 0xe8, 0x5b, 0xe3, 0x74, 0x60,
+	0xe3, 0x40, 0x80, 0x9e, 0xc2, 0x9c, 0xd5, 0x25, 0xae, 0x6b, 0xf7, 0x7c, 0x21, 0x55, 0x4c, 0x97,
+	0xff, 0xd8, 0x5a, 0x89, 0xc4, 0xe3, 0xe0, 0x8a, 0x1c, 0xd6, 0x14, 0xf7, 0x98, 0xd6, 0x32, 0xe7,
+	0x97, 0x05, 0x0e, 0x4f, 0x70, 0xb4, 0x0b, 0x33, 0x83, 0x2e, 0xf1, 0x6d, 0x21, 0x1d, 0x84, 0x6e,
+	0x3c, 0x10, 0x3a, 0x39, 0x69, 0x7b, 0x0c, 0xe3, 0x50, 0x83, 0xea, 0x30, 0xd7, 0xb1, 0x2d, 0xc7,
+	0x77, 0xa8, 0x2b, 0x64, 0x02, 0x7d, 0x79, 0x9a, 0xbe, 0x1e, 0xf1, 0x78, 0xa2, 0x44, 0xaf, 0x61,
+	0xc1, 0xa2, 0xee, 0xb1, 0xe3, 0xf5, 0xed, 0x8e, 0xc9, 0x46, 0xbe, 0x30, 0x53, 0xe4, 0xcb, 0xf3,
+	0xb5, 0xdd, 0x1f, 0x97, 0x85, 0x9d, 0x13, 0x87, 0x75, 0x87, 0x47, 0x63, 0x9f, 0x6a, 0x87, 0x30,
+	0x62, 0x75, 0x89, 0xe3, 0xf6, 0xc8, 0x51, 0x35, 0x6c, 0xeb, 0x28, 0xde, 0x58, 0x63, 0xa4, 0xb8,
+	0x1d, 0x7b, 0xa4, 0xf7, 0x1c, 0xcb, 0xc6, 0xf3, 0x13, 0x47, 0x63, 0xe4, 0x23, 0x0d, 0x32, 0xc4,
+	0x7a, 0xe3, 0x0b, 0xb3, 0xbf, 0x6f, 0x1c, 0x18, 0x3d, 0xcb, 0x7c, 0xff, 0x54, 0xe0, 0x4a, 0xef,
+	0x53, 0x20, 0xc8, 0xd4, 0x65, 0x1e, 0xb1, 0x98, 0xe1, 0x11, 0xd7, 0x27, 0x16, 0x73, 0xa8, 0x1b,
+	0x0e, 0xb3, 0x09, 0xb3, 0x3e, 0x23, 0x6c, 0xe8, 0x47, 0xe3, 0xac, 0x3c, 0xd0, 0x99, 0x44, 0xf9,
+	0xd0, 0xc7, 0x91, 0x1a, 0x29, 0xb0, 0x38, 0xf0, 0xec, 0x01, 0xf1, 0x6c, 0xd3, 0xb3, 0xfd, 0x61,
+	0x8f, 0x09, 0xa9, 0xc0, 0xaf, 0x94, 0xe8, 0xd7, 0x0e, 0x51, 0x1c, 0x90, 0x78, 0x61, 0x10, 0xff,
+	0x8b, 0x54, 0xc8, 0x59, 0xb7, 0x93, 0x30, 0xa3, 0x1d, 0x08, 0x26, 0x3f, 0x75, 0x63, 0x50, 0x4c,
+	0x19, 0x55, 0xc3, 0x2e, 0x6c, 0xbe, 0x82, 0xc5, 0xbb, 0x4b, 0x89, 0x56, 0x20, 0x27, 0x6b, 0xfb,
+	0xfb, 0x8a, 0x61, 0x36, 0x5b, 0xda, 0xa1, 0x79, 0xa0, 0xee, 0xa9, 0xda, 0xa1, 0x9a, 0xe5, 0xd0,
+	0x32, 0xa0, 0x78, 0x41, 0x57, 0xf6, 0xdb, 0xad, 0x46, 0x96, 0x47, 0x39, 0xf8, 0x33, 0xfe, 0xdc,
+	0x68, 0xcb, 0xd9, 0x54, 0x3e, 0xf3, 0xe1, 0xb3, 0xc8, 0x6d, 0xb2, 0x3b, 0xdf, 0x49, 0xb0, 0x7d,
+	0xe8, 0x5f, 0x58, 0x95, 0x35, 0x0d, 0xd7, 0x15, 0x55, 0x32, 0x34, 0x6c, 0xb6, 0x9f, 0x4b, 0x7a,
+	0x23, 0x96, 0x92, 0x58, 0x6e, 0xe3, 0x46, 0x5b, 0xc2, 0xe3, 0xb0, 0x35, 0x10, 0x7e, 0x2d, 0x87,
+	0xf1, 0x93, 0xd4, 0x77, 0x90, 0x4b, 0xd8, 0x59, 0x54, 0x84, 0xb5, 0xb8, 0xb4, 0xde, 0x90, 0x15,
+	0x5d, 0xd1, 0xd4, 0x58, 0x76, 0x01, 0xfe, 0x49, 0x24, 0x22, 0x7f, 0x1e, 0x89, 0x90, 0x4f, 0x04,
+	0xa4, 0x9a, 0x86, 0x6f, 0xf3, 0xcf, 0x78, 0x58, 0x7d, 0x70, 0x35, 0xd0, 0x13, 0x58, 0x97, 0x35,
+	0xd5, 0xc0, 0x92, 0x6c, 0x98, 0x06, 0x96, 0x54, 0x5d, 0x92, 0x8d, 0xb1, 0x87, 0x6e, 0x48, 0xc6,
+	0x81, 0x1e, 0x3b, 0xcd, 0x14, 0xf0, 0xb6, 0x27, 0xff, 0x43, 0xe9, 0x31, 0xf0, 0xa6, 0x3b, 0x68,
+	0x03, 0xfe, 0x7b, 0x8c, 0x0b, 0x5f, 0x22, 0x1d, 0xbd, 0x84, 0x05, 0x0b, 0x77, 0xd6, 0x11, 0xe5,
+	0x61, 0x39, 0x8a, 0x34, 0x71, 0x43, 0x3f, 0x68, 0x19, 0xb1, 0xa3, 0x2e, 0xc1, 0x5f, 0xf7, 0x6a,
+	0xda, 0x5e, 0x96, 0x47, 0xab, 0xb0, 0x74, 0xef, 0x71, 0x53, 0x52, 0x5a, 0x8d, 0xfa, 0x4d, 0xa7,
+	0x6a, 0x2f, 0xce, 0xbf, 0x89, 0xdc, 0xf9, 0x95, 0xc8, 0x5f, 0x5c, 0x89, 0xfc, 0xd7, 0x2b, 0x91,
+	0xff, 0x78, 0x2d, 0x72, 0x17, 0xd7, 0x22, 0xf7, 0xe5, 0x5a, 0xe4, 0x5e, 0x6e, 0x4f, 0xfb, 0xcc,
+	0x13, 0x2e, 0xf9, 0xa3, 0xd9, 0xe0, 0x8a, 0xde, 0xfe, 0x19, 0x00, 0x00, 0xff, 0xff, 0xfe, 0x93,
+	0x26, 0xf4, 0x08, 0x06, 0x00, 0x00,
 }
 
 func (m *CoordinatorState) Marshal() (dAtA []byte, err error) {
@@ -188,24 +335,24 @@ func (m *CoordinatorState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.Acks)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.Acks)))
 		i--
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x32
 	}
 	if len(m.ConfirmedTxs) > 0 {
 		i -= len(m.ConfirmedTxs)
 		copy(dAtA[i:], m.ConfirmedTxs)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.ConfirmedTxs)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 	}
 	if m.Decision != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Decision))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
 	}
 	if m.Phase != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Phase))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x18
 	}
 	if len(m.Channels) > 0 {
 		for iNdEx := len(m.Channels) - 1; iNdEx >= 0; iNdEx-- {
@@ -218,8 +365,56 @@ func (m *CoordinatorState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i = encodeVarintTypes(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0xa
+			dAtA[i] = 0x12
 		}
+	}
+	if m.Type != 0 {
+		i = encodeVarintTypes(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ContractTransactionState) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ContractTransactionState) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ContractTransactionState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size, err := m.CoordinatorChannel.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintTypes(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	if m.PrepareResult != 0 {
+		i = encodeVarintTypes(dAtA, i, uint64(m.PrepareResult))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Status != 0 {
+		i = encodeVarintTypes(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -241,6 +436,9 @@ func (m *CoordinatorState) Size() (n int) {
 	}
 	var l int
 	_ = l
+	if m.Type != 0 {
+		n += 1 + sovTypes(uint64(m.Type))
+	}
 	if len(m.Channels) > 0 {
 		for _, e := range m.Channels {
 			l = e.Size()
@@ -261,6 +459,23 @@ func (m *CoordinatorState) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
+	return n
+}
+
+func (m *ContractTransactionState) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + sovTypes(uint64(m.Status))
+	}
+	if m.PrepareResult != 0 {
+		n += 1 + sovTypes(uint64(m.PrepareResult))
+	}
+	l = m.CoordinatorChannel.Size()
+	n += 1 + l + sovTypes(uint64(l))
 	return n
 }
 
@@ -300,6 +515,25 @@ func (m *CoordinatorState) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= CommitFlowType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Channels", wireType)
 			}
@@ -333,7 +567,7 @@ func (m *CoordinatorState) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
 			}
@@ -352,7 +586,7 @@ func (m *CoordinatorState) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Decision", wireType)
 			}
@@ -371,7 +605,7 @@ func (m *CoordinatorState) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfirmedTxs", wireType)
 			}
@@ -405,7 +639,7 @@ func (m *CoordinatorState) Unmarshal(dAtA []byte) error {
 				m.ConfirmedTxs = []byte{}
 			}
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Acks", wireType)
 			}
@@ -437,6 +671,130 @@ func (m *CoordinatorState) Unmarshal(dAtA []byte) error {
 			m.Acks = append(m.Acks[:0], dAtA[iNdEx:postIndex]...)
 			if m.Acks == nil {
 				m.Acks = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTypes(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ContractTransactionState) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTypes
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ContractTransactionState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ContractTransactionState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= ContractTransactionStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrepareResult", wireType)
+			}
+			m.PrepareResult = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PrepareResult |= PrepareResult(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CoordinatorChannel", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.CoordinatorChannel.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
 		default:
