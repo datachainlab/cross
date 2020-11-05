@@ -123,7 +123,12 @@ func (k Keeper) CommitImmediately(
 	tx crosstypes.ContractTransaction,
 	links []crosstypes.Object,
 ) error {
-	panic("not implemented error")
+	_, err := k.processTransaction(ctx, txIndex, tx, links, crosstypes.BasicMode)
+	if err != nil {
+		return err
+	}
+	k.commitStore.CommitImmediately(ctx)
+	return nil
 }
 
 func (k Keeper) SendPacket(
