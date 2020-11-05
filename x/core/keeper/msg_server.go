@@ -29,8 +29,7 @@ func (k Keeper) Initiate(goCtx context.Context, msg *types.MsgInitiate) (*types.
 
 	// Initiate a transaction
 
-	// TODO fix dummy txID
-	txID := []byte("txID")
+	txID := types.MakeTxID(msg)
 	switch msg.CommitProtocol {
 	case types.CommitProtocolSimple:
 		err := k.SimpleKeeper().SendCall(ctx, ps, txID, msg.ContractTransactions)

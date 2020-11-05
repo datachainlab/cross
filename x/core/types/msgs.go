@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	"github.com/gogo/protobuf/proto"
 )
 
 // msg types
@@ -67,4 +68,13 @@ func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
 		}
 	}
 	return signers
+}
+
+// MakeTxID generates TxID with a given msg
+func MakeTxID(msg *MsgInitiate) TxID {
+	bz, err := proto.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }
