@@ -1,6 +1,6 @@
 module github.com/datachainlab/cross
 
-go 1.14
+go 1.15
 
 require (
 	github.com/bluele/interchain-simple-packet v0.0.0-20200921011237-118864bc041e
@@ -9,6 +9,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.15.2
 	github.com/otiai10/copy v1.2.0
+	github.com/rakyll/statik v0.1.7
+	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
