@@ -16,7 +16,7 @@ func NewCoordinatorState(commitFlowType CommitFlowType, phase CoordinatorPhase, 
 	}
 }
 
-// Confirm ...
+// Confirm append a given txIndex to confirmedTxs if it doesn't exist
 func (cs *CoordinatorState) Confirm(txIndex crosstypes.TxIndex, channel crosstypes.ChannelInfo) error {
 	for _, id := range cs.ConfirmedTxs {
 		if txIndex == id {
@@ -32,6 +32,27 @@ func (cs *CoordinatorState) Confirm(txIndex crosstypes.TxIndex, channel crosstyp
 
 	cs.ConfirmedTxs = append(cs.ConfirmedTxs, txIndex)
 	return nil
+}
+
+// IsCompleted returns a boolean value whether all txs are confirmed
+func (cs CoordinatorState) IsCompleted() bool {
+	return len(cs.Channels) == len(cs.ConfirmedTxs)
+}
+
+// AddAck adds txIndex to Acks if it doesn't exist
+func (cs *CoordinatorState) AddAck(txIndex crosstypes.TxIndex) bool {
+	for _, id := range cs.Acks {
+		if txIndex == id {
+			return false
+		}
+	}
+	cs.Acks = append(cs.Acks, txIndex)
+	return true
+}
+
+// IsReceivedALLAcks returns a boolean whether all acks are received
+func (cs *CoordinatorState) IsReceivedALLAcks() bool {
+	return len(cs.Channels) == len(cs.Acks)
 }
 
 // NewContractTransactionState creates a new instance of ContractTransactionState

@@ -165,6 +165,49 @@ func (k Keeper) ReceiveCallPacket(
 	return result, nil
 }
 
+// ReceiveCallAcknowledgement receives PacketCallAcknowledgement to updates CoordinatorState
+// caller is coordinator
+func (k Keeper) ReceiveCallAcknowledgement(
+	ctx sdk.Context,
+	sourcePort string,
+	sourceChannel string,
+	ack types.PacketCallAcknowledgement,
+	txID crosstypes.TxID,
+) (isCommittable bool, err error) {
+	cs, found := k.GetCoordinatorState(ctx, txID)
+	if !found {
+		return false, fmt.Errorf("coordinator '%x' not found", txID)
+	} else if cs.Phase != commontypes.COORDINATOR_PHASE_PREPARE {
+		return false, fmt.Errorf("coordinator status must be '%v'", commontypes.COORDINATOR_PHASE_PREPARE.String())
+	} else if cs.IsCompleted() {
+		return false, errors.New("all transactions are already confirmed")
+	}
+
+	_, found = k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
+	if !found {
+		return false, sdkerrors.Wrap(channeltypes.ErrChannelNotFound, sourceChannel)
+	}
+	if err := cs.Confirm(TxIndexParticipant, crosstypes.ChannelInfo{Port: sourcePort, Channel: sourceChannel}); err != nil {
+		return false, err
+	}
+	switch ack.Status {
+	case types.COMMIT_STATUS_OK:
+		cs.Decision = commontypes.COORDINATOR_DECISION_COMMIT
+	case types.COMMIT_STATUS_FAILED:
+		cs.Decision = commontypes.COORDINATOR_DECISION_ABORT
+	default:
+		panic("unreachable")
+	}
+	cs.Phase = commontypes.COORDINATOR_PHASE_COMMIT
+	cs.AddAck(TxIndexCoordinator)
+	cs.AddAck(TxIndexParticipant)
+	if !cs.IsCompleted() || !cs.IsReceivedALLAcks() {
+		panic("fatal error")
+	}
+	k.SetCoordinatorState(ctx, txID, *cs)
+	return true, nil
+}
+
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("cross/atomic/%s", TypeName))
