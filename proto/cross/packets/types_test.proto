@@ -1,6 +1,9 @@
 syntax = "proto3";
 package cross.packets;
 
+import "gogoproto/gogo.proto";
+
 option go_package = "github.com/datachainlab/cross/x/packets";
+option (gogoproto.goproto_getters_all) = false;
 
 message TestPacketDataPayload {}

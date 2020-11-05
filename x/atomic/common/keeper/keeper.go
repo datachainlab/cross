@@ -83,7 +83,7 @@ func (k Keeper) processTransaction(
 	commitMode crosstypes.CommitMode,
 ) (res *crosstypes.ContractHandlerResult, err error) {
 	// TODO resolverProvider can be moved into contract package?
-	rs, err := k.resolverProvider(links)
+	rs, err := k.resolverProvider(k.cdc, links)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +114,16 @@ func (k Keeper) processTransaction(
 	}
 
 	return res, nil
+}
+
+func (k Keeper) CommitImmediately(
+	ctx sdk.Context,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
+	tx crosstypes.ContractTransaction,
+	links []crosstypes.Object,
+) error {
+	panic("not implemented error")
 }
 
 func (k Keeper) SendPacket(

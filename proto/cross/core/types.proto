@@ -1,15 +1,15 @@
 syntax = "proto3";
 package cross.core;
 
-option go_package = "github.com/datachainlab/cross/x/core/types";
-
 import "gogoproto/gogo.proto";
 import "google/protobuf/any.proto";
 import "tendermint/abci/types.proto";
 
+option go_package = "github.com/datachainlab/cross/x/core/types";
+option (gogoproto.goproto_getters_all) = false;
+
 message ContractTransaction {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.equal) = false;
 
   google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = false];
   repeated bytes signers      = 2 [(gogoproto.casttype) = "AccountAddress"];
@@ -20,31 +20,19 @@ message ContractTransaction {
 }
 
 message Link {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
   uint32 src_index = 1;
 }
 
 message StateConstraint {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
   uint32 type = 1 [(gogoproto.casttype) = "StateConstraintType"];
   OPs ops = 2;
 }
 
 message ReturnValue {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
   bytes value = 1;
 }
 
 message ContractHandlerResult {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
   bytes data = 1;
   repeated tendermint.abci.Event events = 2 [
     (gogoproto.nullable) = false
@@ -63,11 +51,15 @@ message ChannelInfo {
 }
 
 message ContractTransactionInfo {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
   ContractTransaction tx = 1 [(gogoproto.nullable) = false];
-  // []Object
+  repeated google.protobuf.Any objects = 2 [(gogoproto.nullable) = false];
+}
+
+// ConstantValueObject is an Object wraps a constant value
+message ConstantValueObject {
+  google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = false];
+  bytes k = 2;
+  bytes v = 3;
 }
 
 message GenesisState {}

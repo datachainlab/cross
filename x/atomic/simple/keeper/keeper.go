@@ -2,16 +2,18 @@ package keeper
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	"github.com/tendermint/tendermint/libs/log"
 
 	commonkeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
 	commontypes "github.com/datachainlab/cross/x/atomic/common/types"
-	types "github.com/datachainlab/cross/x/atomic/simple/types"
+	"github.com/datachainlab/cross/x/atomic/simple/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -19,6 +21,10 @@ import (
 const (
 	TxIndexCoordinator crosstypes.TxIndex = 0
 	TxIndexParticipant crosstypes.TxIndex = 1
+)
+
+const (
+	TypeName = "simple"
 )
 
 type Keeper struct {
@@ -115,11 +121,51 @@ func (k Keeper) SendCall(
 	}
 	k.SetCoordinatorState(ctx, txID, cs)
 
-	ctxState := commontypes.NewContractTransactionState(
+	cTxState := commontypes.NewContractTransactionState(
 		commontypes.CONTRACT_TRANSACTION_STATUS_PREPARE,
 		commontypes.PREPARE_RESULT_OK,
 		*ch0,
 	)
-	k.SetContractTransactionState(ctx, txID, TxIndexCoordinator, ctxState)
+	k.SetContractTransactionState(ctx, txID, TxIndexCoordinator, cTxState)
 	return nil
+}
+
+// caller is participant
+func (k Keeper) ReceiveCallPacket(
+	ctx sdk.Context,
+	sourcePort,
+	sourceChannel string,
+	data types.PacketDataCall,
+) (commontypes.PrepareResult, error) {
+	if _, ok := k.GetContractTransactionState(ctx, data.TxId, TxIndexParticipant); ok {
+		return 0, fmt.Errorf("txID '%x' already exists", data.TxId)
+	}
+
+	if !k.ChannelResolver().Capabilities().CrossChainCalls() && len(data.TxInfo.Tx.Links) > 0 {
+		return 0, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
+	}
+
+	result := commontypes.PREPARE_RESULT_OK
+	if err := k.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.TxInfo.Tx, data.TxInfo.UnpackObjects(k.cdc)); err != nil {
+		result = commontypes.PREPARE_RESULT_FAILED
+		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
+	}
+
+	_, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
+	if !found {
+		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", sourcePort, sourceChannel)
+	}
+
+	txinfo := commontypes.NewContractTransactionState(
+		commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+		commontypes.PREPARE_RESULT_OK,
+		crosstypes.ChannelInfo{Port: sourcePort, Channel: sourceChannel},
+	)
+	k.SetContractTransactionState(ctx, data.TxId, TxIndexParticipant, txinfo)
+	return result, nil
+}
+
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", fmt.Sprintf("cross/atomic/%s", TypeName))
 }

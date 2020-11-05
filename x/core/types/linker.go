@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/gogo/protobuf/proto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -28,7 +29,8 @@ func MakeLinker(m codec.Marshaler, txs []ContractTransaction) (*Linker, error) {
 			if err != nil {
 				return returnObject{err: err}
 			}
-			return returnObject{obj: MakeConstantValueObject(chainID, MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)}
+			obj := MakeConstantValueObject(chainID, MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
+			return returnObject{obj: &obj}
 		})
 	}
 	return &lkr, nil
@@ -91,26 +93,23 @@ const (
 
 // Object wraps an actual value
 type Object interface {
+	proto.Message
 	Type() ObjectType
 	Key() []byte
-	ChainID() ChainID
+	GetChainID(m codec.Marshaler) ChainID
 	Evaluate([]byte) ([]byte, error)
 }
 
 var _ Object = (*ConstantValueObject)(nil)
 
-// ConstantValueObject is an Object wraps a constant value
-type ConstantValueObject struct {
-	chainID ChainID
-
-	K []byte
-	V []byte
-}
-
 // MakeConstantValueObject returns ConstantValueObject
 func MakeConstantValueObject(chainID ChainID, key []byte, value []byte) ConstantValueObject {
+	anyChainID, err := PackChainID(chainID)
+	if err != nil {
+		panic(err)
+	}
 	return ConstantValueObject{
-		chainID: chainID,
+		ChainId: *anyChainID,
 		K:       key,
 		V:       value,
 	}
@@ -121,9 +120,13 @@ func (l ConstantValueObject) Type() ObjectType {
 	return ObjectTypeConstantValue
 }
 
-// ChainID implements Object.ChainID
-func (l ConstantValueObject) ChainID() ChainID {
-	return l.chainID
+// GetChainID implements Object.GetChainID
+func (l ConstantValueObject) GetChainID(m codec.Marshaler) ChainID {
+	chainID, err := UnpackChainID(m, l.ChainId)
+	if err != nil {
+		panic(err)
+	}
+	return chainID
 }
 
 // Key implements Object.Key
@@ -137,12 +140,12 @@ func (l ConstantValueObject) Evaluate(bz []byte) ([]byte, error) {
 }
 
 // ObjectResolverProvider is a provider of ObjectResolver
-type ObjectResolverProvider func(libs []Object) (ObjectResolver, error)
+type ObjectResolverProvider func(m codec.Marshaler, libs []Object) (ObjectResolver, error)
 
 // DefaultResolverProvider returns a default implements of ObjectResolver
 func DefaultResolverProvider() ObjectResolverProvider {
-	return func(libs []Object) (ObjectResolver, error) {
-		return NewSequentialResolver(libs), nil
+	return func(m codec.Marshaler, libs []Object) (ObjectResolver, error) {
+		return NewSequentialResolver(m, libs), nil
 	}
 }
 
@@ -153,6 +156,7 @@ type ObjectResolver interface {
 
 // SequentialResolver is a resolver that resolves an object in sequential
 type SequentialResolver struct {
+	m       codec.Marshaler
 	seq     uint8
 	objects []Object
 }
@@ -160,8 +164,8 @@ type SequentialResolver struct {
 var _ ObjectResolver = (*SequentialResolver)(nil)
 
 // NewSequentialResolver returns SequentialResolver
-func NewSequentialResolver(objects []Object) *SequentialResolver {
-	return &SequentialResolver{seq: 0, objects: objects}
+func NewSequentialResolver(m codec.Marshaler, objects []Object) *SequentialResolver {
+	return &SequentialResolver{m: m, seq: 0, objects: objects}
 }
 
 // Resolve implements ObjectResolver.Resolve
@@ -174,7 +178,7 @@ func (r *SequentialResolver) Resolve(id ChainID, key []byte) (Object, error) {
 	if !bytes.Equal(obj.Key(), key) {
 		return nil, fmt.Errorf("keys mismatch: %X != %X", obj.Key(), key)
 	}
-	if cid := obj.ChainID(); !cid.Equal(id) {
+	if cid := obj.GetChainID(r.m); !cid.Equal(id) {
 		return nil, fmt.Errorf("chainID mismatch: %v != %v", cid, id)
 	}
 	r.seq++

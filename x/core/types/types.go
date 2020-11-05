@@ -30,6 +30,10 @@ func (tx ContractTransaction) GetChainID(m codec.Marshaler) (ChainID, error) {
 	return chainID, nil
 }
 
+func (tx ContractTransaction) ValidateBasic() error {
+	return nil
+}
+
 func NewReturnValue(v []byte) *ReturnValue {
 	rv := ReturnValue{Value: v}
 	return &rv
@@ -96,6 +100,7 @@ type OP interface {
 
 // ChainID represents an ID of chain that contains a contract function to be called
 type ChainID interface {
+	proto.Message
 	Type() string
 	Equal(ChainID) bool
 	String() string
@@ -152,13 +157,28 @@ func (r ChannelInfoResolver) Capabilities() ChannelResolverCapabilities {
 	return channelResolverCapabilities{crossChainCalls: false}
 }
 
-// TODO set txInfo to linkObjects
 func NewContractTransactionInfo(tx ContractTransaction, linkObjects []Object) ContractTransactionInfo {
+	anyObjects, err := PackObjects(linkObjects)
+	if err != nil {
+		panic(err)
+	}
 	return ContractTransactionInfo{
-		Tx: tx,
+		Tx:      tx,
+		Objects: anyObjects,
 	}
 }
 
 func (ti ContractTransactionInfo) ValidateBasic() error {
+	if err := ti.Tx.ValidateBasic(); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (ti ContractTransactionInfo) UnpackObjects(m codec.Marshaler) []Object {
+	objects, err := UnpackObjects(m, ti.Objects)
+	if err != nil {
+		panic(err)
+	}
+	return objects
 }

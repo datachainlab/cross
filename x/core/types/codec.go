@@ -30,3 +30,43 @@ func PackOPs(opItems []OP) (*OPs, error) {
 	}
 	return &ops, nil
 }
+
+func PackObjects(objs []Object) ([]codectypes.Any, error) {
+	var anys []codectypes.Any
+	for _, obj := range objs {
+		var any codectypes.Any
+		if err := any.Pack(obj); err != nil {
+			return nil, err
+		}
+		anys = append(anys, any)
+	}
+	return anys, nil
+}
+
+func UnpackObjects(m codec.Marshaler, objects []codectypes.Any) ([]Object, error) {
+	var objs []Object
+	for _, v := range objects {
+		var obj Object
+		if err := m.UnpackAny(&v, &obj); err != nil {
+			return nil, err
+		}
+		objs = append(objs, obj)
+	}
+	return objs, nil
+}
+
+func PackChainID(chainID ChainID) (*codectypes.Any, error) {
+	var any codectypes.Any
+	if err := any.Pack(chainID); err != nil {
+		return nil, err
+	}
+	return &any, nil
+}
+
+func UnpackChainID(m codec.Marshaler, anyChainID codectypes.Any) (ChainID, error) {
+	var chainID ChainID
+	if err := m.UnpackAny(&anyChainID, &chainID); err != nil {
+		return nil, err
+	}
+	return chainID, nil
+}
