@@ -25,7 +25,7 @@ type Keeper struct {
 	scopedKeeper  capabilitykeeper.ScopedKeeper
 	commitStore   crosstypes.CommitStore
 
-	contractHandler  crosstypes.ContractHandler
+	contractModule   crosstypes.ContractModule
 	resolverProvider crosstypes.ObjectResolverProvider
 	channelResolver  crosstypes.ChannelResolver
 }
@@ -37,18 +37,18 @@ func NewKeeper(
 	channelKeeper crosstypes.ChannelKeeper,
 	portKeeper crosstypes.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
-	contractHandler crosstypes.ContractHandler,
+	contractModule crosstypes.ContractModule,
 	commitStore crosstypes.CommitStore,
 ) Keeper {
 	return Keeper{
-		cdc:             cdc,
-		storeKey:        storeKey,
-		keyPrefix:       keyPrefix,
-		channelKeeper:   channelKeeper,
-		portKeeper:      portKeeper,
-		scopedKeeper:    scopedKeeper,
-		commitStore:     commitStore,
-		contractHandler: contractHandler,
+		cdc:            cdc,
+		storeKey:       storeKey,
+		keyPrefix:      keyPrefix,
+		channelKeeper:  channelKeeper,
+		portKeeper:     portKeeper,
+		scopedKeeper:   scopedKeeper,
+		commitStore:    commitStore,
+		contractModule: contractModule,
 	}
 }
 
@@ -71,7 +71,7 @@ func (k Keeper) PrepareCommit(
 	if err != nil {
 		return err
 	}
-	k.SetContractResult(ctx, txID, txIndex, *res)
+	k.SetContractCallResult(ctx, txID, txIndex, *res)
 	return k.commitStore.Precommit(ctx, makeContractTransactionID(txID, txIndex))
 }
 
@@ -81,7 +81,7 @@ func (k Keeper) processTransaction(
 	tx crosstypes.ContractTransaction,
 	links []crosstypes.Object,
 	commitMode crosstypes.CommitMode,
-) (res *crosstypes.ContractHandlerResult, err error) {
+) (res *crosstypes.ContractCallResult, err error) {
 	// TODO resolverProvider can be moved into contract package?
 	rs, err := k.resolverProvider(k.cdc, links)
 	if err != nil {
@@ -97,7 +97,7 @@ func (k Keeper) processTransaction(
 			ExternalObjectResolver: rs,
 		},
 	)
-	ops, err := k.contractHandler(
+	res, ops, err := k.contractModule.OnContractCall(
 		goCtx,
 		tx.CallInfo,
 	)
@@ -105,8 +105,8 @@ func (k Keeper) processTransaction(
 		return nil, err
 	}
 
-	if rv := tx.ReturnValue; !rv.IsNil() && !rv.Equal(crosstypes.NewReturnValue(res.Data)) {
-		return nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *rv, res.Data)
+	if !tx.ReturnValue.IsNil() && !tx.ReturnValue.Equal(crosstypes.NewReturnValue(res.Data)) {
+		return nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *tx.ReturnValue, res.Data)
 	}
 
 	if !tx.StateConstraint.Ops.Equal(ops) {

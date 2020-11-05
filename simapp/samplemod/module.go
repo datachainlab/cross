@@ -1,12 +1,15 @@
 package samplemod
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/datachainlab/cross/simapp/samplemod/client/cli"
 	"github.com/datachainlab/cross/simapp/samplemod/keeper"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
+	"github.com/datachainlab/cross/x/store"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -22,8 +25,9 @@ import (
 )
 
 var (
-	_ module.AppModule      = AppModule{}
-	_ module.AppModuleBasic = AppModuleBasic{}
+	_ module.AppModule          = AppModule{}
+	_ module.AppModuleBasic     = AppModuleBasic{}
+	_ crosstypes.ContractModule = AppModule{}
 )
 
 // ----------------------------------------------------------------------------
@@ -86,12 +90,17 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
-	keeper keeper.Keeper
+	keeper          keeper.Keeper
+	contractHandler crosstypes.ContractHandler
 }
 
 func NewAppModule(keeper keeper.Keeper) AppModule {
 	return AppModule{
 		keeper: keeper,
+		contractHandler: crosstypes.NewContractHandler(
+			keeper.HandleContractCall,
+			store.DefaultContractHandleDecorators()...,
+		),
 	}
 }
 
@@ -145,4 +154,9 @@ func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 // returns no validator updates.
 func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
+}
+
+// OnContractCall implements crosstypes.CrossModule
+func (am AppModule) OnContractCall(ctx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
+	return am.contractHandler(ctx, callInfo)
 }

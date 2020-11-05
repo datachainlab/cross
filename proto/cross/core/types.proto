@@ -32,7 +32,7 @@ message ReturnValue {
   bytes value = 1;
 }
 
-message ContractHandlerResult {
+message ContractCallResult {
   bytes data = 1;
   repeated tendermint.abci.Event events = 2 [
     (gogoproto.nullable) = false

@@ -8,23 +8,23 @@ import (
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
-func (k Keeper) SetContractResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, result crosstypes.ContractHandlerResult) {
+func (k Keeper) SetContractCallResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, result crosstypes.ContractCallResult) {
 	bz := k.cdc.MustMarshalBinaryBare(&result)
-	k.store(ctx).Set(types.KeyContractResult(txID, txIndex), bz)
+	k.store(ctx).Set(types.KeyContractCallResult(txID, txIndex), bz)
 }
 
-func (k Keeper) GetContractResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) *crosstypes.ContractHandlerResult {
-	bz := k.store(ctx).Get(types.KeyContractResult(txID, txIndex))
+func (k Keeper) GetContractCallResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) *crosstypes.ContractCallResult {
+	bz := k.store(ctx).Get(types.KeyContractCallResult(txID, txIndex))
 	if bz == nil {
 		return nil
 	}
-	var result crosstypes.ContractHandlerResult
+	var result crosstypes.ContractCallResult
 	k.cdc.MustUnmarshalBinaryBare(bz, &result)
 	return &result
 }
 
 func (k Keeper) RemoveContractResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) {
-	k.store(ctx).Delete(types.KeyContractResult(txID, txIndex))
+	k.store(ctx).Delete(types.KeyContractCallResult(txID, txIndex))
 }
 
 func (k Keeper) SetCoordinatorState(ctx sdk.Context, txID crosstypes.TxID, cs types.CoordinatorState) {

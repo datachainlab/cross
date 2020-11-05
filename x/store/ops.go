@@ -93,7 +93,7 @@ type OPManager interface {
 	LockOPs() []LockOP
 }
 
-func GetOPManager(tp types.StateConstraintType) (OPManager, error) {
+func getOPManager(tp types.StateConstraintType) (OPManager, error) {
 	switch tp {
 	case types.ExactMatchStateConstraint:
 		return newReadWriteOPManager(), nil

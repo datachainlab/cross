@@ -4,7 +4,11 @@ import (
 	"context"
 )
 
-type ContractHandler func(ctx context.Context, callInfo ContractCallInfo) (*OPs, error)
+type ContractModule interface {
+	OnContractCall(ctx context.Context, callInfo ContractCallInfo) (*ContractCallResult, *OPs, error)
+}
+
+type ContractHandler func(ctx context.Context, callInfo ContractCallInfo) (*ContractCallResult, *OPs, error)
 
 type ContractHandleDecorator interface {
 	Handle(ctx context.Context, callInfo ContractCallInfo) (newCtx context.Context, err error)
@@ -14,12 +18,12 @@ func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) Cont
 	if h == nil {
 		panic("ContractHandler cannot be nil")
 	}
-	return func(ctx context.Context, callInfo ContractCallInfo) (*OPs, error) {
+	return func(ctx context.Context, callInfo ContractCallInfo) (*ContractCallResult, *OPs, error) {
 		var err error
 		for _, dec := range decs {
 			ctx, err = dec.Handle(ctx, callInfo)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 		return h(ctx, callInfo)

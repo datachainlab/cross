@@ -9,7 +9,7 @@ import (
 const (
 	KeyCoordinatorStatePrefix uint8 = iota
 	KeyContractTransactionStatePrefix
-	KeyContractResultPrefix
+	KeyContractCallResultPrefix
 )
 
 // KeyPrefixBytes return the key prefix bytes from a URL string format
@@ -34,10 +34,10 @@ func KeyContractTransactionState(txID crosstypes.TxID, txIndex crosstypes.TxInde
 	)
 }
 
-func KeyContractResult(txID crosstypes.TxID, txIndex crosstypes.TxIndex) []byte {
+func KeyContractCallResult(txID crosstypes.TxID, txIndex crosstypes.TxIndex) []byte {
 	return append(
 		append(
-			KeyPrefixBytes(KeyContractResultPrefix),
+			KeyPrefixBytes(KeyContractCallResultPrefix),
 			txID[:]...,
 		),
 		txIndex,
