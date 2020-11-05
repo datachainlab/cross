@@ -1,0 +1,6 @@
+syntax = "proto3";
+package cross.packets;
+
+option go_package = "github.com/datachainlab/cross/x/packets";
+
+message TestPacketDataPayload {}
