@@ -9,6 +9,9 @@ import (
 
 // NewCoordinatorState creates a new instance of CoordinatorState
 func NewCoordinatorState(commitFlowType CommitFlowType, phase CoordinatorPhase, channels []crosstypes.ChannelInfo) CoordinatorState {
+	if len(channels) == 0 {
+		panic("channels must not be empty")
+	}
 	return CoordinatorState{
 		Type:     commitFlowType,
 		Phase:    phase,
