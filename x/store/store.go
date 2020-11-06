@@ -10,18 +10,18 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-var _ types.Store = (*Store)(nil)
+var _ types.Store = (*kvStore)(nil)
 
-type Store struct {
+type kvStore struct {
 	storeKey sdk.StoreKey
 	prefix   []byte
 }
 
-func NewStore(storeKey sdk.StoreKey) types.Store {
-	return &Store{storeKey: storeKey}
+func newKVStore(storeKey sdk.StoreKey) types.Store {
+	return &kvStore{storeKey: storeKey}
 }
 
-func (s Store) Prefix(prefix []byte) types.Store {
+func (s kvStore) Prefix(prefix []byte) types.Store {
 	p := make([]byte, len(s.prefix)+len(prefix))
 	copy(p[0:len(s.prefix)], s.prefix)
 	copy(p[len(s.prefix):], prefix)
@@ -29,27 +29,27 @@ func (s Store) Prefix(prefix []byte) types.Store {
 	return s
 }
 
-func (s Store) KVStore(ctx sdk.Context) sdk.KVStore {
+func (s kvStore) KVStore(ctx sdk.Context) sdk.KVStore {
 	return prefix.NewStore(ctx.KVStore(s.storeKey), s.prefix)
 }
 
-func (s Store) Set(ctx sdk.Context, key, value []byte) {
+func (s kvStore) Set(ctx sdk.Context, key, value []byte) {
 	s.KVStore(ctx).Set(key, value)
 }
 
-func (s Store) Get(ctx sdk.Context, key []byte) []byte {
+func (s kvStore) Get(ctx sdk.Context, key []byte) []byte {
 	return s.KVStore(ctx).Get(key)
 }
 
-func (s Store) Has(ctx sdk.Context, key []byte) bool {
+func (s kvStore) Has(ctx sdk.Context, key []byte) bool {
 	return s.KVStore(ctx).Has(key)
 }
 
-func (s Store) Delete(ctx sdk.Context, key []byte) {
+func (s kvStore) Delete(ctx sdk.Context, key []byte) {
 	s.KVStore(ctx).Delete(key)
 }
 
-type CommitStore struct {
+type Store struct {
 	storeKey   sdk.StoreKey
 	m          codec.Marshaler
 	stateStore types.Store
@@ -57,30 +57,31 @@ type CommitStore struct {
 	txStore    types.Store
 }
 
-var _ types.CommitStore = (*CommitStore)(nil)
-var _ types.Store = (*CommitStore)(nil)
+var _ types.Store = (*Store)(nil)
+var _ types.CommitStore = (*Store)(nil)
 
-func NewCommitStore(m codec.Marshaler, storeKey sdk.StoreKey) CommitStore {
-	return CommitStore{
+func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
+	return Store{
 		storeKey:   storeKey,
 		m:          m,
-		stateStore: NewStore(storeKey).Prefix([]byte{0}),
-		lockStore:  newLockStore(NewStore(storeKey).Prefix([]byte{1})),
-		txStore:    NewStore(storeKey).Prefix([]byte{2}),
+		stateStore: newKVStore(storeKey).Prefix([]byte{0}),
+		lockStore:  newLockStore(newKVStore(storeKey).Prefix([]byte{1})),
+		txStore:    newKVStore(storeKey).Prefix([]byte{2}),
 	}
 }
 
-func (s CommitStore) Prefix(prefix []byte) types.Store {
+func (s Store) Prefix(prefix []byte) types.Store {
 	s.stateStore = s.stateStore.Prefix(prefix)
 	s.lockStore = s.lockStore.Prefix(prefix)
+	s.txStore = s.txStore.Prefix(prefix)
 	return s
 }
 
-func (s CommitStore) KVStore(ctx sdk.Context) sdk.KVStore {
+func (s Store) KVStore(ctx sdk.Context) sdk.KVStore {
 	panic("not implemented error")
 }
 
-func (s CommitStore) Set(ctx sdk.Context, key, value []byte) {
+func (s Store) Set(ctx sdk.Context, key, value []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
@@ -96,7 +97,7 @@ func (s CommitStore) Set(ctx sdk.Context, key, value []byte) {
 	}
 }
 
-func (s CommitStore) Get(ctx sdk.Context, key []byte) []byte {
+func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
@@ -117,7 +118,7 @@ func (s CommitStore) Get(ctx sdk.Context, key []byte) []byte {
 	}
 }
 
-func (s CommitStore) Has(ctx sdk.Context, key []byte) bool {
+func (s Store) Has(ctx sdk.Context, key []byte) bool {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
@@ -138,7 +139,7 @@ func (s CommitStore) Has(ctx sdk.Context, key []byte) bool {
 	}
 }
 
-func (s CommitStore) Delete(ctx sdk.Context, key []byte) {
+func (s Store) Delete(ctx sdk.Context, key []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
@@ -153,7 +154,7 @@ func (s CommitStore) Delete(ctx sdk.Context, key []byte) {
 	}
 }
 
-func (s CommitStore) Precommit(ctx sdk.Context, id []byte) error {
+func (s Store) Precommit(ctx sdk.Context, id []byte) error {
 	if s.txStore.Has(ctx, id) {
 		return fmt.Errorf("id '%x' already exists", id)
 	}
@@ -173,7 +174,7 @@ func (s CommitStore) Precommit(ctx sdk.Context, id []byte) error {
 	return nil
 }
 
-func (s CommitStore) Abort(ctx sdk.Context, id []byte) error {
+func (s Store) Abort(ctx sdk.Context, id []byte) error {
 	bz := s.txStore.Get(ctx, id)
 	if bz == nil {
 		return fmt.Errorf("id '%x' not found", id)
@@ -190,7 +191,7 @@ func (s CommitStore) Abort(ctx sdk.Context, id []byte) error {
 	return nil
 }
 
-func (s CommitStore) Commit(ctx sdk.Context, id []byte) error {
+func (s Store) Commit(ctx sdk.Context, id []byte) error {
 	bz := s.txStore.Get(ctx, id)
 	if bz == nil {
 		return fmt.Errorf("id '%x' not found", id)
@@ -208,18 +209,18 @@ func (s CommitStore) Commit(ctx sdk.Context, id []byte) error {
 	return nil
 }
 
-func (s CommitStore) CommitImmediately(ctx sdk.Context) {
+func (s Store) CommitImmediately(ctx sdk.Context) {
 	lks := opManagerFromContext(ctx.Context()).LockOPs()
 	s.apply(ctx, lks)
 }
 
-func (s CommitStore) apply(ctx sdk.Context, ops []LockOP) {
+func (s Store) apply(ctx sdk.Context, ops []LockOP) {
 	for _, op := range ops {
 		op.ApplyTo(s.stateStore.KVStore(ctx))
 	}
 }
 
-func (s CommitStore) clean(ctx sdk.Context, id []byte, ops []LockOP) {
+func (s Store) clean(ctx sdk.Context, id []byte, ops []LockOP) {
 	if !s.txStore.Has(ctx, id) {
 		panic(fmt.Errorf("id '%x' not found", id))
 	}

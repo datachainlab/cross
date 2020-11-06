@@ -15,7 +15,7 @@ func TestKVStore(t *testing.T) {
 	require := require.New(t)
 
 	stk := sdk.NewKVStoreKey("state")
-	s := NewStore(stk)
+	s := newKVStore(stk)
 
 	cms := makeCMStore(t, stk)
 	ctx := sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())

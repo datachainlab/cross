@@ -15,7 +15,7 @@ func TestLockStore(t *testing.T) {
 
 	cms := makeCMStore(t, stk)
 	ctx := sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())
-	st := newLockStore(NewStore(stk))
+	st := newLockStore(newKVStore(stk))
 	k0 := []byte("k0")
 
 	require.False(st.IsLocked(ctx, k0))
