@@ -73,7 +73,6 @@ func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
 func (s Store) Prefix(prefix []byte) types.Store {
 	s.stateStore = s.stateStore.Prefix(prefix)
 	s.lockStore = s.lockStore.Prefix(prefix)
-	s.txStore = s.txStore.Prefix(prefix)
 	return s
 }
 
