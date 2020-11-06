@@ -7,7 +7,8 @@ import (
 type CommitMode = uint8
 
 const (
-	BasicMode CommitMode = iota + 1
+	UnspecifiedMode CommitMode = iota + 1
+	BasicMode
 	AtomicMode
 )
 

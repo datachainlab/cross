@@ -86,7 +86,7 @@ func (s Store) Set(ctx sdk.Context, key, value []byte) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
 	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.BasicMode:
+	case types.UnspecifiedMode, types.BasicMode:
 		s.stateStore.Set(ctx, key, value)
 		return
 	case types.AtomicMode:
@@ -102,7 +102,7 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
 	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.BasicMode:
+	case types.UnspecifiedMode, types.BasicMode:
 		return s.stateStore.Get(ctx, key)
 	case types.AtomicMode:
 		opmgr := opManagerFromContext(ctx.Context())
@@ -123,7 +123,7 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
 	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.BasicMode:
+	case types.UnspecifiedMode, types.BasicMode:
 		return s.stateStore.Has(ctx, key)
 	case types.AtomicMode:
 		opmgr := opManagerFromContext(ctx.Context())
@@ -144,7 +144,7 @@ func (s Store) Delete(ctx sdk.Context, key []byte) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
 	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.BasicMode:
+	case types.UnspecifiedMode, types.BasicMode:
 		s.stateStore.Delete(ctx, key)
 		return
 	case types.AtomicMode:

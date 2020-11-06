@@ -1,6 +1,9 @@
 package types
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 type contractRuntimeInfoContextKey struct{}
 
@@ -13,5 +16,12 @@ func ContextWithContractRuntimeInfo(ctx context.Context, runtimeInfo ContractRun
 }
 
 func CommitModeFromContext(ctx context.Context) CommitMode {
-	return ContractRuntimeFromContext(ctx).CommitMode
+	switch v := ctx.Value(contractRuntimeInfoContextKey{}).(type) {
+	case ContractRuntimeInfo:
+		return v.CommitMode
+	case nil:
+		return UnspecifiedMode
+	default:
+		panic(fmt.Sprintf("unknown type: %T", v))
+	}
 }

@@ -3,6 +3,7 @@ package store
 import (
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
@@ -30,8 +31,40 @@ func TestKVStore(t *testing.T) {
 
 	key1, value1 := []byte("key1"), []byte("value1")
 
-	s.Set(ctx, key1, value1)
-	require.Equal(value1, s.Get(ctx, key1))
+	s1.Set(ctx, key1, value1)
+	require.Equal(value1, s1.Get(ctx, key1))
+	require.Equal(value1, s.Get(ctx, []byte("/1/key1")))
+	s1.Delete(ctx, key1)
+	require.Nil(s1.Get(ctx, key1))
+	require.Nil(s.Get(ctx, []byte("/1/key1")))
+}
+
+func TestStore(t *testing.T) {
+	require := require.New(t)
+
+	stk := sdk.NewKVStoreKey("state")
+	var m codec.Marshaler
+	s := NewStore(m, stk)
+
+	cms := makeCMStore(t, stk)
+	ctx := sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())
+
+	key0, value0 := []byte("key0"), []byte("value0")
+
+	s.Set(ctx, key0, value0)
+	require.Equal(value0, s.Get(ctx, key0))
+
+	s1 := s.Prefix([]byte("/1/"))
+	require.Nil(s1.Get(ctx, key0))
+
+	key1, value1 := []byte("key1"), []byte("value1")
+
+	s1.Set(ctx, key1, value1)
+	require.Equal(value1, s1.Get(ctx, key1))
+	require.Equal(value1, s.Get(ctx, []byte("/1/key1")))
+	s1.Delete(ctx, key1)
+	require.Nil(s1.Get(ctx, key1))
+	require.Nil(s.Get(ctx, []byte("/1/key1")))
 }
 
 func makeCMStore(t *testing.T, key sdk.StoreKey) sdk.CommitMultiStore {
