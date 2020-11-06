@@ -2,6 +2,8 @@ package types
 
 import (
 	"context"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type ContractModule interface {
@@ -12,6 +14,20 @@ type ContractHandler func(ctx context.Context, callInfo ContractCallInfo) (*Cont
 
 type ContractHandleDecorator interface {
 	Handle(ctx context.Context, callInfo ContractCallInfo) (newCtx context.Context, err error)
+}
+
+type ContractHandleDecorators []ContractHandleDecorator
+
+var _ ContractHandleDecorator = (*ContractHandleDecorators)(nil)
+
+func (decs ContractHandleDecorators) Handle(ctx context.Context, callInfo ContractCallInfo) (newCtx context.Context, err error) {
+	for _, dec := range decs {
+		ctx, err = dec.Handle(ctx, callInfo)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ctx, nil
 }
 
 func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) ContractHandler {
@@ -30,7 +46,8 @@ func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) Cont
 	}
 }
 
-func SetupContractContext(ctx context.Context, runtimeInfo ContractRuntimeInfo) context.Context {
-	ctx = ContextWithContractRuntimeInfo(ctx, runtimeInfo)
-	return ctx
+func SetupContractContext(ctx sdk.Context, runtimeInfo ContractRuntimeInfo) sdk.Context {
+	goCtx := ctx.Context()
+	goCtx = ContextWithContractRuntimeInfo(goCtx, runtimeInfo)
+	return ctx.WithContext(goCtx)
 }

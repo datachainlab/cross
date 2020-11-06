@@ -19,6 +19,7 @@ func NewKeeper(storeKey sdk.StoreKey, xstore crosstypes.Store) Keeper {
 	}
 }
 
+// TODO implements
 func (k Keeper) HandleContractCall(ctx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
-	panic("not implemented error")
+	return &crosstypes.ContractCallResult{}, nil, nil
 }

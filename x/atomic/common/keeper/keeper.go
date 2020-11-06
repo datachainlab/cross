@@ -25,9 +25,10 @@ type Keeper struct {
 	scopedKeeper  capabilitykeeper.ScopedKeeper
 	commitStore   crosstypes.CommitStore
 
-	contractModule   crosstypes.ContractModule
-	resolverProvider crosstypes.ObjectResolverProvider
-	channelResolver  crosstypes.ChannelResolver
+	contractModule          crosstypes.ContractModule
+	contractHandleDecorator crosstypes.ContractHandleDecorator
+	resolverProvider        crosstypes.ObjectResolverProvider
+	channelResolver         crosstypes.ChannelResolver
 }
 
 func NewKeeper(
@@ -38,17 +39,22 @@ func NewKeeper(
 	portKeeper crosstypes.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 	contractModule crosstypes.ContractModule,
+	contractHandleDecorator crosstypes.ContractHandleDecorator,
+	channelResolver crosstypes.ChannelResolver,
 	commitStore crosstypes.CommitStore,
 ) Keeper {
 	return Keeper{
-		cdc:            cdc,
-		storeKey:       storeKey,
-		keyPrefix:      keyPrefix,
-		channelKeeper:  channelKeeper,
-		portKeeper:     portKeeper,
-		scopedKeeper:   scopedKeeper,
-		commitStore:    commitStore,
-		contractModule: contractModule,
+		cdc:                     cdc,
+		storeKey:                storeKey,
+		keyPrefix:               keyPrefix,
+		channelKeeper:           channelKeeper,
+		portKeeper:              portKeeper,
+		scopedKeeper:            scopedKeeper,
+		commitStore:             commitStore,
+		contractModule:          contractModule,
+		contractHandleDecorator: contractHandleDecorator,
+		resolverProvider:        crosstypes.DefaultResolverProvider(),
+		channelResolver:         channelResolver,
 	}
 }
 
@@ -67,7 +73,11 @@ func (k Keeper) PrepareCommit(
 	tx crosstypes.ContractTransaction,
 	links []crosstypes.Object,
 ) error {
-	res, err := k.processTransaction(ctx, txIndex, tx, links, crosstypes.AtomicMode)
+	ctx, err := k.setupContext(ctx, tx, links, crosstypes.AtomicMode)
+	if err != nil {
+		return err
+	}
+	res, err := k.processTransaction(ctx, tx)
 	if err != nil {
 		return err
 	}
@@ -75,30 +85,39 @@ func (k Keeper) PrepareCommit(
 	return k.commitStore.Precommit(ctx, makeContractTransactionID(txID, txIndex))
 }
 
-func (k Keeper) processTransaction(
+func (k Keeper) setupContext(
 	ctx sdk.Context,
-	txIndex crosstypes.TxIndex,
 	tx crosstypes.ContractTransaction,
 	links []crosstypes.Object,
 	commitMode crosstypes.CommitMode,
-) (res *crosstypes.ContractCallResult, err error) {
+) (sdk.Context, error) {
 	// TODO resolverProvider can be moved into contract package?
 	rs, err := k.resolverProvider(k.cdc, links)
 	if err != nil {
-		return nil, err
+		return ctx, err
 	}
-
 	// Setup a context
-	goCtx := crosstypes.SetupContractContext(
-		sdk.WrapSDKContext(ctx),
+	ctx = crosstypes.SetupContractContext(
+		ctx,
 		crosstypes.ContractRuntimeInfo{
 			CommitMode:             commitMode,
 			StateConstraintType:    tx.StateConstraint.Type,
 			ExternalObjectResolver: rs,
 		},
 	)
+	goCtx, err := k.contractHandleDecorator.Handle(ctx.Context(), tx.CallInfo)
+	if err != nil {
+		return ctx, err
+	}
+	return ctx.WithContext(goCtx), nil
+}
+
+func (k Keeper) processTransaction(
+	ctx sdk.Context,
+	tx crosstypes.ContractTransaction,
+) (res *crosstypes.ContractCallResult, err error) {
 	res, ops, err := k.contractModule.OnContractCall(
-		goCtx,
+		sdk.WrapSDKContext(ctx),
 		tx.CallInfo,
 	)
 	if err != nil {
@@ -123,7 +142,11 @@ func (k Keeper) CommitImmediately(
 	tx crosstypes.ContractTransaction,
 	links []crosstypes.Object,
 ) error {
-	_, err := k.processTransaction(ctx, txIndex, tx, links, crosstypes.BasicMode)
+	ctx, err := k.setupContext(ctx, tx, links, crosstypes.BasicMode)
+	if err != nil {
+		return err
+	}
+	_, err = k.processTransaction(ctx, tx)
 	if err != nil {
 		return err
 	}

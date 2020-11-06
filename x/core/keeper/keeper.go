@@ -39,9 +39,15 @@ func NewKeeper(
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 	packetMiddleware packets.PacketMiddleware,
 	contractModule types.ContractModule,
+	contractHandleDecorator types.ContractHandleDecorator,
+	channelResolver types.ChannelResolver,
 	commitStore types.CommitStore,
 ) Keeper {
-	ck := commonkeeper.NewKeeper(m, storeKey, types.KeyAtomicKeeperPrefixBytes(), channelKeeper, portKeeper, scopedKeeper, contractModule, commitStore)
+	ck := commonkeeper.NewKeeper(
+		m, storeKey, types.KeyAtomicKeeperPrefixBytes(),
+		channelKeeper, portKeeper, scopedKeeper,
+		contractModule, contractHandleDecorator, channelResolver, commitStore,
+	)
 	return Keeper{
 		m:                m,
 		storeKey:         storeKey,
@@ -86,6 +92,11 @@ func (k Keeper) BindPort(ctx sdk.Context, portID string) error {
 // passes to it
 func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
 	return k.scopedKeeper.ClaimCapability(ctx, cap, name)
+}
+
+// AuthenticateCapability wraps the scopedKeeper's AuthenticateCapability function
+func (k Keeper) AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) bool {
+	return k.scopedKeeper.AuthenticateCapability(ctx, cap, name)
 }
 
 func (k Keeper) store(ctx sdk.Context) sdk.KVStore {

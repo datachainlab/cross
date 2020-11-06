@@ -9,7 +9,6 @@ import (
 	"github.com/datachainlab/cross/simapp/samplemod/keeper"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
-	"github.com/datachainlab/cross/x/store"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -96,11 +95,8 @@ type AppModule struct {
 
 func NewAppModule(keeper keeper.Keeper) AppModule {
 	return AppModule{
-		keeper: keeper,
-		contractHandler: crosstypes.NewContractHandler(
-			keeper.HandleContractCall,
-			store.DefaultContractHandleDecorators()...,
-		),
+		keeper:          keeper,
+		contractHandler: keeper.HandleContractCall,
 	}
 }
 

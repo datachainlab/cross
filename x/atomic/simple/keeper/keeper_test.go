@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
+	"github.com/datachainlab/cross/x/packets"
 )
 
 type KeeperTestSuite struct {
@@ -34,14 +35,36 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.queryClient = types.NewQueryClient(queryHelper)
 }
 
-func (suite *KeeperTestSuite) TestGetTransferAccount() {
-	expectedMaccAddr := sdk.AccAddress(crypto.AddressHash([]byte(types.ModuleName)))
+func (suite *KeeperTestSuite) TestCall() {
+	_, _, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
+	suite.chainB.CreatePortCapability(crosstypes.PortID)
+	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
+	_ = channelB
+	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
+	selfCh := crosstypes.ChannelInfo{}
+	cidB, err := crosstypes.PackChainID(&chAB)
+	suite.Require().NoError(err)
+	selfCid, err := crosstypes.PackChainID(&selfCh)
 
-	macc := suite.chainA.App.TransferKeeper.GetTransferAccount(suite.chainA.GetContext())
-
-	suite.Require().NotNil(macc)
-	suite.Require().Equal(types.ModuleName, macc.GetName())
-	suite.Require().Equal(expectedMaccAddr, macc.GetAddress())
+	k := suite.chainA.App.CrossKeeper.SimpleKeeper()
+	txs := []crosstypes.ContractTransaction{
+		{
+			ChainId: *selfCid,
+			Signers: []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+		},
+		{
+			ChainId: *cidB,
+			Signers: []crosstypes.AccountAddress{suite.chainB.SenderAccount.GetAddress().Bytes()},
+		},
+	}
+	suite.Require().NoError(
+		k.SendCall(
+			suite.chainA.GetContext(),
+			packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
+			[]byte("txid0"),
+			txs,
+		),
+	)
 }
 
 func TestKeeperTestSuite(t *testing.T) {

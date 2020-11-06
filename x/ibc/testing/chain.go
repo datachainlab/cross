@@ -39,6 +39,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/datachainlab/cross/simapp"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
 const (
@@ -51,7 +52,7 @@ const (
 	UnbondingPeriod time.Duration = time.Hour * 24 * 7 * 3
 	MaxClockDrift   time.Duration = time.Second * 10
 
-	DefaultChannelVersion = ibctransfertypes.Version
+	DefaultChannelVersion = crosstypes.Version
 	InvalidID             = "IDisInvalid"
 
 	ConnectionIDPrefix = "conn"
@@ -722,6 +723,9 @@ func (chain *TestChain) CreatePortCapability(portID string) {
 		case TransferPort:
 			// claim capability using the transfer capability keeper
 			err = chain.App.ScopedTransferKeeper.ClaimCapability(chain.GetContext(), cap, host.PortPath(portID))
+			require.NoError(chain.t, err)
+		case crosstypes.PortID:
+			err = chain.App.ScopedCrossKeeper.ClaimCapability(chain.GetContext(), cap, host.PortPath(portID))
 			require.NoError(chain.t, err)
 		default:
 			panic(fmt.Sprintf("unsupported ibc testing package port ID %s", portID))

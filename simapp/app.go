@@ -90,6 +90,7 @@ import (
 	"github.com/datachainlab/cross/simapp/samplemod"
 	samplemodkeeper "github.com/datachainlab/cross/simapp/samplemod/keeper"
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
+	crossatomic "github.com/datachainlab/cross/x/atomic"
 	cross "github.com/datachainlab/cross/x/core"
 	crosskeeper "github.com/datachainlab/cross/x/core/keeper"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
@@ -128,6 +129,7 @@ var (
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
 		cross.AppModuleBasic{},
+		crossatomic.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		samplemod.AppModuleBasic{},
 	)
@@ -327,7 +329,8 @@ func NewSimApp(
 	app.CrossKeeper = crosskeeper.NewKeeper(
 		appCodec, keys[crosstypes.StoreKey],
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
-		scopedCrossKeeper, packets.NewNOPPacketMiddleware(), samplemodModule, xstore,
+		scopedCrossKeeper, packets.NewNOPPacketMiddleware(),
+		samplemodModule, crossstore.DefaultContractHandleDecorators(), crosstypes.ChannelInfoResolver{}, xstore,
 	)
 	crossModule := cross.NewAppModule(app.CrossKeeper)
 

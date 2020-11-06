@@ -6,8 +6,8 @@ import (
 	"github.com/datachainlab/cross/x/core/types"
 )
 
-func DefaultContractHandleDecorators() []types.ContractHandleDecorator {
-	return []types.ContractHandleDecorator{
+func DefaultContractHandleDecorators() types.ContractHandleDecorator {
+	return types.ContractHandleDecorators{
 		SetUpContractHandleDecorator{},
 	}
 }
@@ -19,7 +19,7 @@ var _ types.ContractHandleDecorator = (*SetUpContractHandleDecorator)(nil)
 func (cd SetUpContractHandleDecorator) Handle(ctx context.Context, callInfo types.ContractCallInfo) (newCtx context.Context, err error) {
 	opmgr, err := getOPManager(types.ContractRuntimeFromContext(ctx).StateConstraintType)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return contextWithOPManager(ctx, opmgr), nil
 }
