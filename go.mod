@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/bluele/interchain-simple-packet v0.0.0-20200921011237-118864bc041e
-	github.com/cosmos/cosmos-sdk v0.40.0-rc2.0.20201104140222-71166c894920
+	github.com/cosmos/cosmos-sdk v0.40.0-rc2
 	github.com/gogo/protobuf v1.3.1
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gorilla/mux v1.8.0
