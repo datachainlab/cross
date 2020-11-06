@@ -87,10 +87,14 @@ import (
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 
+	"github.com/datachainlab/cross/simapp/samplemod"
+	samplemodkeeper "github.com/datachainlab/cross/simapp/samplemod/keeper"
+	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	cross "github.com/datachainlab/cross/x/core"
 	crosskeeper "github.com/datachainlab/cross/x/core/keeper"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
+	crossstore "github.com/datachainlab/cross/x/store"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
@@ -125,6 +129,7 @@ var (
 		transfer.AppModuleBasic{},
 		cross.AppModuleBasic{},
 		vesting.AppModuleBasic{},
+		samplemod.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -181,6 +186,7 @@ type SimApp struct {
 	EvidenceKeeper   evidencekeeper.Keeper
 	TransferKeeper   ibctransferkeeper.Keeper
 	CrossKeeper      crosskeeper.Keeper
+	SamplemodKeeper  samplemodkeeper.Keeper
 
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
@@ -225,7 +231,7 @@ func NewSimApp(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
-		evidencetypes.StoreKey, ibctransfertypes.StoreKey, crosstypes.StoreKey, capabilitytypes.StoreKey,
+		evidencetypes.StoreKey, ibctransfertypes.StoreKey, crosstypes.StoreKey, samplemodtypes.StoreKey, capabilitytypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -312,11 +318,16 @@ func NewSimApp(
 	)
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
 
+	xstore := crossstore.NewStore(appCodec, keys[crosstypes.StoreKey])
+
+	app.SamplemodKeeper = samplemodkeeper.NewKeeper(keys[samplemodtypes.StoreKey], xstore)
+	samplemodModule := samplemod.NewAppModule(app.SamplemodKeeper)
+
 	// Create Cross Keepers
 	app.CrossKeeper = crosskeeper.NewKeeper(
 		appCodec, keys[crosstypes.StoreKey],
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
-		scopedCrossKeeper, packets.NewNOPPacketMiddleware(), nil, nil, // FIXME fix arguments
+		scopedCrossKeeper, packets.NewNOPPacketMiddleware(), samplemodModule, xstore,
 	)
 	crossModule := cross.NewAppModule(app.CrossKeeper)
 
