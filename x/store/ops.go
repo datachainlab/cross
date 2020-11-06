@@ -138,7 +138,7 @@ func (m commonOPManager) GetUpdatedValue(key []byte) ([]byte, bool) {
 func (m commonOPManager) LockOPs() []LockOP {
 	items := make(map[string]item)
 	for i, op := range m.ops {
-		if op.Type() != OpTypeRead {
+		if op.Type() != OpTypeWrite {
 			continue
 		}
 		items[string(op.Key())] = item{op.Type(), uint32(i)}
