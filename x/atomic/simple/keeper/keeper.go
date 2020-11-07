@@ -105,7 +105,7 @@ func (k Keeper) SendCall(
 		&payload,
 		ch1.Port, ch1.Channel,
 		c.Counterparty.PortId, c.Counterparty.ChannelId,
-		clienttypes.NewHeight(0, 0),
+		clienttypes.NewHeight(0, 1000), // FIXME timeoutHeight or timeoutStamp should be given by caller
 		0,
 	); err != nil {
 		return err

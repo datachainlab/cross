@@ -8,6 +8,10 @@ import (
 // RegisterInterfaces register the ibc transfer module interfaces to protobuf
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
+	registry.RegisterImplementations(
+		(*ChainID)(nil),
+		&ChannelInfo{},
+	)
 }
 
 var (
