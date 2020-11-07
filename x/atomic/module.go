@@ -11,8 +11,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	commontypes "github.com/datachainlab/cross/x/atomic/common/types"
 	simpletypes "github.com/datachainlab/cross/x/atomic/simple/types"
-	"github.com/datachainlab/cross/x/core/types"
 )
 
 var (
@@ -29,7 +29,7 @@ type AppModuleBasic struct {
 
 // Name returns the capability module's name.
 func (AppModuleBasic) Name() string {
-	return types.ModuleName
+	return commontypes.ModuleName
 }
 
 // RegisterLegacyAminoCodec implements AppModuleBasic interface

@@ -7,6 +7,11 @@ import (
 )
 
 const (
+	// ModuleName defines the module name
+	ModuleName = "cross-atomic"
+)
+
+const (
 	KeyCoordinatorStatePrefix uint8 = iota
 	KeyContractTransactionStatePrefix
 	KeyContractCallResultPrefix
