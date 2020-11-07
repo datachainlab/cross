@@ -130,13 +130,19 @@ func (k Keeper) SendCall(
 	return nil
 }
 
+// TODO returns a packet acknowledgement
 // caller is participant
 func (k Keeper) ReceiveCallPacket(
 	ctx sdk.Context,
-	sourcePort,
-	sourceChannel string,
+	destPort,
+	destChannel string,
 	data types.PacketDataCall,
 ) (commontypes.PrepareResult, error) {
+	// validate packet data upon receiving
+	if err := data.ValidateBasic(); err != nil {
+		return 0, err
+	}
+
 	if _, ok := k.GetContractTransactionState(ctx, data.TxId, TxIndexParticipant); ok {
 		return 0, fmt.Errorf("txID '%x' already exists", data.TxId)
 	}
@@ -151,15 +157,15 @@ func (k Keeper) ReceiveCallPacket(
 		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
 	}
 
-	_, found := k.ChannelKeeper().GetChannel(ctx, sourcePort, sourceChannel)
+	_, found := k.ChannelKeeper().GetChannel(ctx, destPort, destChannel)
 	if !found {
-		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", sourcePort, sourceChannel)
+		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
 	}
 
 	txinfo := commontypes.NewContractTransactionState(
 		commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
 		commontypes.PREPARE_RESULT_OK,
-		crosstypes.ChannelInfo{Port: sourcePort, Channel: sourceChannel},
+		crosstypes.ChannelInfo{Port: destPort, Channel: destChannel},
 	)
 	k.SetContractTransactionState(ctx, data.TxId, TxIndexParticipant, txinfo)
 	return result, nil

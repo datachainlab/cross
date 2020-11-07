@@ -3,14 +3,19 @@ package keeper_test
 import (
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	atomictypes "github.com/datachainlab/cross/x/atomic/common/types"
+	"github.com/datachainlab/cross/x/atomic/simple/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
+	"github.com/datachainlab/cross/x/utils"
 )
 
 type KeeperTestSuite struct {
@@ -22,7 +27,7 @@ type KeeperTestSuite struct {
 	chainA *ibctesting.TestChain
 	chainB *ibctesting.TestChain
 
-	queryClient types.QueryClient
+	queryClient transfertypes.QueryClient
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
@@ -31,8 +36,8 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(1))
 
 	queryHelper := baseapp.NewQueryServerTestHelper(suite.chainA.GetContext(), suite.chainA.App.InterfaceRegistry())
-	types.RegisterQueryServer(queryHelper, suite.chainA.App.TransferKeeper)
-	suite.queryClient = types.NewQueryClient(queryHelper)
+	transfertypes.RegisterQueryServer(queryHelper, suite.chainA.App.TransferKeeper)
+	suite.queryClient = transfertypes.NewQueryClient(queryHelper)
 }
 
 func (suite *KeeperTestSuite) TestCall() {
@@ -40,13 +45,15 @@ func (suite *KeeperTestSuite) TestCall() {
 	suite.chainB.CreatePortCapability(crosstypes.PortID)
 	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	_ = channelB
+	// check if SendCall is successful
+
 	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 	selfCh := crosstypes.ChannelInfo{}
 	cidB, err := crosstypes.PackChainID(&chAB)
 	suite.Require().NoError(err)
 	selfCid, err := crosstypes.PackChainID(&selfCh)
 
-	k := suite.chainA.App.CrossKeeper.SimpleKeeper()
+	kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
 	txs := []crosstypes.ContractTransaction{
 		{
 			ChainId: *selfCid,
@@ -57,14 +64,65 @@ func (suite *KeeperTestSuite) TestCall() {
 			Signers: []crosstypes.AccountAddress{suite.chainB.SenderAccount.GetAddress().Bytes()},
 		},
 	}
+	ps := newCapturePacketSender(
+		packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
+	)
 	suite.Require().NoError(
-		k.SendCall(
+		kA.SendCall(
 			suite.chainA.GetContext(),
-			packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
+			ps,
 			[]byte("txid0"),
 			txs,
 		),
 	)
+	suite.chainA.NextBlock()
+
+	// check if coordinator state is expected
+
+	cs, found := suite.chainA.App.CrossKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), []byte("txid0"))
+	suite.Require().True(found)
+	suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+
+	// check if ReceiveCallPacket is successful
+
+	suite.Require().Equal(1, len(ps.Packets()))
+	p0 := ps.Packets()[0]
+	var pd0 packets.PacketData
+	suite.Require().NoError(packets.UnmarshalJSONPacketData(p0.GetData(), &pd0))
+	var payload0 packets.PacketDataPayload
+	utils.MustUnmarshalJSONAny(suite.chainB.App.AppCodec(), &payload0, pd0.GetPayload())
+	callData := payload0.(*types.PacketDataCall)
+
+	kB := suite.chainB.App.CrossKeeper.SimpleKeeper()
+	_, err = kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
+	suite.Require().NoError(err)
+}
+
+type capturePacketSender struct {
+	inner   packets.PacketSender
+	packets []packets.OutgoingPacket
+}
+
+var _ packets.PacketSender = (*capturePacketSender)(nil)
+
+func newCapturePacketSender(ps packets.PacketSender) *capturePacketSender {
+	return &capturePacketSender{inner: ps}
+}
+
+func (ps *capturePacketSender) SendPacket(
+	ctx sdk.Context,
+	channelCap *capabilitytypes.Capability,
+	packet packets.OutgoingPacket,
+) error {
+	if err := ps.inner.SendPacket(ctx, channelCap, packet); err != nil {
+		return err
+	}
+	ps.packets = append(ps.packets, packet)
+	return nil
+}
+
+func (ps *capturePacketSender) Packets() []packets.OutgoingPacket {
+	return ps.packets
 }
 
 func TestKeeperTestSuite(t *testing.T) {

@@ -166,7 +166,7 @@ func (k Keeper) SendPacket(
 	timeoutTimestamp uint64,
 ) error {
 	pd := packets.NewPacketData(nil, utils.MustMarshalJSONAny(k.cdc, payload))
-	bz, err := packets.MarshalPacketData(pd)
+	bz, err := packets.MarshalJSONPacketData(pd)
 	if err != nil {
 		return err
 	}

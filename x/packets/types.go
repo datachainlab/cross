@@ -36,7 +36,7 @@ type PacketAcknowledgementPayload interface {
 	ValidateBasic() error
 }
 
-func MarshalPacketData(data PacketData) ([]byte, error) {
+func MarshalJSONPacketData(data PacketData) ([]byte, error) {
 	bz, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (p *outgoingPacket) SetPacketData(m codec.JSONMarshaler, header Header, pay
 
 // GetData implements Outgoing.GetData
 func (p outgoingPacket) GetData() []byte {
-	bz, err := MarshalPacketData(p.packetData)
+	bz, err := MarshalJSONPacketData(p.packetData)
 	if err != nil {
 		panic(err)
 	}
