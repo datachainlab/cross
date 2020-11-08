@@ -135,14 +135,14 @@ func (suite *KeeperTestSuite) TestCall() {
 			ack, err := kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
 			suite.Require().NoError(err)
 			suite.Equal(c.participantCommitStatus, ack.Status)
-			ctxs, found := suite.chainB.App.CrossKeeper.SimpleKeeper().GetContractTransactionState(suite.chainB.GetContext(), txID, keeper.TxIndexParticipant)
+			ctxs, found := kB.GetContractTransactionState(suite.chainB.GetContext(), txID, keeper.TxIndexParticipant)
 			suite.Require().True(found)
 			suite.Require().Equal(c.participantContractTransactionStatus, ctxs.Status)
 			suite.Require().Equal(c.participantPrepareResult, ctxs.PrepareResult)
 
 			// check if ReceiveCallAcknowledgement is successful
 
-			isCommittable, err := suite.chainA.App.CrossKeeper.SimpleKeeper().ReceiveCallAcknowledgement(
+			isCommittable, err := kA.ReceiveCallAcknowledgement(
 				suite.chainA.GetContext(),
 				channelA.PortID, channelA.ID,
 				*ack, txID,
@@ -150,7 +150,15 @@ func (suite *KeeperTestSuite) TestCall() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(c.initiatorCommittable, isCommittable)
 
-			// TODO try to commit
+			// check if TryCommit is successful
+
+			res, err := kA.TryCommit(suite.chainA.GetContext(), txID, isCommittable)
+			suite.Require().NoError(err)
+			if c.initiatorCommittable {
+				suite.Require().NotNil(res)
+			} else {
+				suite.Require().Nil(res)
+			}
 		})
 	}
 
