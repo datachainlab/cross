@@ -154,6 +154,35 @@ func (k Keeper) CommitImmediately(
 	return nil
 }
 
+// Commit commits the transaction
+func (k Keeper) Commit(
+	ctx sdk.Context,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
+) (*crosstypes.ContractCallResult, error) {
+	if err := k.commitStore.Commit(ctx, makeContractTransactionID(txID, txIndex)); err != nil {
+		return nil, err
+	}
+	res := k.GetContractCallResult(ctx, txID, txIndex)
+	// TODO calls OnCommit handler
+	k.RemoveContractCallResult(ctx, txID, txIndex)
+	return res, nil
+}
+
+// Abort aborts the transaction
+func (k Keeper) Abort(
+	ctx sdk.Context,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
+) error {
+	if err := k.commitStore.Abort(ctx, makeContractTransactionID(txID, txIndex)); err != nil {
+		return err
+	}
+	// TODO calls OnAbort handler
+	k.RemoveContractCallResult(ctx, txID, txIndex)
+	return nil
+}
+
 func (k Keeper) SendPacket(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,

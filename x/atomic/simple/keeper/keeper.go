@@ -58,6 +58,10 @@ func (k Keeper) SendCall(
 		return errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
+	if _, found := k.GetCoordinatorState(ctx, txID); found {
+		return fmt.Errorf("txID '%X' already exists", txID)
+	}
+
 	chain0, err := tx0.GetChainID(k.cdc)
 	if err != nil {
 		return err
@@ -228,9 +232,32 @@ func (k Keeper) ReceiveCallAcknowledgement(
 
 func (k Keeper) TryCommit(
 	ctx sdk.Context,
-) error {
-	// TODO implements
-	return nil
+	txID crosstypes.TxID,
+	isCommittable bool,
+) (*crosstypes.ContractCallResult, error) {
+	_, err := k.EnsureContractTransactionStatus(ctx, txID, TxIndexCoordinator, commontypes.CONTRACT_TRANSACTION_STATUS_PREPARE)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		res    *crosstypes.ContractCallResult
+		status commontypes.ContractTransactionStatus
+	)
+	if isCommittable {
+		res, err = k.Commit(ctx, txID, TxIndexCoordinator)
+		if err != nil {
+			return nil, err
+		}
+		status = commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT
+	} else {
+		err = k.Abort(ctx, txID, TxIndexCoordinator)
+		if err != nil {
+			return nil, err
+		}
+		status = commontypes.CONTRACT_TRANSACTION_STATUS_ABORT
+	}
+	k.UpdateContractTransactionStatus(ctx, txID, TxIndexCoordinator, status)
+	return res, nil
 }
 
 // Logger returns a module-specific logger.
