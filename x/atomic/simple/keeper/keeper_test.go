@@ -52,6 +52,7 @@ func (suite *KeeperTestSuite) TestCall() {
 
 	var cases = []struct {
 		callinfos                            [2]crosstypes.ContractCallInfo
+		hasErrorSendCall                     bool
 		participantCommitStatus              types.CommitStatus
 		participantContractTransactionStatus atomictypes.ContractTransactionStatus
 		participantPrepareResult             atomictypes.PrepareResult
@@ -62,6 +63,7 @@ func (suite *KeeperTestSuite) TestCall() {
 				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
 				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},
+			false,
 			types.COMMIT_STATUS_OK,
 			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
 			atomictypes.PREPARE_RESULT_OK,
@@ -72,10 +74,29 @@ func (suite *KeeperTestSuite) TestCall() {
 				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
 				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},
+			false,
 			types.COMMIT_STATUS_FAILED,
 			atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT,
 			atomictypes.PREPARE_RESULT_FAILED,
 			false,
+		},
+		{
+			[2]crosstypes.ContractCallInfo{
+				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
+			},
+			true,
+			// the following parameters are ignored
+			0, 0, 0, false,
+		},
+		{
+			[2]crosstypes.ContractCallInfo{
+				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
+			},
+			true,
+			// the following parameters are ignored
+			0, 0, 0, false,
 		},
 	}
 
@@ -105,14 +126,22 @@ func (suite *KeeperTestSuite) TestCall() {
 			ps := newCapturePacketSender(
 				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
 			)
-			suite.Require().NoError(
-				kA.SendCall(
-					suite.chainA.GetContext(),
-					ps,
-					txID,
-					txs,
-				),
+			err = kA.SendCall(
+				suite.chainA.GetContext(),
+				ps,
+				txID,
+				txs,
 			)
+			if c.hasErrorSendCall {
+				suite.Require().Error(err)
+
+				_, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
+				suite.Require().False(found)
+				suite.Require().Equal(0, len(ps.Packets()))
+				return
+			}
+
+			suite.Require().NoError(err)
 			suite.chainA.NextBlock()
 
 			// check if coordinator state is expected
@@ -120,6 +149,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			cs, found := suite.chainA.App.CrossKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
 			suite.Require().True(found)
 			suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+			suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
 
 			// check if ReceiveCallPacket is successful
 
