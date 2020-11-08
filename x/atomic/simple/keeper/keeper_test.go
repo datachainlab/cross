@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	atomictypes "github.com/datachainlab/cross/x/atomic/common/types"
+	"github.com/datachainlab/cross/x/atomic/simple/keeper"
 	"github.com/datachainlab/cross/x/atomic/simple/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
@@ -41,12 +42,14 @@ func (suite *KeeperTestSuite) SetupTest() {
 }
 
 func (suite *KeeperTestSuite) TestCall() {
+	// setup
+
 	_, _, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
 	suite.chainB.CreatePortCapability(crosstypes.PortID)
-	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
-	_ = channelB
-	// check if SendCall is successful
+	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
+	// check if SendCall is successful
+	txID := []byte("txid0")
 	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 	selfCh := crosstypes.ChannelInfo{}
 	cidB, err := crosstypes.PackChainID(&chAB)
@@ -71,7 +74,7 @@ func (suite *KeeperTestSuite) TestCall() {
 		kA.SendCall(
 			suite.chainA.GetContext(),
 			ps,
-			[]byte("txid0"),
+			txID,
 			txs,
 		),
 	)
@@ -79,7 +82,7 @@ func (suite *KeeperTestSuite) TestCall() {
 
 	// check if coordinator state is expected
 
-	cs, found := suite.chainA.App.CrossKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), []byte("txid0"))
+	cs, found := suite.chainA.App.CrossKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
 	suite.Require().True(found)
 	suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
 
@@ -94,8 +97,23 @@ func (suite *KeeperTestSuite) TestCall() {
 	callData := payload0.(*types.PacketDataCall)
 
 	kB := suite.chainB.App.CrossKeeper.SimpleKeeper()
-	_, err = kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
+	ack, err := kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
 	suite.Require().NoError(err)
+	suite.Equal(types.COMMIT_STATUS_OK, ack.Status)
+	ctxs, found := suite.chainB.App.CrossKeeper.SimpleKeeper().GetContractTransactionState(suite.chainB.GetContext(), txID, keeper.TxIndexParticipant)
+	suite.Require().True(found)
+	suite.Require().Equal(atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT, ctxs.Status)
+	suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, ctxs.PrepareResult)
+
+	// check if ReceiveCallAcknowledgement is successful
+
+	isCommittable, err := suite.chainA.App.CrossKeeper.SimpleKeeper().ReceiveCallAcknowledgement(
+		suite.chainA.GetContext(),
+		channelA.PortID, channelA.ID,
+		*ack, txID,
+	)
+	suite.Require().NoError(err)
+	suite.Require().True(isCommittable)
 }
 
 type capturePacketSender struct {

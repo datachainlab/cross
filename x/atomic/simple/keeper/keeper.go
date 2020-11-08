@@ -130,45 +130,50 @@ func (k Keeper) SendCall(
 	return nil
 }
 
-// TODO returns a packet acknowledgement
+// ReceiveCallPacket receives a PacketDataCall to commit a transaction
 // caller is participant
 func (k Keeper) ReceiveCallPacket(
 	ctx sdk.Context,
 	destPort,
 	destChannel string,
 	data types.PacketDataCall,
-) (commontypes.PrepareResult, error) {
+) (*types.PacketCallAcknowledgement, error) {
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
-		return 0, err
-	}
-
-	if _, ok := k.GetContractTransactionState(ctx, data.TxId, TxIndexParticipant); ok {
-		return 0, fmt.Errorf("txID '%x' already exists", data.TxId)
-	}
-
-	if !k.ChannelResolver().Capabilities().CrossChainCalls() && len(data.TxInfo.Tx.Links) > 0 {
-		return 0, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
-	}
-
-	result := commontypes.PREPARE_RESULT_OK
-	if err := k.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.TxInfo.Tx, data.TxInfo.UnpackObjects(k.cdc)); err != nil {
-		result = commontypes.PREPARE_RESULT_FAILED
-		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
+		return nil, err
 	}
 
 	_, found := k.ChannelKeeper().GetChannel(ctx, destPort, destChannel)
 	if !found {
-		return 0, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
+		return nil, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
+	}
+
+	if _, ok := k.GetContractTransactionState(ctx, data.TxId, TxIndexParticipant); ok {
+		return nil, fmt.Errorf("txID '%x' already exists", data.TxId)
+	}
+
+	if !k.ChannelResolver().Capabilities().CrossChainCalls() && len(data.TxInfo.Tx.Links) > 0 {
+		return nil, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
+	}
+
+	var prepareStatus commontypes.PrepareResult
+	var commitStatus types.CommitStatus
+	if err := k.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.TxInfo.Tx, data.TxInfo.UnpackObjects(k.cdc)); err != nil {
+		prepareStatus = commontypes.PREPARE_RESULT_FAILED
+		commitStatus = types.COMMIT_STATUS_FAILED
+		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
+	} else {
+		prepareStatus = commontypes.PREPARE_RESULT_OK
+		commitStatus = types.COMMIT_STATUS_OK
 	}
 
 	txinfo := commontypes.NewContractTransactionState(
 		commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
-		commontypes.PREPARE_RESULT_OK,
+		prepareStatus,
 		crosstypes.ChannelInfo{Port: destPort, Channel: destChannel},
 	)
 	k.SetContractTransactionState(ctx, data.TxId, TxIndexParticipant, txinfo)
-	return result, nil
+	return types.NewPacketCallAcknowledgement(commitStatus), nil
 }
 
 // ReceiveCallAcknowledgement receives PacketCallAcknowledgement to updates CoordinatorState

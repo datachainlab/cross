@@ -4,6 +4,7 @@ import (
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
+// NewPacketDataCall creates a new instance of PacketDataCall
 func NewPacketDataCall(
 	txID crosstypes.TxID,
 	txInfo crosstypes.ContractTransactionInfo,
@@ -16,4 +17,9 @@ func (p PacketDataCall) ValidateBasic() error {
 		return err
 	}
 	return nil
+}
+
+// NewPacketCallAcknowledgement creates a new instance of PacketCallAcknowledgement
+func NewPacketCallAcknowledgement(status CommitStatus) *PacketCallAcknowledgement {
+	return &PacketCallAcknowledgement{Status: status}
 }
