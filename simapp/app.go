@@ -322,7 +322,7 @@ func NewSimApp(
 
 	xstore := crossstore.NewStore(appCodec, keys[crosstypes.StoreKey])
 
-	app.SamplemodKeeper = samplemodkeeper.NewKeeper(keys[samplemodtypes.StoreKey], xstore)
+	app.SamplemodKeeper = samplemodkeeper.NewKeeper(appCodec, keys[samplemodtypes.StoreKey], xstore)
 	samplemodModule := samplemod.NewAppModule(app.SamplemodKeeper)
 
 	// Create Cross Keepers

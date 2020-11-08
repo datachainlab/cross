@@ -10,6 +10,7 @@ import (
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/stretchr/testify/suite"
 
+	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	atomictypes "github.com/datachainlab/cross/x/atomic/common/types"
 	"github.com/datachainlab/cross/x/atomic/simple/keeper"
 	"github.com/datachainlab/cross/x/atomic/simple/types"
@@ -59,12 +60,14 @@ func (suite *KeeperTestSuite) TestCall() {
 	kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
 	txs := []crosstypes.ContractTransaction{
 		{
-			ChainId: *selfCid,
-			Signers: []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+			ChainId:  *selfCid,
+			Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
 		},
 		{
-			ChainId: *cidB,
-			Signers: []crosstypes.AccountAddress{suite.chainB.SenderAccount.GetAddress().Bytes()},
+			ChainId:  *cidB,
+			Signers:  []crosstypes.AccountAddress{suite.chainB.SenderAccount.GetAddress().Bytes()},
+			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
 		},
 	}
 	ps := newCapturePacketSender(
