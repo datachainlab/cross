@@ -156,19 +156,24 @@ func (k Keeper) ReceiveCallPacket(
 		return nil, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
-	var prepareStatus commontypes.PrepareResult
-	var commitStatus types.CommitStatus
+	var (
+		prepareStatus commontypes.PrepareResult
+		commitStatus  types.CommitStatus
+		ctxStatus     commontypes.ContractTransactionStatus
+	)
 	if err := k.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.TxInfo.Tx, data.TxInfo.UnpackObjects(k.cdc)); err != nil {
 		prepareStatus = commontypes.PREPARE_RESULT_FAILED
 		commitStatus = types.COMMIT_STATUS_FAILED
+		ctxStatus = commontypes.CONTRACT_TRANSACTION_STATUS_ABORT
 		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
 	} else {
 		prepareStatus = commontypes.PREPARE_RESULT_OK
 		commitStatus = types.COMMIT_STATUS_OK
+		ctxStatus = commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT
 	}
 
 	txinfo := commontypes.NewContractTransactionState(
-		commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+		ctxStatus,
 		prepareStatus,
 		crosstypes.ChannelInfo{Port: destPort, Channel: destChannel},
 	)
@@ -204,8 +209,10 @@ func (k Keeper) ReceiveCallAcknowledgement(
 	switch ack.Status {
 	case types.COMMIT_STATUS_OK:
 		cs.Decision = commontypes.COORDINATOR_DECISION_COMMIT
+		isCommittable = true
 	case types.COMMIT_STATUS_FAILED:
 		cs.Decision = commontypes.COORDINATOR_DECISION_ABORT
+		isCommittable = false
 	default:
 		panic("unreachable")
 	}
@@ -216,7 +223,14 @@ func (k Keeper) ReceiveCallAcknowledgement(
 		panic("fatal error")
 	}
 	k.SetCoordinatorState(ctx, txID, *cs)
-	return true, nil
+	return isCommittable, nil
+}
+
+func (k Keeper) TryCommit(
+	ctx sdk.Context,
+) error {
+	// TODO implements
+	return nil
 }
 
 // Logger returns a module-specific logger.

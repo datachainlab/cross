@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -49,74 +50,110 @@ func (suite *KeeperTestSuite) TestCall() {
 	suite.chainB.CreatePortCapability(crosstypes.PortID)
 	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
-	// check if SendCall is successful
-	txID := []byte("txid0")
-	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
-	selfCh := crosstypes.ChannelInfo{}
-	cidB, err := crosstypes.PackChainID(&chAB)
-	suite.Require().NoError(err)
-	selfCid, err := crosstypes.PackChainID(&selfCh)
-
-	kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
-	txs := []crosstypes.ContractTransaction{
+	var cases = []struct {
+		callinfos                            [2]crosstypes.ContractCallInfo
+		participantCommitStatus              types.CommitStatus
+		participantContractTransactionStatus atomictypes.ContractTransactionStatus
+		participantPrepareResult             atomictypes.PrepareResult
+		initiatorCommittable                 bool
+	}{
 		{
-			ChainId:  *selfCid,
-			Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
-			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
+			[2]crosstypes.ContractCallInfo{
+				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
+			},
+			types.COMMIT_STATUS_OK,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+			atomictypes.PREPARE_RESULT_OK,
+			true,
 		},
 		{
-			ChainId:  *cidB,
-			Signers:  []crosstypes.AccountAddress{suite.chainB.SenderAccount.GetAddress().Bytes()},
-			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
+			[2]crosstypes.ContractCallInfo{
+				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
+			},
+			types.COMMIT_STATUS_FAILED,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT,
+			atomictypes.PREPARE_RESULT_FAILED,
+			false,
 		},
 	}
-	ps := newCapturePacketSender(
-		packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
-	)
-	suite.Require().NoError(
-		kA.SendCall(
-			suite.chainA.GetContext(),
-			ps,
-			txID,
-			txs,
-		),
-	)
-	suite.chainA.NextBlock()
 
-	// check if coordinator state is expected
+	for i, c := range cases {
+		suite.Run(fmt.Sprint(i), func() {
+			// check if SendCall is successful
+			txID := []byte(fmt.Sprintf("txid-%v", i))
+			chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
+			selfCh := crosstypes.ChannelInfo{}
+			cidB, err := crosstypes.PackChainID(&chAB)
+			suite.Require().NoError(err)
+			selfCid, err := crosstypes.PackChainID(&selfCh)
 
-	cs, found := suite.chainA.App.CrossKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
-	suite.Require().True(found)
-	suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+			kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
+			txs := []crosstypes.ContractTransaction{
+				{
+					ChainId:  *selfCid,
+					Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+					CallInfo: c.callinfos[0],
+				},
+				{
+					ChainId:  *cidB,
+					Signers:  []crosstypes.AccountAddress{suite.chainB.SenderAccount.GetAddress().Bytes()},
+					CallInfo: c.callinfos[1],
+				},
+			}
+			ps := newCapturePacketSender(
+				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
+			)
+			suite.Require().NoError(
+				kA.SendCall(
+					suite.chainA.GetContext(),
+					ps,
+					txID,
+					txs,
+				),
+			)
+			suite.chainA.NextBlock()
 
-	// check if ReceiveCallPacket is successful
+			// check if coordinator state is expected
 
-	suite.Require().Equal(1, len(ps.Packets()))
-	p0 := ps.Packets()[0]
-	var pd0 packets.PacketData
-	suite.Require().NoError(packets.UnmarshalJSONPacketData(p0.GetData(), &pd0))
-	var payload0 packets.PacketDataPayload
-	utils.MustUnmarshalJSONAny(suite.chainB.App.AppCodec(), &payload0, pd0.GetPayload())
-	callData := payload0.(*types.PacketDataCall)
+			cs, found := suite.chainA.App.CrossKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
+			suite.Require().True(found)
+			suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
 
-	kB := suite.chainB.App.CrossKeeper.SimpleKeeper()
-	ack, err := kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
-	suite.Require().NoError(err)
-	suite.Equal(types.COMMIT_STATUS_OK, ack.Status)
-	ctxs, found := suite.chainB.App.CrossKeeper.SimpleKeeper().GetContractTransactionState(suite.chainB.GetContext(), txID, keeper.TxIndexParticipant)
-	suite.Require().True(found)
-	suite.Require().Equal(atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT, ctxs.Status)
-	suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, ctxs.PrepareResult)
+			// check if ReceiveCallPacket is successful
 
-	// check if ReceiveCallAcknowledgement is successful
+			suite.Require().Equal(1, len(ps.Packets()))
+			p0 := ps.Packets()[0]
+			var pd0 packets.PacketData
+			suite.Require().NoError(packets.UnmarshalJSONPacketData(p0.GetData(), &pd0))
+			var payload0 packets.PacketDataPayload
+			utils.MustUnmarshalJSONAny(suite.chainB.App.AppCodec(), &payload0, pd0.GetPayload())
+			callData := payload0.(*types.PacketDataCall)
 
-	isCommittable, err := suite.chainA.App.CrossKeeper.SimpleKeeper().ReceiveCallAcknowledgement(
-		suite.chainA.GetContext(),
-		channelA.PortID, channelA.ID,
-		*ack, txID,
-	)
-	suite.Require().NoError(err)
-	suite.Require().True(isCommittable)
+			kB := suite.chainB.App.CrossKeeper.SimpleKeeper()
+			ack, err := kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
+			suite.Require().NoError(err)
+			suite.Equal(c.participantCommitStatus, ack.Status)
+			ctxs, found := suite.chainB.App.CrossKeeper.SimpleKeeper().GetContractTransactionState(suite.chainB.GetContext(), txID, keeper.TxIndexParticipant)
+			suite.Require().True(found)
+			suite.Require().Equal(c.participantContractTransactionStatus, ctxs.Status)
+			suite.Require().Equal(c.participantPrepareResult, ctxs.PrepareResult)
+
+			// check if ReceiveCallAcknowledgement is successful
+
+			isCommittable, err := suite.chainA.App.CrossKeeper.SimpleKeeper().ReceiveCallAcknowledgement(
+				suite.chainA.GetContext(),
+				channelA.PortID, channelA.ID,
+				*ack, txID,
+			)
+			suite.Require().NoError(err)
+			suite.Require().Equal(c.initiatorCommittable, isCommittable)
+
+			// TODO try to commit
+		})
+	}
+
 }
 
 type capturePacketSender struct {
