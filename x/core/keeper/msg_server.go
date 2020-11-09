@@ -32,7 +32,7 @@ func (k Keeper) Initiate(goCtx context.Context, msg *types.MsgInitiate) (*types.
 	txID := types.MakeTxID(msg)
 	switch msg.CommitProtocol {
 	case types.CommitProtocolSimple:
-		err := k.SimpleKeeper().SendCall(ctx, ps, txID, msg.ContractTransactions)
+		err := k.SimpleKeeper().SendCall(ctx, ps, txID, msg.ContractTransactions, msg.TimeoutHeight, msg.TimeoutTimestamp)
 		if err != nil {
 			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 		}

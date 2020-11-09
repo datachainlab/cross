@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/stretchr/testify/suite"
 
@@ -147,6 +148,8 @@ func (suite *KeeperTestSuite) TestCall() {
 				ps,
 				txID,
 				txs,
+				clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
+				0,
 			)
 
 			// If the transaction initiator fails, this process is terminated at this point.
