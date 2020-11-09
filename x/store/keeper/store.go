@@ -107,12 +107,11 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 	case crosstypes.AtomicMode:
 		opmgr := types.OPManagerFromContext(ctx.Context())
 		v, ok := opmgr.GetUpdatedValue(key)
-		opmgr.AddRead(key, v)
-		if ok {
-			return v
-		} else {
-			return s.stateStore.Get(ctx, key)
+		if !ok {
+			v = s.stateStore.Get(ctx, key)
 		}
+		opmgr.AddRead(key, v)
+		return v
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}
@@ -127,13 +126,18 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 		return s.stateStore.Has(ctx, key)
 	case crosstypes.AtomicMode:
 		opmgr := types.OPManagerFromContext(ctx.Context())
+		found := false
 		v, ok := opmgr.GetUpdatedValue(key)
-		opmgr.AddRead(key, v)
-		if ok {
-			return true
+		if !ok {
+			v = s.stateStore.Get(ctx, key)
+			if v != nil {
+				found = true
+			}
 		} else {
-			return s.stateStore.Has(ctx, key)
+			found = true
 		}
+		opmgr.AddRead(key, v)
+		return found
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}

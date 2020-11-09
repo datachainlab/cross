@@ -4,8 +4,12 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
+	"github.com/datachainlab/cross/x/store/types"
 	"github.com/stretchr/testify/require"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -65,6 +69,112 @@ func TestStore(t *testing.T) {
 	s1.Delete(ctx, key1)
 	require.Nil(s1.Get(ctx, key1))
 	require.Nil(s.Get(ctx, []byte("/1/key1")))
+}
+
+func TestCommitStore(t *testing.T) {
+	require := require.New(t)
+
+	registry := codectypes.NewInterfaceRegistry()
+	cryptocodec.RegisterInterfaces(registry)
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
+
+	var unpackOPItem = func(anyOPItem codectypes.Any) types.OP {
+		opItem, err := types.UnpackOPItem(cdc, anyOPItem)
+		if err != nil {
+			panic(err)
+		}
+		return opItem
+	}
+
+	stk := sdk.NewKVStoreKey("main")
+	k0, v0 := []byte("k0"), []byte("v0")
+	k1, v1 := []byte("k1"), []byte("v1")
+	cms := makeCMStore(t, stk)
+	{
+		opmgr, err := types.GetOPManager(crosstypes.ExactMatchStateConstraint)
+		require.NoError(err)
+		ctx := makeAtomicModeContext(cms, opmgr)
+		id0 := []byte("id0")
+		st := NewStore(cdc, stk)
+		st.Set(ctx, k0, v0)
+		require.NoError(st.Precommit(ctx, id0))
+		require.Equal(1, len(opmgr.OPs().Items))
+		require.Equal(&types.WriteOP{K: k0, V: v0}, unpackOPItem(opmgr.OPs().Items[0]))
+		require.Equal(1, len(opmgr.LockOPs()))
+		require.Equal(&types.WriteOP{K: k0, V: v0}, opmgr.LockOPs()[0])
+		cms.Commit()
+
+		// check if concurrent access is failed
+		require.Panics(func() {
+			ctx, _ := makeContext(cms).CacheContext()
+			_ = st.Get(ctx, k0)
+		})
+
+		require.NoError(st.Commit(ctx, id0))
+		cms.Commit()
+
+		require.NotPanics(func() {
+			ctx, _ := makeContext(cms).CacheContext()
+			_ = st.Get(ctx, k0)
+		})
+	}
+	{
+		ctx, _ := makeContext(cms).CacheContext()
+		st := NewStore(cdc, stk)
+		require.Equal(v0, st.Get(ctx, k0))
+	}
+	{
+		opmgr, err := types.GetOPManager(crosstypes.ExactMatchStateConstraint)
+		require.NoError(err)
+		ctx := makeAtomicModeContext(cms, opmgr)
+		id1 := []byte("id1")
+		st := NewStore(cdc, stk)
+		require.Equal(v0, st.Get(ctx, k0))
+		st.Set(ctx, k1, v1)
+		require.NoError(st.Precommit(ctx, id1))
+		require.Equal(2, len(opmgr.OPs().Items))
+		require.Equal(&types.ReadOP{K: k0, V: v0}, unpackOPItem(opmgr.OPs().Items[0]))
+		require.Equal(&types.WriteOP{K: k1, V: v1}, unpackOPItem(opmgr.OPs().Items[1]))
+		require.Equal(1, len(opmgr.LockOPs()))
+		require.Equal(&types.WriteOP{K: k1, V: v1}, opmgr.LockOPs()[0])
+		cms.Commit()
+
+		// check if concurrent access is failed
+		require.Panics(func() {
+			ctx, _ := makeContext(cms).CacheContext()
+			_ = st.Get(ctx, k1)
+		})
+
+		// check if concurrent read access is success
+		require.NotPanics(func() {
+			ctx, _ := makeContext(cms).CacheContext()
+			_ = st.Get(ctx, k0)
+		})
+		require.NoError(st.Commit(ctx, id1))
+		cms.Commit()
+
+		require.NotPanics(func() {
+			ctx, _ := makeContext(cms).CacheContext()
+			_ = st.Get(ctx, k1)
+			_ = st.Get(ctx, k0)
+		})
+	}
+}
+
+func makeContext(cms sdk.CommitMultiStore) sdk.Context {
+	return sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())
+}
+
+func makeAtomicModeContext(cms sdk.CommitMultiStore, opmgr types.OPManager) sdk.Context {
+	ctx := sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())
+	ctx = ctx.WithContext(types.ContextWithOPManager(ctx.Context(), opmgr))
+	return ctx.WithContext(
+		crosstypes.ContextWithContractRuntimeInfo(
+			ctx.Context(),
+			crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.AtomicMode},
+		),
+	)
 }
 
 func makeCMStore(t *testing.T, key sdk.StoreKey) sdk.CommitMultiStore {

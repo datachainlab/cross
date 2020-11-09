@@ -17,7 +17,7 @@ type SetUpContractHandleDecorator struct{}
 var _ crosstypes.ContractHandleDecorator = (*SetUpContractHandleDecorator)(nil)
 
 func (cd SetUpContractHandleDecorator) Handle(ctx context.Context, callInfo crosstypes.ContractCallInfo) (newCtx context.Context, err error) {
-	opmgr, err := getOPManager(crosstypes.ContractRuntimeFromContext(ctx).StateConstraintType)
+	opmgr, err := GetOPManager(crosstypes.ContractRuntimeFromContext(ctx).StateConstraintType)
 	if err != nil {
 		return nil, err
 	}

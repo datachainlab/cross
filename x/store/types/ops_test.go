@@ -183,7 +183,7 @@ func TestOPManager(t *testing.T) {
 	for i, cs := range cases {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			assert := assert.New(t)
-			m, err := getOPManager(cs.constraintType)
+			m, err := GetOPManager(cs.constraintType)
 			if err != nil {
 				assert.FailNow(err.Error())
 			}

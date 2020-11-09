@@ -59,3 +59,11 @@ func ConvertOPItemsToOPs(items []OP) (*crosstypes.OPs, error) {
 	}
 	return &ops, nil
 }
+
+func UnpackOPItem(m codec.Marshaler, anyOPItem codectypes.Any) (OP, error) {
+	var opItem OP
+	if err := m.UnpackAny(&anyOPItem, &opItem); err != nil {
+		return nil, err
+	}
+	return opItem, nil
+}
