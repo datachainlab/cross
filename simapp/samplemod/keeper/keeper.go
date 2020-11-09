@@ -35,7 +35,7 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.Co
 	case "nop":
 		return &crosstypes.ContractCallResult{}, nil, nil
 	case "counter":
-		return k.handleCounter(ctx, req)
+		return k.HandleCounter(ctx, req)
 	case "fail":
 		return nil, nil, errors.New("failed to process a contract request")
 	default:
@@ -45,7 +45,7 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.Co
 
 var counterKey = []byte("counter")
 
-func (k Keeper) handleCounter(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
+func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
 	var count uint64
 	v := k.xstore.Get(ctx, counterKey)
 	if v == nil {

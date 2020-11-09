@@ -148,6 +148,8 @@ func (suite *KeeperTestSuite) TestCall() {
 				txID,
 				txs,
 			)
+
+			// If the transaction initiator fails, this process is terminated at this point.
 			if c.hasErrorSendCall {
 				suite.Require().Error(err)
 
@@ -155,10 +157,20 @@ func (suite *KeeperTestSuite) TestCall() {
 				suite.Require().False(found)
 				suite.Require().Equal(0, len(ps.Packets()))
 				return
+			} else {
+				suite.Require().NoError(err)
 			}
 
-			suite.Require().NoError(err)
 			suite.chainA.NextBlock()
+
+			// check if concurrent access is failed
+			suite.Require().Panics(func() {
+				ctx, _ := suite.chainA.GetContext().CacheContext()
+				_, _, err = suite.chainA.App.SamplemodKeeper.HandleCounter(
+					ctx,
+					samplemodtypes.NewContractCallRequest("counter"),
+				)
+			})
 
 			// check if coordinator state is expected
 
@@ -181,10 +193,21 @@ func (suite *KeeperTestSuite) TestCall() {
 			res, ack, err := kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
 			suite.Require().NoError(err)
 			suite.Require().Equal(c.participantCommitStatus, ack.Status)
+
+			// If participant call is success, returns the result data of contract.
 			if ack.Status == types.COMMIT_STATUS_OK {
 				suite.Require().NotNil(res)
 				suite.Require().Equal(res.Data, c.expectedResult[1])
+				// check if concurrent access is success
+				suite.Require().NotPanics(func() {
+					ctx, _ := suite.chainB.GetContext().CacheContext()
+					_, _, err = suite.chainB.App.SamplemodKeeper.HandleCounter(
+						ctx,
+						samplemodtypes.NewContractCallRequest("counter"),
+					)
+				})
 			}
+			suite.chainB.NextBlock()
 			ctxs, found := kB.GetContractTransactionState(suite.chainB.GetContext(), txID, keeper.TxIndexParticipant)
 			suite.Require().True(found)
 			suite.Require().Equal(c.participantContractTransactionStatus, ctxs.Status)
@@ -210,6 +233,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			} else {
 				suite.Require().Nil(res)
 			}
+			suite.chainA.NextBlock()
 		})
 	}
 
