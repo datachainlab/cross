@@ -141,17 +141,17 @@ func (k Keeper) CommitImmediately(
 	txIndex crosstypes.TxIndex,
 	tx crosstypes.ContractTransaction,
 	links []crosstypes.Object,
-) error {
+) (*crosstypes.ContractCallResult, error) {
 	ctx, err := k.setupContext(ctx, tx, links, crosstypes.BasicMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = k.processTransaction(ctx, tx)
+	res, err := k.processTransaction(ctx, tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	k.commitStore.CommitImmediately(ctx)
-	return nil
+	return res, nil
 }
 
 // Commit commits the transaction

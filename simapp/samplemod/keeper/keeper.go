@@ -53,6 +53,7 @@ func (k Keeper) handleCounter(ctx sdk.Context, req types.ContractCallRequest) (*
 	} else {
 		count = sdk.BigEndianToUint64(v)
 	}
-	k.xstore.Set(ctx, counterKey, sdk.Uint64ToBigEndian(count+1))
-	return &crosstypes.ContractCallResult{}, nil, nil
+	bz := sdk.Uint64ToBigEndian(count + 1)
+	k.xstore.Set(ctx, counterKey, bz)
+	return &crosstypes.ContractCallResult{Data: bz}, nil, nil
 }

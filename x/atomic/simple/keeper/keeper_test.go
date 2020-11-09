@@ -57,6 +57,7 @@ func (suite *KeeperTestSuite) TestCall() {
 		participantContractTransactionStatus atomictypes.ContractTransactionStatus
 		participantPrepareResult             atomictypes.PrepareResult
 		initiatorCommittable                 bool
+		expectedResult                       [2][]byte
 	}{
 		{
 			[2]crosstypes.ContractCallInfo{
@@ -68,6 +69,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
 			atomictypes.PREPARE_RESULT_OK,
 			true,
+			[2][]byte{sdk.Uint64ToBigEndian(1), sdk.Uint64ToBigEndian(1)},
 		},
 		{
 			[2]crosstypes.ContractCallInfo{
@@ -79,6 +81,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT,
 			atomictypes.PREPARE_RESULT_FAILED,
 			false,
+			[2][]byte{nil, nil},
 		},
 		{
 			[2]crosstypes.ContractCallInfo{
@@ -87,7 +90,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			},
 			true,
 			// the following parameters are ignored
-			0, 0, 0, false,
+			0, 0, 0, false, [2][]byte{nil, nil},
 		},
 		{
 			[2]crosstypes.ContractCallInfo{
@@ -96,13 +99,26 @@ func (suite *KeeperTestSuite) TestCall() {
 			},
 			true,
 			// the following parameters are ignored
-			0, 0, 0, false,
+			0, 0, 0, false, [2][]byte{nil, nil},
+		},
+		{
+			[2]crosstypes.ContractCallInfo{
+				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+			},
+			false,
+			types.COMMIT_STATUS_OK,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+			atomictypes.PREPARE_RESULT_OK,
+			true,
+			[2][]byte{sdk.Uint64ToBigEndian(2), sdk.Uint64ToBigEndian(2)},
 		},
 	}
 
 	for i, c := range cases {
 		suite.Run(fmt.Sprint(i), func() {
-			// check if SendCall is successful
+			// check if SendCall call is expected
+
 			txID := []byte(fmt.Sprintf("txid-%v", i))
 			chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 			selfCh := crosstypes.ChannelInfo{}
@@ -151,7 +167,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
 			suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
 
-			// check if ReceiveCallPacket is successful
+			// check if ReceiveCallPacket call is expected
 
 			suite.Require().Equal(1, len(ps.Packets()))
 			p0 := ps.Packets()[0]
@@ -162,15 +178,19 @@ func (suite *KeeperTestSuite) TestCall() {
 			callData := payload0.(*types.PacketDataCall)
 
 			kB := suite.chainB.App.CrossKeeper.SimpleKeeper()
-			ack, err := kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
+			res, ack, err := kB.ReceiveCallPacket(suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *callData)
 			suite.Require().NoError(err)
-			suite.Equal(c.participantCommitStatus, ack.Status)
+			suite.Require().Equal(c.participantCommitStatus, ack.Status)
+			if ack.Status == types.COMMIT_STATUS_OK {
+				suite.Require().NotNil(res)
+				suite.Require().Equal(res.Data, c.expectedResult[1])
+			}
 			ctxs, found := kB.GetContractTransactionState(suite.chainB.GetContext(), txID, keeper.TxIndexParticipant)
 			suite.Require().True(found)
 			suite.Require().Equal(c.participantContractTransactionStatus, ctxs.Status)
 			suite.Require().Equal(c.participantPrepareResult, ctxs.PrepareResult)
 
-			// check if ReceiveCallAcknowledgement is successful
+			// check if ReceiveCallAcknowledgement call is expected
 
 			isCommittable, err := kA.ReceiveCallAcknowledgement(
 				suite.chainA.GetContext(),
@@ -180,12 +200,13 @@ func (suite *KeeperTestSuite) TestCall() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(c.initiatorCommittable, isCommittable)
 
-			// check if TryCommit is successful
+			// check if TryCommit call is expected
 
-			res, err := kA.TryCommit(suite.chainA.GetContext(), txID, isCommittable)
+			res, err = kA.TryCommit(suite.chainA.GetContext(), txID, isCommittable)
 			suite.Require().NoError(err)
 			if c.initiatorCommittable {
 				suite.Require().NotNil(res)
+				suite.Require().Equal(c.expectedResult[0], res.Data)
 			} else {
 				suite.Require().Nil(res)
 			}

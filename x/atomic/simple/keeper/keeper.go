@@ -141,23 +141,23 @@ func (k Keeper) ReceiveCallPacket(
 	destPort,
 	destChannel string,
 	data types.PacketDataCall,
-) (*types.PacketCallAcknowledgement, error) {
+) (*crosstypes.ContractCallResult, *types.PacketCallAcknowledgement, error) {
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, found := k.ChannelKeeper().GetChannel(ctx, destPort, destChannel)
 	if !found {
-		return nil, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
+		return nil, nil, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
 	}
 
 	if _, ok := k.GetContractTransactionState(ctx, data.TxId, TxIndexParticipant); ok {
-		return nil, fmt.Errorf("txID '%x' already exists", data.TxId)
+		return nil, nil, fmt.Errorf("txID '%x' already exists", data.TxId)
 	}
 
 	if !k.ChannelResolver().Capabilities().CrossChainCalls() && len(data.TxInfo.Tx.Links) > 0 {
-		return nil, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
+		return nil, nil, errors.New("this channelResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
 	var (
@@ -165,7 +165,8 @@ func (k Keeper) ReceiveCallPacket(
 		commitStatus  types.CommitStatus
 		ctxStatus     commontypes.ContractTransactionStatus
 	)
-	if err := k.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.TxInfo.Tx, data.TxInfo.UnpackObjects(k.cdc)); err != nil {
+	res, err := k.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.TxInfo.Tx, data.TxInfo.UnpackObjects(k.cdc))
+	if err != nil {
 		prepareStatus = commontypes.PREPARE_RESULT_FAILED
 		commitStatus = types.COMMIT_STATUS_FAILED
 		ctxStatus = commontypes.CONTRACT_TRANSACTION_STATUS_ABORT
@@ -182,7 +183,7 @@ func (k Keeper) ReceiveCallPacket(
 		crosstypes.ChannelInfo{Port: destPort, Channel: destChannel},
 	)
 	k.SetContractTransactionState(ctx, data.TxId, TxIndexParticipant, txinfo)
-	return types.NewPacketCallAcknowledgement(commitStatus), nil
+	return res, types.NewPacketCallAcknowledgement(commitStatus), nil
 }
 
 // ReceiveCallAcknowledgement receives PacketCallAcknowledgement to updates CoordinatorState
