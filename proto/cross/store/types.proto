@@ -1,7 +1,7 @@
 syntax = "proto3";
 package cross.store;
 
-option go_package = "github.com/datachainlab/cross/x/store";
+option go_package = "github.com/datachainlab/cross/x/store/types";
 
 message ReadOP {
   bytes k = 1;

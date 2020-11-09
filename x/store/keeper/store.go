@@ -1,4 +1,4 @@
-package store
+package keeper
 
 import (
 	"fmt"
@@ -6,22 +6,23 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/datachainlab/cross/x/core/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
+	"github.com/datachainlab/cross/x/store/types"
 	"github.com/gogo/protobuf/proto"
 )
 
-var _ types.Store = (*kvStore)(nil)
+var _ crosstypes.Store = (*kvStore)(nil)
 
 type kvStore struct {
 	storeKey sdk.StoreKey
 	prefix   []byte
 }
 
-func newKVStore(storeKey sdk.StoreKey) types.Store {
+func newKVStore(storeKey sdk.StoreKey) crosstypes.Store {
 	return &kvStore{storeKey: storeKey}
 }
 
-func (s kvStore) Prefix(prefix []byte) types.Store {
+func (s kvStore) Prefix(prefix []byte) crosstypes.Store {
 	p := make([]byte, len(s.prefix)+len(prefix))
 	copy(p[0:len(s.prefix)], s.prefix)
 	copy(p[len(s.prefix):], prefix)
@@ -52,13 +53,13 @@ func (s kvStore) Delete(ctx sdk.Context, key []byte) {
 type Store struct {
 	storeKey   sdk.StoreKey
 	m          codec.Marshaler
-	stateStore types.Store
+	stateStore crosstypes.Store
 	lockStore  LockStore
-	txStore    types.Store
+	txStore    crosstypes.Store
 }
 
-var _ types.Store = (*Store)(nil)
-var _ types.CommitStore = (*Store)(nil)
+var _ crosstypes.Store = (*Store)(nil)
+var _ crosstypes.CommitStore = (*Store)(nil)
 
 func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
 	return Store{
@@ -70,7 +71,7 @@ func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
 	}
 }
 
-func (s Store) Prefix(prefix []byte) types.Store {
+func (s Store) Prefix(prefix []byte) crosstypes.Store {
 	s.stateStore = s.stateStore.Prefix(prefix)
 	s.lockStore = s.lockStore.Prefix(prefix)
 	return s
@@ -84,15 +85,15 @@ func (s Store) Set(ctx sdk.Context, key, value []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.UnspecifiedMode, types.BasicMode:
+	switch crosstypes.CommitModeFromContext(ctx.Context()) {
+	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
 		s.stateStore.Set(ctx, key, value)
 		return
-	case types.AtomicMode:
-		opManagerFromContext(ctx.Context()).AddWrite(key, value)
+	case crosstypes.AtomicMode:
+		types.OPManagerFromContext(ctx.Context()).AddWrite(key, value)
 		return
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -100,11 +101,11 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.UnspecifiedMode, types.BasicMode:
+	switch crosstypes.CommitModeFromContext(ctx.Context()) {
+	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
 		return s.stateStore.Get(ctx, key)
-	case types.AtomicMode:
-		opmgr := opManagerFromContext(ctx.Context())
+	case crosstypes.AtomicMode:
+		opmgr := types.OPManagerFromContext(ctx.Context())
 		v, ok := opmgr.GetUpdatedValue(key)
 		opmgr.AddRead(key, v)
 		if ok {
@@ -113,7 +114,7 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 			return s.stateStore.Get(ctx, key)
 		}
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -121,11 +122,11 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.UnspecifiedMode, types.BasicMode:
+	switch crosstypes.CommitModeFromContext(ctx.Context()) {
+	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
 		return s.stateStore.Has(ctx, key)
-	case types.AtomicMode:
-		opmgr := opManagerFromContext(ctx.Context())
+	case crosstypes.AtomicMode:
+		opmgr := types.OPManagerFromContext(ctx.Context())
 		v, ok := opmgr.GetUpdatedValue(key)
 		opmgr.AddRead(key, v)
 		if ok {
@@ -134,7 +135,7 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 			return s.stateStore.Has(ctx, key)
 		}
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -142,14 +143,14 @@ func (s Store) Delete(ctx sdk.Context, key []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch types.CommitModeFromContext(ctx.Context()) {
-	case types.UnspecifiedMode, types.BasicMode:
+	switch crosstypes.CommitModeFromContext(ctx.Context()) {
+	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
 		s.stateStore.Delete(ctx, key)
 		return
-	case types.AtomicMode:
-		opManagerFromContext(ctx.Context()).AddWrite(key, nil)
+	case crosstypes.AtomicMode:
+		types.OPManagerFromContext(ctx.Context()).AddWrite(key, nil)
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", types.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -157,8 +158,8 @@ func (s Store) Precommit(ctx sdk.Context, id []byte) error {
 	if s.txStore.Has(ctx, id) {
 		return fmt.Errorf("id '%x' already exists", id)
 	}
-	lks := opManagerFromContext(ctx.Context()).LockOPs()
-	ops, err := convertLockOPsToOPs(lks)
+	lks := types.OPManagerFromContext(ctx.Context()).LockOPs()
+	ops, err := types.ConvertLockOPsToOPs(lks)
 	if err != nil {
 		return err
 	}
@@ -178,11 +179,11 @@ func (s Store) Abort(ctx sdk.Context, id []byte) error {
 	if bz == nil {
 		return fmt.Errorf("id '%x' not found", id)
 	}
-	var ops types.OPs
+	var ops crosstypes.OPs
 	if err := proto.Unmarshal(bz, &ops); err != nil {
 		return err
 	}
-	lks, err := convertOPsToLockOPs(s.m, ops)
+	lks, err := types.ConvertOPsToLockOPs(s.m, ops)
 	if err != nil {
 		return err
 	}
@@ -195,11 +196,11 @@ func (s Store) Commit(ctx sdk.Context, id []byte) error {
 	if bz == nil {
 		return fmt.Errorf("id '%x' not found", id)
 	}
-	var ops types.OPs
+	var ops crosstypes.OPs
 	if err := proto.Unmarshal(bz, &ops); err != nil {
 		return err
 	}
-	lks, err := convertOPsToLockOPs(s.m, ops)
+	lks, err := types.ConvertOPsToLockOPs(s.m, ops)
 	if err != nil {
 		return err
 	}
@@ -209,17 +210,17 @@ func (s Store) Commit(ctx sdk.Context, id []byte) error {
 }
 
 func (s Store) CommitImmediately(ctx sdk.Context) {
-	lks := opManagerFromContext(ctx.Context()).LockOPs()
+	lks := types.OPManagerFromContext(ctx.Context()).LockOPs()
 	s.apply(ctx, lks)
 }
 
-func (s Store) apply(ctx sdk.Context, ops []LockOP) {
+func (s Store) apply(ctx sdk.Context, ops []types.LockOP) {
 	for _, op := range ops {
 		op.ApplyTo(s.stateStore.KVStore(ctx))
 	}
 }
 
-func (s Store) clean(ctx sdk.Context, id []byte, ops []LockOP) {
+func (s Store) clean(ctx sdk.Context, id []byte, ops []types.LockOP) {
 	if !s.txStore.Has(ctx, id) {
 		panic(fmt.Errorf("id '%x' not found", id))
 	}

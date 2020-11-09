@@ -1,11 +1,9 @@
-package store
+package types
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/core/types"
 )
@@ -172,7 +170,7 @@ func (m *readWriteOPManager) AddRead(k, v []byte) {
 }
 
 func (m readWriteOPManager) OPs() types.OPs {
-	ops, err := convertOPItemsToOPs(m.ops)
+	ops, err := ConvertOPItemsToOPs(m.ops)
 	if err != nil {
 		panic(err)
 	}
@@ -204,7 +202,7 @@ func (m readOPManager) OPs() types.OPs {
 			continue
 		}
 	}
-	ops, err := convertOPItemsToOPs(items)
+	ops, err := ConvertOPItemsToOPs(items)
 	if err != nil {
 		panic(err)
 	}
@@ -234,7 +232,7 @@ func (m writeOPManager) OPs() types.OPs {
 			continue
 		}
 	}
-	ops, err := convertOPItemsToOPs(items)
+	ops, err := ConvertOPItemsToOPs(items)
 	if err != nil {
 		panic(err)
 	}
@@ -257,40 +255,4 @@ func (m *noOPManager) AddRead(k, v []byte) {}
 
 func (m noOPManager) OPs() types.OPs {
 	return types.OPs{}
-}
-
-func convertOPsToLockOPs(m codec.Marshaler, ops types.OPs) ([]LockOP, error) {
-	var lks []LockOP
-	for _, op := range ops.Items {
-		var lk LockOP
-		if err := m.UnpackAny(&op, &lk); err != nil {
-			return nil, err
-		}
-		lks = append(lks, lk)
-	}
-	return lks, nil
-}
-
-func convertLockOPsToOPs(lks []LockOP) (*types.OPs, error) {
-	var ops types.OPs
-	for _, lk := range lks {
-		var any codectypes.Any
-		if err := any.Pack(lk); err != nil {
-			return nil, err
-		}
-		ops.Items = append(ops.Items, any)
-	}
-	return &ops, nil
-}
-
-func convertOPItemsToOPs(items []OP) (*types.OPs, error) {
-	var ops types.OPs
-	for _, it := range items {
-		var any codectypes.Any
-		if err := any.Pack(it); err != nil {
-			return nil, err
-		}
-		ops.Items = append(ops.Items, any)
-	}
-	return &ops, nil
 }

@@ -1,4 +1,4 @@
-package store
+package types
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ func TestOPManager(t *testing.T) {
 		return &WriteOP{nil, nil}
 	}
 	var OPs = func(items ...OP) crosstypes.OPs {
-		ops, err := convertOPItemsToOPs(items)
+		ops, err := ConvertOPItemsToOPs(items)
 		if err != nil {
 			panic(err)
 		}

@@ -96,6 +96,8 @@ import (
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 	crossstore "github.com/datachainlab/cross/x/store"
+	crossstorekeeper "github.com/datachainlab/cross/x/store/keeper"
+	crossstoretypes "github.com/datachainlab/cross/x/store/types"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
@@ -130,6 +132,7 @@ var (
 		transfer.AppModuleBasic{},
 		cross.AppModuleBasic{},
 		crossatomic.AppModuleBasic{},
+		crossstore.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		samplemod.AppModuleBasic{},
 	)
@@ -320,7 +323,7 @@ func NewSimApp(
 	)
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
 
-	xstore := crossstore.NewStore(appCodec, keys[crosstypes.StoreKey])
+	xstore := crossstorekeeper.NewStore(appCodec, keys[crosstypes.StoreKey])
 
 	app.SamplemodKeeper = samplemodkeeper.NewKeeper(appCodec, keys[samplemodtypes.StoreKey], xstore)
 	samplemodModule := samplemod.NewAppModule(app.SamplemodKeeper)
@@ -330,7 +333,7 @@ func NewSimApp(
 		appCodec, keys[crosstypes.StoreKey],
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper, packets.NewNOPPacketMiddleware(),
-		samplemodModule, crossstore.DefaultContractHandleDecorators(), crosstypes.ChannelInfoResolver{}, xstore,
+		samplemodModule, crossstoretypes.DefaultContractHandleDecorators(), crosstypes.ChannelInfoResolver{}, xstore,
 	)
 	crossModule := cross.NewAppModule(app.CrossKeeper)
 
