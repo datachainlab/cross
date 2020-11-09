@@ -16,13 +16,18 @@ var _ sdk.Msg = (*MsgInitiate)(nil)
 
 // NewMsgInitiate creates a new MsgInitiate instance
 func NewMsgInitiate(
-	sender AccountAddress, receiver string,
+	sender AccountAddress, chainID string, nonce uint64,
+	commitProtocol uint32, ctxs []ContractTransaction,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgInitiate {
 	return &MsgInitiate{
-		Sender:           sender,
-		TimeoutHeight:    timeoutHeight,
-		TimeoutTimestamp: timeoutTimestamp,
+		Sender:               sender,
+		ChainId:              chainID,
+		Nonce:                nonce,
+		CommitProtocol:       commitProtocol,
+		ContractTransactions: ctxs,
+		TimeoutHeight:        timeoutHeight,
+		TimeoutTimestamp:     timeoutTimestamp,
 	}
 }
 

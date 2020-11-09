@@ -53,6 +53,10 @@ func (k Keeper) SendCall(
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
+	if len(transactions) != 2 {
+		return errors.New("the number of contract transactions must be 2")
+	}
+
 	tx0 := transactions[TxIndexCoordinator]
 	tx1 := transactions[TxIndexParticipant]
 
