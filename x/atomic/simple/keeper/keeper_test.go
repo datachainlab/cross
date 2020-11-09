@@ -60,8 +60,8 @@ func (suite *KeeperTestSuite) TestCall() {
 	}{
 		{
 			[2]crosstypes.ContractCallInfo{
-				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
-				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},
 			false,
 			types.COMMIT_STATUS_OK,
@@ -71,7 +71,7 @@ func (suite *KeeperTestSuite) TestCall() {
 		},
 		{
 			[2]crosstypes.ContractCallInfo{
-				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},
 			false,
@@ -83,7 +83,7 @@ func (suite *KeeperTestSuite) TestCall() {
 		{
 			[2]crosstypes.ContractCallInfo{
 				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
-				samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
+				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},
 			true,
 			// the following parameters are ignored
