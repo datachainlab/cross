@@ -83,7 +83,7 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	p, err := getPacketFromResult(res)
 	suite.Require().NoError(err)
 
-	_, err = recvPacket(
+	res, err = recvPacket(
 		suite.coordinator, suite.chainA, suite.chainB, clientA, *p,
 	)
 	suite.Require().NoError(err)

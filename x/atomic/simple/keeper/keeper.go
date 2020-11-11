@@ -203,7 +203,7 @@ func (k Keeper) ReceiveCallAcknowledgement(
 ) (isCommittable bool, err error) {
 	cs, found := k.GetCoordinatorState(ctx, txID)
 	if !found {
-		return false, fmt.Errorf("coordinator '%x' not found", txID)
+		return false, fmt.Errorf("txID '%x' not found", txID)
 	} else if cs.Phase != commontypes.COORDINATOR_PHASE_PREPARE {
 		return false, fmt.Errorf("coordinator status must be '%v'", commontypes.COORDINATOR_PHASE_PREPARE.String())
 	} else if cs.IsCompleted() {

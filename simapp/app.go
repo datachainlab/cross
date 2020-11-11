@@ -335,7 +335,7 @@ func NewSimApp(
 		scopedCrossKeeper, packets.NewNOPPacketMiddleware(),
 		samplemodModule, crossstoretypes.DefaultContractHandleDecorators(), crosstypes.ChannelInfoResolver{}, xstore,
 	)
-	crossModule := cross.NewAppModule(app.CrossKeeper)
+	crossModule := cross.NewAppModule(appCodec, app.CrossKeeper)
 
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.

@@ -13,6 +13,10 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*packets.PacketDataPayload)(nil),
 		&PacketDataCall{},
 	)
+	registry.RegisterImplementations(
+		(*packets.PacketDataPayload)(nil),
+		&PacketCallAcknowledgement{},
+	)
 }
 
 var (
