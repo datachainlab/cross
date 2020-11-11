@@ -1,14 +1,20 @@
 package core_test
 
 import (
+	"errors"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/stretchr/testify/suite"
 
+	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	"github.com/datachainlab/cross/x/core/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
@@ -39,23 +45,165 @@ func (suite *CrossTestSuite) SetupTest() {
 func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	// setup
 
-	_, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
+	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
 	suite.chainB.CreatePortCapability(crosstypes.PortID)
 	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
-	_ = channelA
+
+	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
+	selfCh := crosstypes.ChannelInfo{}
+	cidB, err := crosstypes.PackChainID(&chAB)
+	suite.Require().NoError(err)
+	selfCid, err := crosstypes.PackChainID(&selfCh)
 
 	msg := crosstypes.NewMsgInitiate(
 		suite.chainA.SenderAccount.GetAddress().Bytes(),
 		suite.chainA.ChainID,
 		0,
 		types.CommitProtocolSimple,
-		[]types.ContractTransaction{},
+		[]types.ContractTransaction{
+			{
+				ChainId:  *selfCid,
+				Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+			},
+			// FIXME use chainB.SenderAccount instead of chainA's
+			{
+				ChainId:  *cidB,
+				Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+			},
+		},
 		clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
 		0,
 	)
-
-	err := suite.coordinator.SendMsg(suite.chainA, suite.chainB, clientB, msg)
+	res, err := sendMsgs(suite.coordinator, suite.chainA, suite.chainB, clientB, msg)
 	suite.Require().NoError(err)
+	suite.chainA.NextBlock()
+
+	p, err := getPacketFromResult(res)
+	suite.Require().NoError(err)
+
+	_, err = recvPacket(
+		suite.coordinator, suite.chainA, suite.chainB, clientA, *p,
+	)
+	suite.Require().NoError(err)
+	suite.chainB.NextBlock()
+
+	ack, err := getACKFromResult(res)
+	suite.Require().NoError(err)
+
+	res, err = acknowledgePacket(
+		suite.coordinator,
+		suite.chainA,
+		suite.chainB,
+		clientB,
+		*p,
+		ack,
+	)
+	suite.Require().NoError(err)
+}
+
+func sendMsgs(coord *ibctesting.Coordinator, source, counterparty *ibctesting.TestChain, counterpartyClientID string, msgs ...sdk.Msg) (*sdk.Result, error) {
+	res, err := source.SendMsgs(msgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	coord.IncrementTime()
+	err = coord.UpdateClient(
+		counterparty, source,
+		counterpartyClientID, ibctesting.Tendermint,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func recvPacket(coord *ibctesting.Coordinator, source, counterparty *ibctesting.TestChain, sourceClient string, packet channeltypes.Packet) (*sdk.Result, error) {
+	// get proof of packet commitment on source
+	packetKey := host.KeyPacketCommitment(packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
+	proof, proofHeight := source.QueryProof(packetKey)
+
+	recvMsg := channeltypes.NewMsgRecvPacket(packet, proof, proofHeight, counterparty.SenderAccount.GetAddress())
+
+	// receive on counterparty and update source client
+	return sendMsgs(coord, counterparty, source, sourceClient, recvMsg)
+}
+
+func acknowledgePacket(coord *ibctesting.Coordinator,
+	source, counterparty *ibctesting.TestChain,
+	counterpartyClient string,
+	packet channeltypes.Packet, ack []byte,
+) (*sdk.Result, error) {
+	packetKey := host.KeyPacketAcknowledgement(packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
+	proof, proofHeight := counterparty.QueryProof(packetKey)
+
+	ackMsg := channeltypes.NewMsgAcknowledgement(packet, ack, proof, proofHeight, source.SenderAccount.GetAddress())
+	return sendMsgs(coord, source, counterparty, counterpartyClient, ackMsg)
+}
+
+func getPacketFromResult(res *sdk.Result) (*channeltypes.Packet, error) {
+	var packet channeltypes.Packet
+
+	events := sdk.StringifyEvents(res.GetEvents().ToABCIEvents())
+	for _, ev := range events {
+		if ev.Type == channeltypes.EventTypeSendPacket {
+			for _, attr := range ev.Attributes {
+				switch attr.Key {
+				case channeltypes.AttributeKeyData:
+					packet.Data = []byte(attr.Value)
+				case channeltypes.AttributeKeyTimeoutHeight:
+					parts := strings.Split(attr.Value, "-")
+					packet.TimeoutHeight = clienttypes.NewHeight(
+						strToUint64(parts[0]),
+						strToUint64(parts[1]),
+					)
+				case channeltypes.AttributeKeyTimeoutTimestamp:
+					packet.TimeoutTimestamp = strToUint64(attr.Value)
+				case channeltypes.AttributeKeySequence:
+					packet.Sequence = strToUint64(attr.Value)
+				case channeltypes.AttributeKeySrcPort:
+					packet.SourcePort = attr.Value
+				case channeltypes.AttributeKeySrcChannel:
+					packet.SourceChannel = attr.Value
+				case channeltypes.AttributeKeyDstPort:
+					packet.DestinationPort = attr.Value
+				case channeltypes.AttributeKeyDstChannel:
+					packet.DestinationChannel = attr.Value
+				}
+			}
+		}
+	}
+	if err := packet.ValidateBasic(); err != nil {
+		return nil, err
+	}
+	return &packet, nil
+}
+
+func getACKFromResult(res *sdk.Result) ([]byte, error) {
+	events := sdk.StringifyEvents(res.GetEvents().ToABCIEvents())
+	for _, ev := range events {
+		if ev.Type == channeltypes.EventTypeWriteAck {
+			for _, attr := range ev.Attributes {
+				switch attr.Key {
+				case channeltypes.AttributeKeyAck:
+					return []byte(attr.Value), nil
+				}
+			}
+		}
+	}
+
+	return nil, errors.New("ack not found")
+}
+
+func strToUint64(s string) uint64 {
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		panic(err)
+	}
+	return uint64(v)
 }
 
 func TestCrossTestSuite(t *testing.T) {
