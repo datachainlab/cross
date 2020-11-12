@@ -12,10 +12,10 @@ import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	"github.com/datachainlab/cross/x/core/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 )
@@ -55,21 +55,25 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	suite.Require().NoError(err)
 	selfCid, err := crosstypes.PackChainID(&selfCh)
 
-	msg := crosstypes.NewMsgInitiate(
+	msg := crosstypes.NewMsgInitiateTx(
 		suite.chainA.SenderAccount.GetAddress().Bytes(),
 		suite.chainA.ChainID,
 		0,
-		types.CommitProtocolSimple,
-		[]types.ContractTransaction{
+		crosstypes.CommitProtocolSimple,
+		[]crosstypes.ContractTransaction{
 			{
-				ChainId:  *selfCid,
-				Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+				ChainId: *selfCid,
+				Signers: []crosstypes.Account{
+					crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+				},
 				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 			},
 			// FIXME use chainB.SenderAccount instead of chainA's
 			{
-				ChainId:  *cidB,
-				Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+				ChainId: *cidB,
+				Signers: []crosstypes.Account{
+					crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+				},
 				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},
 		},
@@ -79,6 +83,12 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	res, err := sendMsgs(suite.coordinator, suite.chainA, suite.chainB, clientB, msg)
 	suite.Require().NoError(err)
 	suite.chainA.NextBlock()
+
+	var txMsgData sdk.TxMsgData
+	var initiateTxRes crosstypes.MsgInitiateTxResponse
+	suite.Require().NoError(proto.Unmarshal(res.Data, &txMsgData))
+	suite.Require().NoError(proto.Unmarshal(txMsgData.Data[0].Data, &initiateTxRes))
+	suite.Require().Equal(crosstypes.INITIATE_TX_STATUS_VERIFIED, initiateTxRes.Status)
 
 	p, err := getPacketFromResult(res)
 	suite.Require().NoError(err)

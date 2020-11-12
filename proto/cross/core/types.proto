@@ -8,11 +8,17 @@ import "tendermint/abci/types.proto";
 option go_package = "github.com/datachainlab/cross/x/core/types";
 option (gogoproto.goproto_getters_all) = false;
 
+message Account {
+  option (gogoproto.equal) = true;
+  google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = true];
+  bytes address                = 2 [(gogoproto.casttype) = "AccountAddress"];
+}
+
 message ContractTransaction {
   option (gogoproto.equal) = false;
 
   google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = false];
-  repeated bytes signers      = 2 [(gogoproto.casttype) = "AccountAddress"];
+  repeated Account signers     = 2 [(gogoproto.nullable) = false];
   bytes call_info = 3 [(gogoproto.casttype) = "ContractCallInfo"];
   StateConstraint state_constraint = 4 [(gogoproto.nullable) = false];
   ReturnValue return_value = 5;
@@ -60,6 +66,11 @@ message ConstantValueObject {
   google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = false];
   bytes k = 2;
   bytes v = 3;
+}
+
+message InitiateTxState {
+  option (gogoproto.equal) = false;
+  repeated Account remaining_signers = 1 [(gogoproto.nullable) = false];
 }
 
 message GenesisState {}

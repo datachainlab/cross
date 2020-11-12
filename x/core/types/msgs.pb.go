@@ -29,7 +29,35 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type MsgInitiate struct {
+type InitiateTxStatus int32
+
+const (
+	INITIATE_TX_STATUS_UNKNOWN  InitiateTxStatus = 0
+	INITIATE_TX_STATUS_PENDING  InitiateTxStatus = 1
+	INITIATE_TX_STATUS_VERIFIED InitiateTxStatus = 2
+)
+
+var InitiateTxStatus_name = map[int32]string{
+	0: "INITIATE_TX_STATUS_UNKNOWN",
+	1: "INITIATE_TX_STATUS_PENDING",
+	2: "INITIATE_TX_STATUS_VERIFIED",
+}
+
+var InitiateTxStatus_value = map[string]int32{
+	"INITIATE_TX_STATUS_UNKNOWN":  0,
+	"INITIATE_TX_STATUS_PENDING":  1,
+	"INITIATE_TX_STATUS_VERIFIED": 2,
+}
+
+func (x InitiateTxStatus) String() string {
+	return proto.EnumName(InitiateTxStatus_name, int32(x))
+}
+
+func (InitiateTxStatus) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_73f0ea9ff29132cf, []int{0}
+}
+
+type MsgInitiateTx struct {
 	Sender         AccountAddress `protobuf:"bytes,1,opt,name=sender,proto3,casttype=AccountAddress" json:"sender,omitempty"`
 	ChainId        string         `protobuf:"bytes,2,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
 	Nonce          uint64         `protobuf:"varint,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
@@ -41,20 +69,21 @@ type MsgInitiate struct {
 	// The timeout is disabled when set to 0.
 	TimeoutTimestamp     uint64                `protobuf:"varint,6,opt,name=timeout_timestamp,json=timeoutTimestamp,proto3" json:"timeout_timestamp,omitempty" yaml:"timeout_timestamp"`
 	ContractTransactions []ContractTransaction `protobuf:"bytes,7,rep,name=contract_transactions,json=contractTransactions,proto3" json:"contract_transactions"`
+	Signers              []AccountAddress      `protobuf:"bytes,8,rep,name=signers,proto3,casttype=AccountAddress" json:"signers,omitempty"`
 }
 
-func (m *MsgInitiate) Reset()         { *m = MsgInitiate{} }
-func (m *MsgInitiate) String() string { return proto.CompactTextString(m) }
-func (*MsgInitiate) ProtoMessage()    {}
-func (*MsgInitiate) Descriptor() ([]byte, []int) {
+func (m *MsgInitiateTx) Reset()         { *m = MsgInitiateTx{} }
+func (m *MsgInitiateTx) String() string { return proto.CompactTextString(m) }
+func (*MsgInitiateTx) ProtoMessage()    {}
+func (*MsgInitiateTx) Descriptor() ([]byte, []int) {
 	return fileDescriptor_73f0ea9ff29132cf, []int{0}
 }
-func (m *MsgInitiate) XXX_Unmarshal(b []byte) error {
+func (m *MsgInitiateTx) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *MsgInitiate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *MsgInitiateTx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_MsgInitiate.Marshal(b, m, deterministic)
+		return xxx_messageInfo_MsgInitiateTx.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -64,34 +93,35 @@ func (m *MsgInitiate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return b[:n], nil
 	}
 }
-func (m *MsgInitiate) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgInitiate.Merge(m, src)
+func (m *MsgInitiateTx) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgInitiateTx.Merge(m, src)
 }
-func (m *MsgInitiate) XXX_Size() int {
+func (m *MsgInitiateTx) XXX_Size() int {
 	return m.Size()
 }
-func (m *MsgInitiate) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgInitiate.DiscardUnknown(m)
+func (m *MsgInitiateTx) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgInitiateTx.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MsgInitiate proto.InternalMessageInfo
+var xxx_messageInfo_MsgInitiateTx proto.InternalMessageInfo
 
-// MsgInitiateResponse defines the Msg/Initiate response type.
-type MsgInitiateResponse struct {
+// MsgInitiateTxResponse defines the Msg/Initiate response type.
+type MsgInitiateTxResponse struct {
+	Status InitiateTxStatus `protobuf:"varint,1,opt,name=status,proto3,enum=cross.core.InitiateTxStatus" json:"status,omitempty"`
 }
 
-func (m *MsgInitiateResponse) Reset()         { *m = MsgInitiateResponse{} }
-func (m *MsgInitiateResponse) String() string { return proto.CompactTextString(m) }
-func (*MsgInitiateResponse) ProtoMessage()    {}
-func (*MsgInitiateResponse) Descriptor() ([]byte, []int) {
+func (m *MsgInitiateTxResponse) Reset()         { *m = MsgInitiateTxResponse{} }
+func (m *MsgInitiateTxResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgInitiateTxResponse) ProtoMessage()    {}
+func (*MsgInitiateTxResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_73f0ea9ff29132cf, []int{1}
 }
-func (m *MsgInitiateResponse) XXX_Unmarshal(b []byte) error {
+func (m *MsgInitiateTxResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *MsgInitiateResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *MsgInitiateTxResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_MsgInitiateResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_MsgInitiateTxResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -101,57 +131,65 @@ func (m *MsgInitiateResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return b[:n], nil
 	}
 }
-func (m *MsgInitiateResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgInitiateResponse.Merge(m, src)
+func (m *MsgInitiateTxResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgInitiateTxResponse.Merge(m, src)
 }
-func (m *MsgInitiateResponse) XXX_Size() int {
+func (m *MsgInitiateTxResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *MsgInitiateResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgInitiateResponse.DiscardUnknown(m)
+func (m *MsgInitiateTxResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgInitiateTxResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MsgInitiateResponse proto.InternalMessageInfo
+var xxx_messageInfo_MsgInitiateTxResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*MsgInitiate)(nil), "cross.core.MsgInitiate")
-	proto.RegisterType((*MsgInitiateResponse)(nil), "cross.core.MsgInitiateResponse")
+	proto.RegisterEnum("cross.core.InitiateTxStatus", InitiateTxStatus_name, InitiateTxStatus_value)
+	proto.RegisterType((*MsgInitiateTx)(nil), "cross.core.MsgInitiateTx")
+	proto.RegisterType((*MsgInitiateTxResponse)(nil), "cross.core.MsgInitiateTxResponse")
 }
 
 func init() { proto.RegisterFile("cross/core/msgs.proto", fileDescriptor_73f0ea9ff29132cf) }
 
 var fileDescriptor_73f0ea9ff29132cf = []byte{
-	// 466 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x92, 0xc1, 0x6e, 0xd3, 0x30,
-	0x18, 0xc7, 0x63, 0xda, 0x75, 0xc5, 0x65, 0x05, 0x4c, 0x0b, 0xa1, 0x82, 0x38, 0xca, 0x85, 0x68,
-	0x87, 0x44, 0x2b, 0xb7, 0xdd, 0x16, 0x76, 0xa0, 0x42, 0x93, 0x50, 0xb4, 0xd3, 0x2e, 0xc5, 0x71,
-	0xac, 0xd4, 0x52, 0x63, 0x57, 0xb1, 0x3b, 0xb1, 0x37, 0xe0, 0xc8, 0x23, 0xec, 0xc4, 0xb3, 0xec,
-	0xb8, 0x23, 0xa7, 0x0a, 0xb5, 0x17, 0xce, 0x3b, 0x72, 0x42, 0x49, 0xdc, 0x2d, 0x15, 0xe2, 0x14,
-	0xfb, 0xe7, 0xdf, 0xf7, 0xd9, 0xf1, 0xdf, 0x70, 0x48, 0x0b, 0xa9, 0x54, 0x48, 0x65, 0xc1, 0xc2,
-	0x5c, 0x65, 0x2a, 0x58, 0x14, 0x52, 0x4b, 0x04, 0x2b, 0x1c, 0x94, 0x78, 0x34, 0xc8, 0x64, 0x26,
-	0x2b, 0x1c, 0x96, 0xa3, 0xda, 0x18, 0x61, 0x9e, 0xd0, 0xba, 0x8c, 0xce, 0x39, 0x13, 0x3a, 0xbc,
-	0x3c, 0x32, 0x23, 0x23, 0xbc, 0x6c, 0x74, 0xd6, 0x57, 0x0b, 0x66, 0x5a, 0x7b, 0x3f, 0x5a, 0xb0,
-	0x77, 0xa6, 0xb2, 0x89, 0xe0, 0x9a, 0x13, 0xcd, 0xd0, 0x21, 0xec, 0x28, 0x26, 0x52, 0x56, 0xd8,
-	0xc0, 0x05, 0xfe, 0x93, 0x08, 0xfd, 0x59, 0xe1, 0xfe, 0x09, 0xa5, 0x72, 0x29, 0xf4, 0x49, 0x9a,
-	0x16, 0x4c, 0xa9, 0xd8, 0x18, 0xe8, 0x35, 0xec, 0xd2, 0x19, 0xe1, 0x62, 0xca, 0x53, 0xfb, 0x91,
-	0x0b, 0xfc, 0xc7, 0xf1, 0x7e, 0x35, 0x9f, 0xa4, 0x68, 0x00, 0xf7, 0x84, 0x14, 0x94, 0xd9, 0x2d,
-	0x17, 0xf8, 0xed, 0xb8, 0x9e, 0xa0, 0x77, 0xf0, 0x29, 0x95, 0x79, 0xce, 0xf5, 0xb4, 0xda, 0x9c,
-	0xca, 0xb9, 0xdd, 0x76, 0x81, 0x7f, 0x10, 0xf7, 0x6b, 0xfc, 0xd9, 0x50, 0xf4, 0x05, 0xf6, 0x35,
-	0xcf, 0x99, 0x5c, 0xea, 0xe9, 0x8c, 0xf1, 0x6c, 0xa6, 0xed, 0x3d, 0x17, 0xf8, 0xbd, 0xf1, 0x28,
-	0xe0, 0x09, 0xad, 0xee, 0x21, 0x30, 0x7f, 0x77, 0x79, 0x14, 0x7c, 0xac, 0x8c, 0xe8, 0xed, 0xcd,
-	0x0a, 0x5b, 0x77, 0x2b, 0x3c, 0xbc, 0x22, 0xf9, 0xfc, 0xd8, 0xdb, 0xad, 0xf7, 0xe2, 0x03, 0x03,
-	0x6a, 0x1b, 0x4d, 0xe0, 0xf3, 0xad, 0x51, 0x7e, 0x95, 0x26, 0xf9, 0xc2, 0xee, 0x94, 0x87, 0x8d,
-	0xde, 0xdc, 0xad, 0xb0, 0xbd, 0xdb, 0xe4, 0x5e, 0xf1, 0xe2, 0x67, 0x86, 0x9d, 0x6f, 0x11, 0xba,
-	0x80, 0x43, 0x2a, 0x85, 0x2e, 0x08, 0xd5, 0x53, 0x5d, 0x10, 0xa1, 0x08, 0xd5, 0x5c, 0x0a, 0x65,
-	0xef, 0xbb, 0x2d, 0xbf, 0x37, 0xc6, 0xc1, 0x43, 0x7a, 0xc1, 0x07, 0x23, 0x9e, 0x3f, 0x78, 0x51,
-	0xbb, 0x3c, 0x78, 0x3c, 0xa0, 0xff, 0x2e, 0xa9, 0xe3, 0xee, 0xb7, 0x6b, 0x6c, 0xfd, 0xbe, 0xc6,
-	0x96, 0x37, 0x84, 0x2f, 0x1a, 0x39, 0xc5, 0x4c, 0x2d, 0xa4, 0x50, 0x6c, 0xfc, 0x09, 0xb6, 0xce,
-	0x54, 0x86, 0x4e, 0x61, 0xf7, 0x3e, 0xc2, 0x57, 0xcd, 0x0d, 0x1b, 0x35, 0x23, 0xfc, 0x9f, 0x85,
-	0x6d, 0xb3, 0xe8, 0xf4, 0x66, 0xed, 0x80, 0xdb, 0xb5, 0x03, 0x7e, 0xad, 0x1d, 0xf0, 0x7d, 0xe3,
-	0x58, 0xb7, 0x1b, 0xc7, 0xfa, 0xb9, 0x71, 0xac, 0x8b, 0xc3, 0x8c, 0xeb, 0xd9, 0x32, 0x09, 0xa8,
-	0xcc, 0xc3, 0x94, 0x68, 0x52, 0xe5, 0x3c, 0x27, 0x49, 0x58, 0x3f, 0xab, 0xaf, 0x8d, 0x87, 0x95,
-	0x74, 0xaa, 0x70, 0xdf, 0xff, 0x0d, 0x00, 0x00, 0xff, 0xff, 0xd9, 0x3a, 0xb7, 0x17, 0xcd, 0x02,
-	0x00, 0x00,
+	// 585 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x93, 0xc1, 0x6f, 0xd3, 0x3e,
+	0x14, 0xc7, 0x93, 0xb5, 0xeb, 0xf6, 0xf3, 0x7e, 0x2b, 0xc5, 0x5a, 0x51, 0x16, 0x46, 0x12, 0x7a,
+	0x21, 0x9a, 0x50, 0xa2, 0x15, 0x4e, 0xbb, 0xb5, 0xac, 0xb0, 0x80, 0x16, 0x46, 0x96, 0x31, 0xb4,
+	0x4b, 0x48, 0x1d, 0x2b, 0xb5, 0xd4, 0xd8, 0x55, 0xec, 0x4e, 0xdb, 0x7f, 0xb0, 0x23, 0x7f, 0xc2,
+	0x24, 0xfe, 0x99, 0x1d, 0x77, 0x42, 0x9c, 0x2a, 0xd8, 0x2e, 0x9c, 0x77, 0xe4, 0x84, 0x9a, 0xa4,
+	0xb4, 0x05, 0x76, 0x8a, 0xfd, 0x7d, 0x1f, 0xbf, 0x3c, 0xfb, 0xfb, 0x1e, 0xa8, 0xa3, 0x94, 0x71,
+	0x6e, 0x23, 0x96, 0x62, 0x3b, 0xe1, 0x31, 0xb7, 0x06, 0x29, 0x13, 0x0c, 0x82, 0x4c, 0xb6, 0xc6,
+	0xb2, 0xba, 0x16, 0xb3, 0x98, 0x65, 0xb2, 0x3d, 0x5e, 0xe5, 0x84, 0xaa, 0x93, 0x2e, 0xca, 0x8f,
+	0xa1, 0x3e, 0xc1, 0x54, 0xd8, 0x27, 0x5b, 0xc5, 0xaa, 0x00, 0x1e, 0xcc, 0x64, 0x16, 0x67, 0x03,
+	0x5c, 0xa4, 0x6e, 0x7c, 0x29, 0x81, 0xd5, 0x3d, 0x1e, 0x3b, 0x94, 0x08, 0x12, 0x0a, 0xec, 0x9f,
+	0xc2, 0x4d, 0x50, 0xe1, 0x98, 0x46, 0x38, 0x55, 0x64, 0x43, 0x36, 0xff, 0x6f, 0xc3, 0x9f, 0x23,
+	0xbd, 0xda, 0x42, 0x88, 0x0d, 0xa9, 0x68, 0x45, 0x51, 0x8a, 0x39, 0xf7, 0x0a, 0x02, 0xae, 0x83,
+	0x65, 0xd4, 0x0b, 0x09, 0x0d, 0x48, 0xa4, 0x2c, 0x18, 0xb2, 0xf9, 0x9f, 0xb7, 0x94, 0xed, 0x9d,
+	0x08, 0xae, 0x81, 0x45, 0xca, 0x28, 0xc2, 0x4a, 0xc9, 0x90, 0xcd, 0xb2, 0x97, 0x6f, 0xe0, 0x13,
+	0x70, 0x0f, 0xb1, 0x24, 0x21, 0x22, 0xc8, 0x7e, 0x8f, 0x58, 0x5f, 0x29, 0x1b, 0xb2, 0xb9, 0xea,
+	0x55, 0x73, 0x79, 0xbf, 0x50, 0xe1, 0x47, 0x50, 0x15, 0x24, 0xc1, 0x6c, 0x28, 0x82, 0x1e, 0x26,
+	0x71, 0x4f, 0x28, 0x8b, 0x86, 0x6c, 0xae, 0x34, 0x55, 0x8b, 0x74, 0x51, 0xf6, 0x12, 0x56, 0x71,
+	0xbf, 0x93, 0x2d, 0x6b, 0x37, 0x23, 0xda, 0x8f, 0x2e, 0x47, 0xba, 0x74, 0x3b, 0xd2, 0xeb, 0x67,
+	0x61, 0xd2, 0xdf, 0x6e, 0xcc, 0x9f, 0x6f, 0x78, 0xab, 0x85, 0x90, 0xd3, 0xd0, 0x01, 0xf7, 0x27,
+	0xc4, 0xf8, 0xcb, 0x45, 0x98, 0x0c, 0x94, 0xca, 0xb8, 0xd8, 0xf6, 0xc6, 0xed, 0x48, 0x57, 0xe6,
+	0x93, 0xfc, 0x46, 0x1a, 0x5e, 0xad, 0xd0, 0xfc, 0x89, 0x04, 0x8f, 0x41, 0x1d, 0x31, 0x2a, 0xd2,
+	0x10, 0x89, 0x40, 0xa4, 0x21, 0xe5, 0x21, 0x12, 0x84, 0x51, 0xae, 0x2c, 0x19, 0x25, 0x73, 0xa5,
+	0xa9, 0x5b, 0x53, 0xff, 0xac, 0x17, 0x05, 0xe8, 0x4f, 0xb9, 0x76, 0x79, 0x5c, 0xb8, 0xb7, 0x86,
+	0xfe, 0x0e, 0x71, 0xf8, 0x14, 0x2c, 0x71, 0x12, 0x53, 0x9c, 0x72, 0x65, 0xd9, 0x28, 0xdd, 0xe1,
+	0xc7, 0x04, 0xd9, 0x5e, 0x3e, 0xbf, 0xd0, 0xa5, 0x1f, 0x17, 0xba, 0xd4, 0x38, 0x02, 0xf5, 0x39,
+	0x5f, 0x3d, 0xcc, 0x07, 0x8c, 0x72, 0x0c, 0x9f, 0x83, 0x0a, 0x17, 0xa1, 0x18, 0xf2, 0xcc, 0xdf,
+	0x6a, 0x73, 0x63, 0xb6, 0xba, 0x29, 0x7f, 0x90, 0x31, 0x5e, 0xc1, 0x4e, 0x13, 0x6f, 0x9e, 0x81,
+	0xda, 0x9f, 0x14, 0xd4, 0x80, 0xea, 0xb8, 0x8e, 0xef, 0xb4, 0xfc, 0x4e, 0xe0, 0x7f, 0x08, 0x0e,
+	0xfc, 0x96, 0x7f, 0x78, 0x10, 0x1c, 0xba, 0x6f, 0xdc, 0xb7, 0x47, 0x6e, 0x4d, 0xba, 0x23, 0xbe,
+	0xdf, 0x71, 0x77, 0x1c, 0xf7, 0x55, 0x4d, 0x86, 0x3a, 0x78, 0xf8, 0x8f, 0xf8, 0xfb, 0x8e, 0xe7,
+	0xbc, 0x74, 0x3a, 0x3b, 0xb5, 0x05, 0xb5, 0x7c, 0xfe, 0x59, 0x93, 0x9a, 0xef, 0x40, 0x69, 0x8f,
+	0xc7, 0xf0, 0x35, 0x00, 0x33, 0xfd, 0xba, 0x3e, 0x5b, 0xff, 0xdc, 0x95, 0xd5, 0xc7, 0x77, 0x86,
+	0x26, 0xaf, 0xd1, 0xde, 0xbd, 0xfc, 0xae, 0x49, 0x97, 0xd7, 0x9a, 0x7c, 0x75, 0xad, 0xc9, 0xdf,
+	0xae, 0x35, 0xf9, 0xd3, 0x8d, 0x26, 0x5d, 0xdd, 0x68, 0xd2, 0xd7, 0x1b, 0x4d, 0x3a, 0xde, 0x8c,
+	0x89, 0xe8, 0x0d, 0xbb, 0x16, 0x62, 0x89, 0x1d, 0x85, 0x22, 0xcc, 0x9a, 0xbb, 0x1f, 0x76, 0xed,
+	0x7c, 0x9a, 0x4e, 0x67, 0xe6, 0xa9, 0x5b, 0xc9, 0x3a, 0xfa, 0xd9, 0xaf, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0x75, 0x18, 0x61, 0xfe, 0xc4, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -166,8 +204,8 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgClient interface {
-	// Initiate defines a rpc handler method for MsgInitiate.
-	Initiate(ctx context.Context, in *MsgInitiate, opts ...grpc.CallOption) (*MsgInitiateResponse, error)
+	// InitiateTx defines a rpc handler method for MsgInitiateTx.
+	InitiateTx(ctx context.Context, in *MsgInitiateTx, opts ...grpc.CallOption) (*MsgInitiateTxResponse, error)
 }
 
 type msgClient struct {
@@ -178,9 +216,9 @@ func NewMsgClient(cc grpc1.ClientConn) MsgClient {
 	return &msgClient{cc}
 }
 
-func (c *msgClient) Initiate(ctx context.Context, in *MsgInitiate, opts ...grpc.CallOption) (*MsgInitiateResponse, error) {
-	out := new(MsgInitiateResponse)
-	err := c.cc.Invoke(ctx, "/cross.core.Msg/Initiate", in, out, opts...)
+func (c *msgClient) InitiateTx(ctx context.Context, in *MsgInitiateTx, opts ...grpc.CallOption) (*MsgInitiateTxResponse, error) {
+	out := new(MsgInitiateTxResponse)
+	err := c.cc.Invoke(ctx, "/cross.core.Msg/InitiateTx", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -189,36 +227,36 @@ func (c *msgClient) Initiate(ctx context.Context, in *MsgInitiate, opts ...grpc.
 
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
-	// Initiate defines a rpc handler method for MsgInitiate.
-	Initiate(context.Context, *MsgInitiate) (*MsgInitiateResponse, error)
+	// InitiateTx defines a rpc handler method for MsgInitiateTx.
+	InitiateTx(context.Context, *MsgInitiateTx) (*MsgInitiateTxResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
 type UnimplementedMsgServer struct {
 }
 
-func (*UnimplementedMsgServer) Initiate(ctx context.Context, req *MsgInitiate) (*MsgInitiateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Initiate not implemented")
+func (*UnimplementedMsgServer) InitiateTx(ctx context.Context, req *MsgInitiateTx) (*MsgInitiateTxResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitiateTx not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
 	s.RegisterService(&_Msg_serviceDesc, srv)
 }
 
-func _Msg_Initiate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MsgInitiate)
+func _Msg_InitiateTx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgInitiateTx)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MsgServer).Initiate(ctx, in)
+		return srv.(MsgServer).InitiateTx(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/cross.core.Msg/Initiate",
+		FullMethod: "/cross.core.Msg/InitiateTx",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MsgServer).Initiate(ctx, req.(*MsgInitiate))
+		return srv.(MsgServer).InitiateTx(ctx, req.(*MsgInitiateTx))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -228,15 +266,15 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*MsgServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Initiate",
-			Handler:    _Msg_Initiate_Handler,
+			MethodName: "InitiateTx",
+			Handler:    _Msg_InitiateTx_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "cross/core/msgs.proto",
 }
 
-func (m *MsgInitiate) Marshal() (dAtA []byte, err error) {
+func (m *MsgInitiateTx) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -246,16 +284,25 @@ func (m *MsgInitiate) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *MsgInitiate) MarshalTo(dAtA []byte) (int, error) {
+func (m *MsgInitiateTx) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *MsgInitiate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *MsgInitiateTx) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
+	if len(m.Signers) > 0 {
+		for iNdEx := len(m.Signers) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Signers[iNdEx])
+			copy(dAtA[i:], m.Signers[iNdEx])
+			i = encodeVarintMsgs(dAtA, i, uint64(len(m.Signers[iNdEx])))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
 	if len(m.ContractTransactions) > 0 {
 		for iNdEx := len(m.ContractTransactions) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -312,7 +359,7 @@ func (m *MsgInitiate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *MsgInitiateResponse) Marshal() (dAtA []byte, err error) {
+func (m *MsgInitiateTxResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -322,16 +369,21 @@ func (m *MsgInitiateResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *MsgInitiateResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *MsgInitiateTxResponse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *MsgInitiateResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *MsgInitiateTxResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
+	if m.Status != 0 {
+		i = encodeVarintMsgs(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -346,7 +398,7 @@ func encodeVarintMsgs(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *MsgInitiate) Size() (n int) {
+func (m *MsgInitiateTx) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -377,15 +429,24 @@ func (m *MsgInitiate) Size() (n int) {
 			n += 1 + l + sovMsgs(uint64(l))
 		}
 	}
+	if len(m.Signers) > 0 {
+		for _, b := range m.Signers {
+			l = len(b)
+			n += 1 + l + sovMsgs(uint64(l))
+		}
+	}
 	return n
 }
 
-func (m *MsgInitiateResponse) Size() (n int) {
+func (m *MsgInitiateTxResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
+	if m.Status != 0 {
+		n += 1 + sovMsgs(uint64(m.Status))
+	}
 	return n
 }
 
@@ -395,7 +456,7 @@ func sovMsgs(x uint64) (n int) {
 func sozMsgs(x uint64) (n int) {
 	return sovMsgs(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *MsgInitiate) Unmarshal(dAtA []byte) error {
+func (m *MsgInitiateTx) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -418,10 +479,10 @@ func (m *MsgInitiate) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MsgInitiate: wiretype end group for non-group")
+			return fmt.Errorf("proto: MsgInitiateTx: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgInitiate: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: MsgInitiateTx: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -614,6 +675,38 @@ func (m *MsgInitiate) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signers", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signers = append(m.Signers, make([]byte, postIndex-iNdEx))
+			copy(m.Signers[len(m.Signers)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipMsgs(dAtA[iNdEx:])
@@ -638,7 +731,7 @@ func (m *MsgInitiate) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *MsgInitiateResponse) Unmarshal(dAtA []byte) error {
+func (m *MsgInitiateTxResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -661,12 +754,31 @@ func (m *MsgInitiateResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MsgInitiateResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: MsgInitiateTxResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgInitiateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: MsgInitiateTxResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= InitiateTxStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipMsgs(dAtA[iNdEx:])

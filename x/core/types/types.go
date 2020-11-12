@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/gogo/protobuf/proto"
 )
@@ -20,6 +21,20 @@ type AccountAddress []byte
 
 func (ac AccountAddress) AccAddress() sdk.AccAddress {
 	return sdk.AccAddress(ac)
+}
+
+// Account definition
+
+func NewAccount(chainID *types.Any, address AccountAddress) Account {
+	return Account{ChainId: chainID, Address: address}
+}
+
+func NewLocalAccount(address AccountAddress) Account {
+	return NewAccount(nil, address)
+}
+
+func (acc Account) IsLocalAccount() bool {
+	return acc.ChainId == nil
 }
 
 func (tx ContractTransaction) GetChainID(m codec.Marshaler) (ChainID, error) {
@@ -194,4 +209,11 @@ func (res ContractCallResult) GetEvents() sdk.Events {
 		events = append(events, sdk.NewEvent(ev.Type, attrs...))
 	}
 	return events
+}
+
+// NewInitiateTxState creates an new instance of InitiateTxState
+func NewInitiateTxState(remainingSigners []Account) InitiateTxState {
+	return InitiateTxState{
+		RemainingSigners: remainingSigners,
+	}
 }

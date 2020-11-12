@@ -130,16 +130,22 @@ func (suite *KeeperTestSuite) TestCall() {
 			kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
 			txs := []crosstypes.ContractTransaction{
 				{
-					ChainId:  *selfCid,
-					Signers:  []crosstypes.AccountAddress{suite.chainA.SenderAccount.GetAddress().Bytes()},
+					ChainId: *selfCid,
+					Signers: []crosstypes.Account{
+						crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+					},
 					CallInfo: c.callinfos[0],
 				},
 				{
-					ChainId:  *cidB,
-					Signers:  []crosstypes.AccountAddress{suite.chainB.SenderAccount.GetAddress().Bytes()},
+					ChainId: *cidB,
+					Signers: []crosstypes.Account{
+						crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+					},
 					CallInfo: c.callinfos[1],
 				},
 			}
+			// TODO add test for verifyTx
+
 			ps := newCapturePacketSender(
 				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
 			)

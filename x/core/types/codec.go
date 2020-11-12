@@ -9,7 +9,7 @@ import (
 // RegisterInterfaces register the ibc transfer module interfaces to protobuf
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	registry.RegisterImplementations((*sdk.Msg)(nil), &MsgInitiate{})
+	registry.RegisterImplementations((*sdk.Msg)(nil), &MsgInitiateTx{})
 	registry.RegisterImplementations(
 		(*ChainID)(nil),
 		&ChannelInfo{},

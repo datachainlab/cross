@@ -1,19 +1,20 @@
 syntax = "proto3";
 package cross.core;
 
-option go_package = "github.com/datachainlab/cross/x/core/types";
-
 import "gogoproto/gogo.proto";
 import "ibc/core/client/v1/client.proto";
 import "cross/core/types.proto";
 
+option go_package = "github.com/datachainlab/cross/x/core/types";
+option (gogoproto.goproto_getters_all) = false;
+
 // Msg defines the cross Msg service.
 service Msg {
-  // Initiate defines a rpc handler method for MsgInitiate.
-  rpc Initiate(MsgInitiate) returns (MsgInitiateResponse);
+  // InitiateTx defines a rpc handler method for MsgInitiateTx.
+  rpc InitiateTx(MsgInitiateTx) returns (MsgInitiateTxResponse);
 }
 
-message MsgInitiate {
+message MsgInitiateTx {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
@@ -32,7 +33,21 @@ message MsgInitiate {
     [(gogoproto.moretags) = "yaml:\"timeout_timestamp\""];
 
   repeated cross.core.ContractTransaction contract_transactions = 7 [(gogoproto.nullable) = false];
+  repeated bytes signers = 8 [(gogoproto.casttype) = "AccountAddress"];
 }
 
-// MsgInitiateResponse defines the Msg/Initiate response type.
-message MsgInitiateResponse {}
+// MsgInitiateTxResponse defines the Msg/Initiate response type.
+message MsgInitiateTxResponse {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  InitiateTxStatus status = 1;
+}
+
+enum InitiateTxStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  INITIATE_TX_STATUS_UNKNOWN   = 0;
+  INITIATE_TX_STATUS_PENDING   = 1;
+  INITIATE_TX_STATUS_VERIFIED  = 2;
+}

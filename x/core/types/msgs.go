@@ -12,15 +12,15 @@ const (
 	TypeInitiate = "initiate"
 )
 
-var _ sdk.Msg = (*MsgInitiate)(nil)
+var _ sdk.Msg = (*MsgInitiateTx)(nil)
 
-// NewMsgInitiate creates a new MsgInitiate instance
-func NewMsgInitiate(
+// NewMsgInitiateTx creates a new MsgInitiateTx instance
+func NewMsgInitiateTx(
 	sender AccountAddress, chainID string, nonce uint64,
 	commitProtocol uint32, ctxs []ContractTransaction,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
-) *MsgInitiate {
-	return &MsgInitiate{
+) *MsgInitiateTx {
+	return &MsgInitiateTx{
 		Sender:               sender,
 		ChainId:              chainID,
 		Nonce:                nonce,
@@ -32,18 +32,18 @@ func NewMsgInitiate(
 }
 
 // Route implements sdk.Msg
-func (MsgInitiate) Route() string {
+func (MsgInitiateTx) Route() string {
 	return RouterKey
 }
 
 // Type implements sdk.Msg
-func (MsgInitiate) Type() string {
+func (MsgInitiateTx) Type() string {
 	return TypeInitiate
 }
 
-// ValidateBasic performs a basic check of the MsgInitiate fields.
+// ValidateBasic performs a basic check of the MsgInitiateTx fields.
 // NOTE: timeout height or timestamp values can be 0 to disable the timeout.
-func (msg MsgInitiate) ValidateBasic() error {
+func (msg MsgInitiateTx) ValidateBasic() error {
 	if len(msg.Sender) == 0 {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing sender address")
 	}
@@ -52,7 +52,7 @@ func (msg MsgInitiate) ValidateBasic() error {
 
 // GetSignBytes implements sdk.Msg. The function will panic since it is used
 // for amino transaction verification which IBC does not support.
-func (msg MsgInitiate) GetSignBytes() []byte {
+func (msg MsgInitiateTx) GetSignBytes() []byte {
 	panic("IBC messages do not support amino")
 }
 
@@ -60,23 +60,40 @@ func (msg MsgInitiate) GetSignBytes() []byte {
 // GetSigners returns the addresses that must sign the transaction.
 // Addresses are returned in a deterministic order.
 // Duplicate addresses will be omitted.
-func (msg MsgInitiate) GetSigners() []sdk.AccAddress {
+func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
 	seen := map[string]bool{}
 	signers := []sdk.AccAddress{msg.Sender.AccAddress()}
-	for _, t := range msg.ContractTransactions {
-		for _, s := range t.Signers {
-			addr := s.AccAddress().String()
-			if !seen[addr] {
-				signers = append(signers, s.AccAddress())
-				seen[addr] = true
-			}
+
+	for _, s := range msg.Signers {
+		addr := s.AccAddress().String()
+		if !seen[addr] {
+			signers = append(signers, s.AccAddress())
+			seen[addr] = true
 		}
 	}
+
 	return signers
 }
 
+func (msg MsgInitiateTx) GetAccounts() []Account {
+	var accs []Account
+	signers := msg.GetSigners()
+	for _, s := range signers {
+		accs = append(accs, NewLocalAccount(AccountAddress(s)))
+	}
+	return accs
+}
+
+func (msg MsgInitiateTx) GetRequiredAccounts() []Account {
+	var accs []Account
+	for _, tx := range msg.ContractTransactions {
+		accs = append(accs, tx.Signers...)
+	}
+	return accs
+}
+
 // MakeTxID generates TxID with a given msg
-func MakeTxID(msg *MsgInitiate) TxID {
+func MakeTxID(msg *MsgInitiateTx) TxID {
 	bz, err := proto.Marshal(msg)
 	if err != nil {
 		panic(err)

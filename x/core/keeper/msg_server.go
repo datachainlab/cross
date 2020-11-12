@@ -12,12 +12,9 @@ import (
 
 var _ types.MsgServer = Keeper{}
 
-// Initiate defines a rpc handler method for MsgInitiate.
-func (k Keeper) Initiate(goCtx context.Context, msg *types.MsgInitiate) (*types.MsgInitiateResponse, error) {
-	ctx, ps, err := k.packetMiddleware.HandleMsg(sdk.UnwrapSDKContext(goCtx), msg, packets.NewBasicPacketSender(k.ChannelKeeper()))
-	if err != nil {
-		return nil, err
-	}
+// Initiate defines a rpc handler method for MsgInitiateTx.
+func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*types.MsgInitiateTxResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Validations
 
@@ -27,9 +24,22 @@ func (k Keeper) Initiate(goCtx context.Context, msg *types.MsgInitiate) (*types.
 		return nil, fmt.Errorf("this msg is already timeout: current=%v timeout=%v", ctx.BlockHeight(), msg.TimeoutHeight)
 	}
 
+	// Check if all participants sign the tx
+
+	txID, ok, err := k.verifyTx(ctx, *msg)
+	if !ok {
+		return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_PENDING}, nil
+	}
+
+	// Apply packet middlewares
+
+	ctx, ps, err := k.packetMiddleware.HandleMsg(ctx, msg, packets.NewBasicPacketSender(k.ChannelKeeper()))
+	if err != nil {
+		return nil, err
+	}
+
 	// Initiate a transaction
 
-	txID := types.MakeTxID(msg)
 	switch msg.CommitProtocol {
 	case types.CommitProtocolSimple:
 		err := k.SimpleKeeper().SendCall(ctx, ps, txID, msg.ContractTransactions, msg.TimeoutHeight, msg.TimeoutTimestamp)
@@ -40,5 +50,5 @@ func (k Keeper) Initiate(goCtx context.Context, msg *types.MsgInitiate) (*types.
 		return nil, fmt.Errorf("unknown Commit protocol '%v'", msg.CommitProtocol)
 	}
 
-	return &types.MsgInitiateResponse{}, nil
+	return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_VERIFIED}, nil
 }

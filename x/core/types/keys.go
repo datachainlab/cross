@@ -32,13 +32,23 @@ const (
 )
 
 const (
-	KeyCoreKeeperPrefix uint8 = iota
+	KeyInitiateTxPrefix uint8 = iota
+	KeyInitiateTxStatePrefix
+	KeyCoreKeeperPrefix
 	KeyAtomicKeeperPrefix
 )
 
 // KeyPrefixBytes return the key prefix bytes from a URL string format
 func KeyPrefixBytes(prefix uint8) []byte {
 	return []byte(fmt.Sprintf("%d/", prefix))
+}
+
+func KeyInitiateTx() []byte {
+	return KeyPrefixBytes(KeyInitiateTxPrefix)
+}
+
+func KeyInitiateTxState() []byte {
+	return KeyPrefixBytes(KeyInitiateTxStatePrefix)
 }
 
 func KeyCoreKeeperPrefixBytes() []byte {
