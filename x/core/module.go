@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/gorilla/mux"
@@ -21,12 +20,10 @@ import (
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/05-port/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	simpletypes "github.com/datachainlab/cross/x/atomic/simple/types"
 	"github.com/datachainlab/cross/x/core/client/cli"
 	"github.com/datachainlab/cross/x/core/keeper"
 	"github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/utils"
 )
 
 var (
@@ -95,17 +92,19 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
-	cdc            codec.Marshaler
-	keeper         keeper.Keeper
-	packetReceiver PacketReceiver
+	cdc                           codec.Marshaler
+	keeper                        keeper.Keeper
+	packetReceiver                PacketReceiver
+	packetAcknowledgementReceiver PacketAcknowledgementReceiver
 }
 
 func NewAppModule(cdc codec.Marshaler, keeper keeper.Keeper) AppModule {
 	pm := packets.NewNOPPacketMiddleware()
 	return AppModule{
-		cdc:            cdc,
-		keeper:         keeper,
-		packetReceiver: NewPacketReceiver(cdc, keeper, pm),
+		cdc:                           cdc,
+		keeper:                        keeper,
+		packetReceiver:                NewPacketReceiver(cdc, keeper, pm),
+		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(cdc, keeper, pm),
 	}
 }
 
@@ -305,40 +304,23 @@ func (am AppModule) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	acknowledgement []byte,
 ) (*sdk.Result, error) {
-	// TODO refactoring
 	var ack channeltypes.Acknowledgement
-	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+	if err := am.cdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal Cross packet acknowledgement: %v", err)
 	}
-
 	switch res := ack.Response.(type) {
 	case *channeltypes.Acknowledgement_Result:
-		var pd packets.PacketAcknowledgementData
-		if err := packets.UnmarshalJSONPacketAcknowledgementData(res.Result, &pd); err != nil {
-			return nil, err
-		}
-		var payload packets.PacketDataPayload
-		utils.MustUnmarshalJSONAny(am.cdc, &payload, pd.Payload)
-		ackPayload := payload.(*simpletypes.PacketCallAcknowledgement)
-		isCommitable, err := am.keeper.SimpleKeeper().ReceiveCallAcknowledgement(
-			ctx,
-			packet.SourcePort, packet.SourceChannel,
-			*ackPayload,
-			nil,
-		)
+		parsedAck, err := packets.UnmarshalJSONIncomingPacketAcknowledgement(am.cdc, res.Result)
 		if err != nil {
 			return nil, err
 		}
-		// TODO implement next step
-		_ = isCommitable
+		return am.packetAcknowledgementReceiver(ctx, packet, parsedAck)
 	case *channeltypes.Acknowledgement_Error:
 		// TODO add an error case
-		panic("not implemented error:" + res.Error)
+		panic(res.Error)
+	default:
+		panic(fmt.Sprintf("unknown type '%T'", res))
 	}
-
-	return &sdk.Result{
-		Events: ctx.EventManager().Events().ToABCIEvents(),
-	}, errors.New("not implemented error")
 }
 
 // OnTimeoutPacket implements the IBCModule interface

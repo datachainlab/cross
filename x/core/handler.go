@@ -80,3 +80,48 @@ func handlePacketDataCall(ctx sdk.Context, cdc codec.Marshaler, k simplekeeper.K
 	)
 	return res.Data, ack, nil
 }
+
+// PacketAcknowledgementReceiver is a packet acknowledgement receiver
+type PacketAcknowledgementReceiver func(ctx sdk.Context, packet channeltypes.Packet, ack packets.IncomingPacketAcknowledgement) (*sdk.Result, error)
+
+// NewPacketAcknowledgementReceiver returns a PacketAcknowledgementReceiver
+func NewPacketAcknowledgementReceiver(cdc codec.Marshaler, keeper keeper.Keeper, packetMiddleware packets.PacketMiddleware) PacketAcknowledgementReceiver {
+	return func(ctx sdk.Context, packet channeltypes.Packet, ack packets.IncomingPacketAcknowledgement) (*sdk.Result, error) {
+		pi, err := packets.UnmarshalJSONIncomingPacket(cdc, packet)
+		if err != nil {
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
+		}
+		ctx, ps, err := packetMiddleware.HandleACK(ctx, pi, ack, packets.NewBasicPacketSender(keeper.ChannelKeeper()))
+		if err != nil {
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
+		}
+		_ = ps
+		var resData []byte
+		switch ack := ack.Payload().(type) {
+		case *simpletypes.PacketCallAcknowledgement:
+			payload := pi.Payload().(*simpletypes.PacketDataCall)
+			resData, err = handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), packet, *ack, *payload)
+		default:
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC ack type: %T", ack)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		return &sdk.Result{Data: resData, Events: ctx.EventManager().ABCIEvents()}, nil
+	}
+}
+
+func handlePacketCallAcknowledgement(ctx sdk.Context, k simplekeeper.Keeper, packet channeltypes.Packet, ack simpletypes.PacketCallAcknowledgement, payload simpletypes.PacketDataCall) ([]byte, error) {
+	isCommitable, err := k.ReceiveCallAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, payload.TxId)
+	if err != nil {
+		return nil, err
+	}
+	res, err := k.TryCommit(ctx, payload.TxId, isCommitable)
+	if err != nil {
+		return nil, err
+	}
+	// FIXME emit events correctly
+	// ctx.EventManager().EmitEvents(res.Events)
+	return res.Data, nil
+}

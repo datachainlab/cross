@@ -14,7 +14,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&PacketDataCall{},
 	)
 	registry.RegisterImplementations(
-		(*packets.PacketDataPayload)(nil),
+		(*packets.PacketAcknowledgementPayload)(nil),
 		&PacketCallAcknowledgement{},
 	)
 }
