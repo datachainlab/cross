@@ -95,14 +95,17 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
-	cdc    codec.Marshaler
-	keeper keeper.Keeper
+	cdc            codec.Marshaler
+	keeper         keeper.Keeper
+	packetReceiver PacketReceiver
 }
 
 func NewAppModule(cdc codec.Marshaler, keeper keeper.Keeper) AppModule {
+	pm := packets.NewNOPPacketMiddleware()
 	return AppModule{
-		cdc:    cdc,
-		keeper: keeper,
+		cdc:            cdc,
+		keeper:         keeper,
+		packetReceiver: NewPacketReceiver(cdc, keeper, pm),
 	}
 }
 
@@ -283,44 +286,17 @@ func (am AppModule) OnRecvPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 ) (*sdk.Result, []byte, error) {
-	// TODO refactoring
-	var data packets.PacketData
-	if err := packets.UnmarshalJSONPacketData(packet.GetData(), &data); err != nil {
+	res, ack, err := am.packetReceiver(ctx, packet)
+	if err != nil {
+		return res, channeltypes.NewErrorAcknowledgement(err.Error()).GetBytes(), nil
+	}
+
+	bz, err := packets.MarshalJSONPacketAcknowledgementData(*ack)
+	if err != nil { // maybe it's an internal error
 		return nil, nil, err
 	}
-	var payload packets.PacketDataPayload
-	if err := utils.UnmarshalJSONAny(am.cdc, &payload, data.GetPayload()); err != nil {
-		return nil, nil, err
-	}
-	switch p := payload.(type) {
-	case *simpletypes.PacketDataCall:
-		_, ack, err := am.keeper.SimpleKeeper().ReceiveCallPacket(
-			ctx,
-			packet.DestinationPort, packet.DestinationChannel,
-			*p,
-		)
-		pd := packets.NewPacketAcknowledgementData(
-			am.cdc,
-			nil,
-			ack,
-		)
-		if err != nil {
-			return &sdk.Result{
-				Events: ctx.EventManager().Events().ToABCIEvents(),
-			}, channeltypes.NewErrorAcknowledgement(err.Error()).GetBytes(), nil
-		}
 
-		bz, err := packets.MarshalJSONPacketAcknowledgementData(pd)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return &sdk.Result{
-			Events: ctx.EventManager().Events().ToABCIEvents(),
-		}, channeltypes.NewResultAcknowledgement(bz).GetBytes(), nil
-	default:
-		return nil, nil, fmt.Errorf("unknown packet data type: %T", p)
-	}
+	return res, channeltypes.NewResultAcknowledgement(bz).GetBytes(), nil
 }
 
 // OnAcknowledgementPacket implements the IBCModule interface
@@ -357,7 +333,7 @@ func (am AppModule) OnAcknowledgementPacket(
 		_ = isCommitable
 	case *channeltypes.Acknowledgement_Error:
 		// TODO add an error case
-		panic("not implemented error")
+		panic("not implemented error:" + res.Error)
 	}
 
 	return &sdk.Result{
