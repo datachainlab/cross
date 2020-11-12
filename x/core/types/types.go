@@ -213,7 +213,14 @@ func (res ContractCallResult) GetEvents() sdk.Events {
 
 // NewInitiateTxState creates an new instance of InitiateTxState
 func NewInitiateTxState(remainingSigners []Account) InitiateTxState {
+	var status InitiateTxStatus
+	if len(remainingSigners) == 0 {
+		status = INITIATE_TX_STATUS_VERIFIED
+	} else {
+		status = INITIATE_TX_STATUS_PENDING
+	}
 	return InitiateTxState{
+		Status:           status,
 		RemainingSigners: remainingSigners,
 	}
 }

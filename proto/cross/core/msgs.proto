@@ -12,6 +12,8 @@ option (gogoproto.goproto_getters_all) = false;
 service Msg {
   // InitiateTx defines a rpc handler method for MsgInitiateTx.
   rpc InitiateTx(MsgInitiateTx) returns (MsgInitiateTxResponse);
+  // SignTx defines a rpc handler method for MsgSignTx.
+  rpc SignTx(MsgSignTx) returns (MsgSignTxResponse);
 }
 
 message MsgInitiateTx {
@@ -36,7 +38,7 @@ message MsgInitiateTx {
   repeated bytes signers = 8 [(gogoproto.casttype) = "AccountAddress"];
 }
 
-// MsgInitiateTxResponse defines the Msg/Initiate response type.
+// MsgInitiateTxResponse defines the Msg/InitiateTx response type.
 message MsgInitiateTxResponse {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
@@ -44,10 +46,18 @@ message MsgInitiateTxResponse {
   InitiateTxStatus status = 1;
 }
 
-enum InitiateTxStatus {
-  option (gogoproto.goproto_enum_prefix) = false;
+message MsgSignTx {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
 
-  INITIATE_TX_STATUS_UNKNOWN   = 0;
-  INITIATE_TX_STATUS_PENDING   = 1;
-  INITIATE_TX_STATUS_VERIFIED  = 2;
+  bytes txID = 1 [(gogoproto.casttype) = "TxID"];
+  repeated bytes signers = 2 [(gogoproto.casttype) = "AccountAddress"];
+}
+
+// MsgSignTxResponse defines the Msg/SignTx response type.
+message MsgSignTxResponse {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  cross.core.InitiateTxStatus status = 1;
 }

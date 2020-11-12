@@ -21,28 +21,30 @@ func (k Keeper) verifyTx(ctx sdk.Context, msg types.MsgInitiateTx) (types.TxID, 
 	required := msg.GetRequiredAccounts()
 	remaining := getRemainingAccounts(signers, required)
 
-	if len(remaining) == 0 {
-		return txID, true, nil
-	}
-
-	// save MsgInitiateTx
-	// waiting for other signers
-	if err := k.setTxState(ctx, txID, msg, remaining); err != nil {
+	state, err := k.initTxState(ctx, txID, msg, remaining)
+	if err != nil {
 		return nil, false, err
 	}
 
-	return txID, false, nil
+	return txID, state.Status == types.INITIATE_TX_STATUS_VERIFIED, nil
 }
 
-func (k Keeper) setTxState(ctx sdk.Context, txID types.TxID, msg types.MsgInitiateTx, remainingSigners []types.Account) error {
+func (k Keeper) initTxState(ctx sdk.Context, txID types.TxID, msg types.MsgInitiateTx, remainingSigners []types.Account) (*types.InitiateTxState, error) {
 	bz, err := proto.Marshal(&msg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	prefix.NewStore(k.store(ctx), types.KeyInitiateTx()).Set(txID, bz)
 
 	state := types.NewInitiateTxState(remainingSigners)
-	bz, err = proto.Marshal(&state)
+	if err := k.setTxState(ctx, txID, state); err != nil {
+		return nil, err
+	}
+	return &state, nil
+}
+
+func (k Keeper) setTxState(ctx sdk.Context, txID types.TxID, state types.InitiateTxState) error {
+	bz, err := proto.Marshal(&state)
 	if err != nil {
 		return err
 	}
@@ -67,9 +69,23 @@ func (k Keeper) getTxState(ctx sdk.Context, txID types.TxID) (*types.InitiateTxS
 // This method will be used in:
 // 1. Signing asynchronously on same chain
 // 2. Remote signing from other chain
-func (k Keeper) SignTx(txID types.TxID, signer types.Account) error {
-	// TODO implement
-	return nil
+func (k Keeper) signTx(ctx sdk.Context, txID types.TxID, signers []types.Account) (types.InitiateTxStatus, error) {
+	state, found := k.getTxState(ctx, txID)
+	if !found {
+		return 0, fmt.Errorf("txID '%X' not found", txID)
+	} else if state.Status != types.INITIATE_TX_STATUS_PENDING {
+		return 0, fmt.Errorf("status must be %v", types.INITIATE_TX_STATUS_PENDING)
+	}
+	remaining := getRemainingAccounts(signers, state.RemainingSigners)
+	if len(remaining) == 0 {
+		state.Status = types.INITIATE_TX_STATUS_VERIFIED
+	} else {
+		state.Status = types.INITIATE_TX_STATUS_PENDING
+	}
+	if err := k.setTxState(ctx, txID, *state); err != nil {
+		return 0, err
+	}
+	return state.Status, nil
 }
 
 func getRemainingAccounts(signers, required []types.Account) []types.Account {

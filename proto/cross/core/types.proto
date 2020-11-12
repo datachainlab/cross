@@ -70,7 +70,16 @@ message ConstantValueObject {
 
 message InitiateTxState {
   option (gogoproto.equal) = false;
-  repeated Account remaining_signers = 1 [(gogoproto.nullable) = false];
+  InitiateTxStatus status = 1;
+  repeated Account remaining_signers = 2 [(gogoproto.nullable) = false];
+}
+
+enum InitiateTxStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  INITIATE_TX_STATUS_UNKNOWN   = 0;
+  INITIATE_TX_STATUS_PENDING   = 1;
+  INITIATE_TX_STATUS_VERIFIED  = 2;
 }
 
 message GenesisState {}

@@ -12,7 +12,7 @@ import (
 
 var _ types.MsgServer = Keeper{}
 
-// Initiate defines a rpc handler method for MsgInitiateTx.
+// InitiateTx defines a rpc handler method for MsgInitiateTx.
 func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*types.MsgInitiateTxResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
@@ -31,7 +31,7 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 		return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_PENDING}, nil
 	}
 
-	// Apply packet middlewares
+	// Run packet middlewares
 
 	ctx, ps, err := k.packetMiddleware.HandleMsg(ctx, msg, packets.NewBasicPacketSender(k.ChannelKeeper()))
 	if err != nil {
@@ -51,4 +51,18 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 	}
 
 	return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_VERIFIED}, nil
+}
+
+// SignTx defines a rpc handler method for MsgSignTx.
+func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgSignTxResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	var accounts []types.Account
+	for _, addr := range msg.Signers {
+		accounts = append(accounts, types.NewLocalAccount(addr))
+	}
+	status, err := k.signTx(ctx, msg.TxID, accounts)
+	if err != nil {
+		return nil, err
+	}
+	return &types.MsgSignTxResponse{Status: status}, nil
 }
