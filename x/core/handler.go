@@ -121,7 +121,6 @@ func handlePacketCallAcknowledgement(ctx sdk.Context, k simplekeeper.Keeper, pac
 	if err != nil {
 		return nil, err
 	}
-	// FIXME emit events correctly
-	// ctx.EventManager().EmitEvents(res.Events)
+	ctx.EventManager().EmitEvents(res.GetEvents())
 	return res.Data, nil
 }
