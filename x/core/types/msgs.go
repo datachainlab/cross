@@ -16,7 +16,7 @@ var _ sdk.Msg = (*MsgInitiateTx)(nil)
 
 // NewMsgInitiateTx creates a new MsgInitiateTx instance
 func NewMsgInitiateTx(
-	sender AccountAddress, chainID string, nonce uint64,
+	sender AccountID, chainID string, nonce uint64,
 	commitProtocol uint32, ctxs []ContractTransaction,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgInitiateTx {
@@ -78,8 +78,8 @@ func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
 func (msg MsgInitiateTx) GetAccounts() []Account {
 	var accs []Account
 	signers := msg.GetSigners()
-	for _, s := range signers {
-		accs = append(accs, NewLocalAccount(AccountAddress(s)))
+	for _, id := range signers {
+		accs = append(accs, NewLocalAccount(AccountID(id)))
 	}
 	return accs
 }
@@ -87,7 +87,9 @@ func (msg MsgInitiateTx) GetAccounts() []Account {
 func (msg MsgInitiateTx) GetRequiredAccounts() []Account {
 	var accs []Account
 	for _, tx := range msg.ContractTransactions {
-		accs = append(accs, tx.Signers...)
+		for _, id := range tx.Signers {
+			accs = append(accs, Account{ChainId: tx.ChainId, Id: id})
+		}
 	}
 	return accs
 }

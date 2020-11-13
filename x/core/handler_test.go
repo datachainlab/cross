@@ -50,10 +50,10 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
 	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
-	selfCh := crosstypes.ChannelInfo{}
 	cidB, err := crosstypes.PackChainID(&chAB)
 	suite.Require().NoError(err)
-	selfCid, err := crosstypes.PackChainID(&selfCh)
+	cidOurs, err := crosstypes.PackChainID(crosstypes.GetOurChainID())
+	suite.Require().NoError(err)
 
 	msg := crosstypes.NewMsgInitiateTx(
 		suite.chainA.SenderAccount.GetAddress().Bytes(),
@@ -62,17 +62,16 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 		crosstypes.CommitProtocolSimple,
 		[]crosstypes.ContractTransaction{
 			{
-				ChainId: *selfCid,
-				Signers: []crosstypes.Account{
-					crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+				ChainId: cidOurs,
+				Signers: []crosstypes.AccountID{
+					crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 				},
 				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 			},
-			// FIXME use chainB.SenderAccount instead of chainA's
 			{
-				ChainId: *cidB,
-				Signers: []crosstypes.Account{
-					crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+				ChainId: cidB,
+				Signers: []crosstypes.AccountID{
+					crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 				},
 				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},

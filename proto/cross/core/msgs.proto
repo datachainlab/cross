@@ -20,7 +20,7 @@ message MsgInitiateTx {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  bytes  sender   = 1 [(gogoproto.casttype) = "AccountAddress"];
+  bytes  sender   = 1 [(gogoproto.casttype) = "AccountID"];
   string chain_id = 2;
   uint64 nonce    = 3;
   uint32 commit_protocol = 4;
@@ -35,7 +35,7 @@ message MsgInitiateTx {
     [(gogoproto.moretags) = "yaml:\"timeout_timestamp\""];
 
   repeated cross.core.ContractTransaction contract_transactions = 7 [(gogoproto.nullable) = false];
-  repeated bytes signers = 8 [(gogoproto.casttype) = "AccountAddress"];
+  repeated bytes signers = 8 [(gogoproto.casttype) = "AccountID"];
 }
 
 // MsgInitiateTxResponse defines the Msg/InitiateTx response type.
@@ -51,7 +51,7 @@ message MsgSignTx {
   option (gogoproto.goproto_getters) = false;
 
   bytes txID = 1 [(gogoproto.casttype) = "TxID"];
-  repeated bytes signers = 2 [(gogoproto.casttype) = "AccountAddress"];
+  repeated bytes signers = 2 [(gogoproto.casttype) = "AccountID"];
 }
 
 // MsgSignTxResponse defines the Msg/SignTx response type.

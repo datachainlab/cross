@@ -74,15 +74,11 @@ func makeLazyObject(f func() returnObject) lazyObject {
 }
 
 // MakeObjectKey returns a key that can be used to identify a contract call
-func MakeObjectKey(callInfo ContractCallInfo, signers []Account) []byte {
+func MakeObjectKey(callInfo ContractCallInfo, signers []AccountID) []byte {
 	h := tmhash.New()
 	h.Write(callInfo)
 	for _, signer := range signers {
-		bz, err := proto.Marshal(&signer)
-		if err != nil {
-			panic(err)
-		}
-		h.Write(bz)
+		h.Write(signer)
 	}
 	return h.Sum(nil)
 }

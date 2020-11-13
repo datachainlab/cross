@@ -6,7 +6,7 @@ import (
 	"math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/codec/types"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/gogo/protobuf/proto"
 )
@@ -17,29 +17,49 @@ type TxIndex = uint8
 
 type TxIndexSlice = []TxIndex
 
-type AccountAddress []byte
+type AccountID []byte
 
-func (ac AccountAddress) AccAddress() sdk.AccAddress {
-	return sdk.AccAddress(ac)
+func (id AccountID) AccAddress() sdk.AccAddress {
+	return sdk.AccAddress(id)
 }
 
 // Account definition
 
-func NewAccount(chainID *types.Any, address AccountAddress) Account {
-	return Account{ChainId: chainID, Address: address}
+// NewAccount creates a new instance of Account
+func NewAccount(chainID ChainID, id AccountID) Account {
+	var anyChainID *codectypes.Any
+	if chainID != nil {
+		var err error
+		anyChainID, err = PackChainID(chainID)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return Account{ChainId: anyChainID, Id: id}
 }
 
-func NewLocalAccount(address AccountAddress) Account {
-	return NewAccount(nil, address)
+// NewLocalAccount creates a new instance of Account
+func NewLocalAccount(id AccountID) Account {
+	return NewAccount(nil, id)
 }
 
+// IsLocalAccount returns a boolean value whether the account is LocalAccount.
 func (acc Account) IsLocalAccount() bool {
 	return acc.ChainId == nil
 }
 
+// GetChainID returns ChainID
+func (acc Account) GetChainID(m codec.Marshaler) ChainID {
+	chainID, err := UnpackChainID(m, *acc.ChainId)
+	if err != nil {
+		panic(err)
+	}
+	return chainID
+}
+
 func (tx ContractTransaction) GetChainID(m codec.Marshaler) (ChainID, error) {
 	var chainID ChainID
-	if err := m.UnpackAny(&tx.ChainId, &chainID); err != nil {
+	if err := m.UnpackAny(tx.ChainId, &chainID); err != nil {
 		return nil, err
 	}
 	return chainID, nil
@@ -132,9 +152,15 @@ func (ci *ChannelInfo) Equal(other ChainID) bool {
 	return ci == other
 }
 
+// GetOurChainID returns our chainID
+func GetOurChainID() ChainID {
+	return &ChannelInfo{}
+}
+
 // ChannelResolver defines the interface of resolver resolves chainID to ChannelInfo
-type ChannelResolver interface {
+type ChannelResolver interface { // TODO rename to ChainResolver?
 	Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
+	ConvertChainID(ctx sdk.Context, src ChainID, base ChainID) (ChainID, error)
 	Capabilities() ChannelResolverCapabilities
 }
 
@@ -165,6 +191,10 @@ func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*Channel
 		return nil, fmt.Errorf("cannot resolve '%v'", chainID)
 	}
 	return ci, nil
+}
+
+func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, src ChainID, base ChainID) (ChainID, error) {
+	panic("not implemented error")
 }
 
 // Capabilities implements ChannelResolver.Capabilities

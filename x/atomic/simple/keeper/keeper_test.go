@@ -122,24 +122,24 @@ func (suite *KeeperTestSuite) TestCall() {
 
 			txID := []byte(fmt.Sprintf("txid-%v", i))
 			chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
-			selfCh := crosstypes.ChannelInfo{}
 			cidB, err := crosstypes.PackChainID(&chAB)
 			suite.Require().NoError(err)
-			selfCid, err := crosstypes.PackChainID(&selfCh)
+			cidOurs, err := crosstypes.PackChainID(crosstypes.GetOurChainID())
+			suite.Require().NoError(err)
 
 			kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
 			txs := []crosstypes.ContractTransaction{
 				{
-					ChainId: *selfCid,
-					Signers: []crosstypes.Account{
-						crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+					ChainId: cidOurs,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 					},
 					CallInfo: c.callinfos[0],
 				},
 				{
-					ChainId: *cidB,
-					Signers: []crosstypes.Account{
-						crosstypes.NewLocalAccount(crosstypes.AccountAddress(suite.chainA.SenderAccount.GetAddress())),
+					ChainId: cidB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: c.callinfos[1],
 				},

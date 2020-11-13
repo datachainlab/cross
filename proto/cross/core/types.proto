@@ -11,14 +11,14 @@ option (gogoproto.goproto_getters_all) = false;
 message Account {
   option (gogoproto.equal) = true;
   google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = true];
-  bytes address                = 2 [(gogoproto.casttype) = "AccountAddress"];
+  bytes id                     = 2 [(gogoproto.casttype) = "AccountID"];
 }
 
 message ContractTransaction {
   option (gogoproto.equal) = false;
 
-  google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = false];
-  repeated Account signers     = 2 [(gogoproto.nullable) = false];
+  google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = true];
+  repeated bytes signers       = 2 [(gogoproto.casttype) = "AccountID"];
   bytes call_info = 3 [(gogoproto.casttype) = "ContractCallInfo"];
   StateConstraint state_constraint = 4 [(gogoproto.nullable) = false];
   ReturnValue return_value = 5;
