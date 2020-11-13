@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 
@@ -157,34 +158,43 @@ func GetOurChainID() ChainID {
 	return &ChannelInfo{}
 }
 
-// ChannelResolver defines the interface of resolver resolves chainID to ChannelInfo
-type ChannelResolver interface { // TODO rename to ChainResolver?
+// ChainResolver defines the interface of resolver resolves chainID to ChannelInfo
+type ChainResolver interface {
 	Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
-	ConvertChainID(ctx sdk.Context, src ChainID, base ChainID) (ChainID, error)
-	Capabilities() ChannelResolverCapabilities
+	ConvertChainID(ctx sdk.Context, calleeID ChainID, callerID ChainID) (calleeOnCaller ChainID, err error)
+	Capabilities() ChainResolverCapabilities
 }
 
-// ChannelResolverCapabilities defines the capabilities for the ChannelResolver
-type ChannelResolverCapabilities interface {
+// ChainResolverCapabilities defines the capabilities for the ChainResolver
+type ChainResolverCapabilities interface {
 	// CrossChainCalls returns true if support for cross-chain calls is enabled.
 	CrossChainCalls() bool
 }
 
-type channelResolverCapabilities struct {
+type chainResolverCapabilities struct {
 	crossChainCalls bool
 }
 
-// CrossChainCalls implements ChannelResolverCapabilities.CrossChainCalls
-func (c channelResolverCapabilities) CrossChainCalls() bool {
+// CrossChainCalls implements ChainResolverCapabilities.CrossChainCalls
+func (c chainResolverCapabilities) CrossChainCalls() bool {
 	return c.crossChainCalls
 }
 
 // ChannelInfoResolver just returns a given ChannelInfo as is.
-type ChannelInfoResolver struct{}
+type ChannelInfoResolver struct {
+	channelKeeper ChannelKeeper
+}
 
-var _ ChannelResolver = (*ChannelInfoResolver)(nil)
+// NewChannelInfoResolver creates a new instance of ChannelInfoResolver
+func NewChannelInfoResolver(channelKeeper ChannelKeeper) ChannelInfoResolver {
+	return ChannelInfoResolver{
+		channelKeeper: channelKeeper,
+	}
+}
 
-// Resolve implements ChannelResolver.ResResolve
+var _ ChainResolver = (*ChannelInfoResolver)(nil)
+
+// Resolve implements ChainResolver.Resolve
 func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error) {
 	ci, ok := chainID.(*ChannelInfo)
 	if !ok {
@@ -193,13 +203,42 @@ func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*Channel
 	return ci, nil
 }
 
-func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, src ChainID, base ChainID) (ChainID, error) {
-	panic("not implemented error")
+// ConvertChainID returns a chainID of callee in caller's context
+func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, callee ChainID, caller ChainID) (ChainID, error) {
+	ours := GetOurChainID()
+	ourChannelInfo, ok := ours.(*ChannelInfo)
+	if !ok {
+		return nil, errors.New("our chainID must be *ChannelInfo type")
+	}
+	calleeChannelInfo, ok := callee.(*ChannelInfo)
+	if !ok {
+		return nil, errors.New("callee's chainID must be *ChannelInfo type")
+	}
+	callerChannelInfo, ok := caller.(*ChannelInfo)
+	if !ok {
+		return nil, errors.New("caller's chainID must be *ChannelInfo type")
+	}
+	isLocalCallee := calleeChannelInfo == ourChannelInfo
+	isLocalCaller := callerChannelInfo == ourChannelInfo
+
+	if !isLocalCallee && !isLocalCaller {
+		return nil, fmt.Errorf("either callee or caller must be our chain")
+	} else if !isLocalCallee {
+		return calleeChannelInfo, nil
+	} else if !isLocalCaller {
+		calleeChannel, found := r.channelKeeper.GetChannel(ctx, calleeChannelInfo.Channel, calleeChannelInfo.Port)
+		if !found {
+			return nil, fmt.Errorf("channel '%v' not found", calleeChannel.String())
+		}
+		return &ChannelInfo{Port: calleeChannel.GetCounterparty().GetPortID(), Channel: calleeChannel.GetCounterparty().GetChannelID()}, nil
+	} else {
+		return calleeChannelInfo, nil
+	}
 }
 
-// Capabilities implements ChannelResolver.Capabilities
-func (r ChannelInfoResolver) Capabilities() ChannelResolverCapabilities {
-	return channelResolverCapabilities{crossChainCalls: false}
+// Capabilities implements ChainResolver.Capabilities
+func (r ChannelInfoResolver) Capabilities() ChainResolverCapabilities {
+	return chainResolverCapabilities{crossChainCalls: false}
 }
 
 func NewContractTransactionInfo(tx ContractTransaction, linkObjects []Object) ContractTransactionInfo {

@@ -333,7 +333,7 @@ func NewSimApp(
 		appCodec, keys[crosstypes.StoreKey],
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper, packets.NewNOPPacketMiddleware(),
-		samplemodModule, crossstoretypes.DefaultContractHandleDecorators(), crosstypes.ChannelInfoResolver{}, xstore,
+		samplemodModule, crossstoretypes.DefaultContractHandleDecorators(), crosstypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper), xstore,
 	)
 	crossModule := cross.NewAppModule(appCodec, app.CrossKeeper)
 

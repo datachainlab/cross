@@ -7,25 +7,28 @@ import (
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
 // Linker resolves links that each ContractTransaction has.
 type Linker struct {
-	objects map[TxIndex]lazyObject
+	cdc           codec.Marshaler
+	chainResolver ChainResolver
+	objects       map[TxIndex]lazyObject
 }
 
 // MakeLinker returns Linker
-func MakeLinker(m codec.Marshaler, txs []ContractTransaction) (*Linker, error) {
-	lkr := Linker{objects: make(map[TxIndex]lazyObject, len(txs))}
+func MakeLinker(cdc codec.Marshaler, chainResolver ChainResolver, txs []ContractTransaction) (*Linker, error) {
+	lkr := Linker{cdc: cdc, objects: make(map[TxIndex]lazyObject, len(txs))}
 	for i, tx := range txs {
 		idx := TxIndex(i)
 		lkr.objects[idx] = makeLazyObject(func() returnObject {
 			if tx.ReturnValue.IsNil() {
 				return returnObject{err: errors.New("On cross-chain call, each contractTransaction must be specified a return-value")}
 			}
-			chainID, err := tx.GetChainID(m)
+			chainID, err := tx.GetChainID(lkr.cdc)
 			if err != nil {
 				return returnObject{err: err}
 			}
@@ -37,7 +40,7 @@ func MakeLinker(m codec.Marshaler, txs []ContractTransaction) (*Linker, error) {
 }
 
 // Resolve resolves given links and returns resolved Object
-func (lkr Linker) Resolve(lks []Link) ([]Object, error) {
+func (lkr Linker) Resolve(ctx sdk.Context, callerID ChainID, lks []Link) ([]Object, error) {
 	var objects []Object
 	for _, lk := range lks {
 		idx := lk.GetSrcIndex()
@@ -49,7 +52,13 @@ func (lkr Linker) Resolve(lks []Link) ([]Object, error) {
 		if ret.err != nil {
 			return nil, ret.err
 		}
-		objects = append(objects, ret.obj)
+		calleeID := ret.obj.GetChainID(lkr.cdc)
+		chainID, err := lkr.chainResolver.ConvertChainID(ctx, calleeID, callerID)
+		if err != nil {
+			return nil, err
+		}
+		obj := ret.obj.WithChainID(lkr.cdc, chainID)
+		objects = append(objects, obj)
 	}
 	return objects, nil
 }
@@ -97,6 +106,7 @@ type Object interface {
 	Type() ObjectType
 	Key() []byte
 	GetChainID(m codec.Marshaler) ChainID
+	WithChainID(m codec.Marshaler, chainID ChainID) Object
 	Evaluate([]byte) ([]byte, error)
 }
 
@@ -116,17 +126,27 @@ func MakeConstantValueObject(chainID ChainID, key []byte, value []byte) Constant
 }
 
 // Type implements Object.Type
-func (l ConstantValueObject) Type() ObjectType {
+func (ConstantValueObject) Type() ObjectType {
 	return ObjectTypeConstantValue
 }
 
 // GetChainID implements Object.GetChainID
-func (l ConstantValueObject) GetChainID(m codec.Marshaler) ChainID {
-	chainID, err := UnpackChainID(m, l.ChainId)
+func (obj ConstantValueObject) GetChainID(m codec.Marshaler) ChainID {
+	chainID, err := UnpackChainID(m, obj.ChainId)
 	if err != nil {
 		panic(err)
 	}
 	return chainID
+}
+
+// WithChainID implements Object.WithChainID
+func (obj ConstantValueObject) WithChainID(m codec.Marshaler, chainID ChainID) Object {
+	anyChainID, err := PackChainID(chainID)
+	if err != nil {
+		panic(err)
+	}
+	obj.ChainId = *anyChainID
+	return &obj
 }
 
 // Key implements Object.Key
