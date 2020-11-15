@@ -23,9 +23,12 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case *types.MsgInitiateTx:
 			res, err := k.InitiateTx(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
-		// case *types.MsgSignTx:
-		// 	res, err := k.SignTx(sdk.WrapSDKContext(ctx), msg)
-		// 	return sdk.WrapServiceResult(ctx, res, err)
+		case *types.MsgSignTx:
+			res, err := k.SignTx(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
+		case *types.MsgIBCSignTx:
+			res, err := k.IBCSignTx(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
@@ -101,9 +104,9 @@ func NewPacketAcknowledgementReceiver(cdc codec.Marshaler, keeper keeper.Keeper,
 		_ = ps
 		var resData []byte
 		switch ack := ack.Payload().(type) {
-		case *simpletypes.PacketCallAcknowledgement:
+		case *simpletypes.PacketAcknowledgementCall:
 			payload := pi.Payload().(*simpletypes.PacketDataCall)
-			resData, err = handlePacketCallAcknowledgement(ctx, keeper.SimpleKeeper(), packet, *ack, *payload)
+			resData, err = handlePacketAcknowledgementCall(ctx, keeper.SimpleKeeper(), packet, *ack, *payload)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC ack type: %T", ack)
 		}
@@ -115,7 +118,7 @@ func NewPacketAcknowledgementReceiver(cdc codec.Marshaler, keeper keeper.Keeper,
 	}
 }
 
-func handlePacketCallAcknowledgement(ctx sdk.Context, k simplekeeper.Keeper, packet channeltypes.Packet, ack simpletypes.PacketCallAcknowledgement, payload simpletypes.PacketDataCall) ([]byte, error) {
+func handlePacketAcknowledgementCall(ctx sdk.Context, k simplekeeper.Keeper, packet channeltypes.Packet, ack simpletypes.PacketAcknowledgementCall, payload simpletypes.PacketDataCall) ([]byte, error) {
 	isCommitable, err := k.ReceiveCallAcknowledgement(ctx, packet.SourcePort, packet.SourceChannel, ack, payload.TxId)
 	if err != nil {
 		return nil, err

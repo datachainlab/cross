@@ -22,13 +22,13 @@ func (p PacketDataCall) ValidateBasic() error {
 	return nil
 }
 
-var _ packets.PacketDataPayload = (*PacketCallAcknowledgement)(nil)
+var _ packets.PacketDataPayload = (*PacketAcknowledgementCall)(nil)
 
-// NewPacketCallAcknowledgement creates a new instance of PacketCallAcknowledgement
-func NewPacketCallAcknowledgement(status CommitStatus) *PacketCallAcknowledgement {
-	return &PacketCallAcknowledgement{Status: status}
+// NewPacketAcknowledgementCall creates a new instance of PacketAcknowledgementCall
+func NewPacketAcknowledgementCall(status CommitStatus) *PacketAcknowledgementCall {
+	return &PacketAcknowledgementCall{Status: status}
 }
 
-func (a PacketCallAcknowledgement) ValidateBasic() error {
+func (a PacketAcknowledgementCall) ValidateBasic() error {
 	return nil
 }

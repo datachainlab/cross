@@ -6,6 +6,7 @@ package types
 import (
 	context "context"
 	fmt "fmt"
+	types1 "github.com/cosmos/cosmos-sdk/codec/types"
 	types "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	grpc1 "github.com/gogo/protobuf/grpc"
@@ -118,6 +119,12 @@ var xxx_messageInfo_MsgInitiateTxResponse proto.InternalMessageInfo
 type MsgSignTx struct {
 	TxID    TxID        `protobuf:"bytes,1,opt,name=txID,proto3,casttype=TxID" json:"txID,omitempty"`
 	Signers []AccountID `protobuf:"bytes,2,rep,name=signers,proto3,casttype=AccountID" json:"signers,omitempty"`
+	// Timeout height relative to the current block height.
+	// The timeout is disabled when set to 0.
+	TimeoutHeight types.Height `protobuf:"bytes,3,opt,name=timeout_height,json=timeoutHeight,proto3" json:"timeout_height" yaml:"timeout_height"`
+	// Timeout timestamp (in nanoseconds) relative to the current block timestamp.
+	// The timeout is disabled when set to 0.
+	TimeoutTimestamp uint64 `protobuf:"varint,4,opt,name=timeout_timestamp,json=timeoutTimestamp,proto3" json:"timeout_timestamp,omitempty" yaml:"timeout_timestamp"`
 }
 
 func (m *MsgSignTx) Reset()         { *m = MsgSignTx{} }
@@ -191,53 +198,146 @@ func (m *MsgSignTxResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSignTxResponse proto.InternalMessageInfo
 
+type MsgIBCSignTx struct {
+	ChainId *types1.Any `protobuf:"bytes,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	TxID    TxID        `protobuf:"bytes,2,opt,name=txID,proto3,casttype=TxID" json:"txID,omitempty"`
+	Signers []AccountID `protobuf:"bytes,3,rep,name=signers,proto3,casttype=AccountID" json:"signers,omitempty"`
+	// Timeout height relative to the current block height.
+	// The timeout is disabled when set to 0.
+	TimeoutHeight types.Height `protobuf:"bytes,4,opt,name=timeout_height,json=timeoutHeight,proto3" json:"timeout_height" yaml:"timeout_height"`
+	// Timeout timestamp (in nanoseconds) relative to the current block timestamp.
+	// The timeout is disabled when set to 0.
+	TimeoutTimestamp uint64 `protobuf:"varint,5,opt,name=timeout_timestamp,json=timeoutTimestamp,proto3" json:"timeout_timestamp,omitempty" yaml:"timeout_timestamp"`
+}
+
+func (m *MsgIBCSignTx) Reset()         { *m = MsgIBCSignTx{} }
+func (m *MsgIBCSignTx) String() string { return proto.CompactTextString(m) }
+func (*MsgIBCSignTx) ProtoMessage()    {}
+func (*MsgIBCSignTx) Descriptor() ([]byte, []int) {
+	return fileDescriptor_73f0ea9ff29132cf, []int{4}
+}
+func (m *MsgIBCSignTx) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgIBCSignTx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgIBCSignTx.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgIBCSignTx) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgIBCSignTx.Merge(m, src)
+}
+func (m *MsgIBCSignTx) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgIBCSignTx) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgIBCSignTx.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgIBCSignTx proto.InternalMessageInfo
+
+// MsgIBCSignTxResponse defines the Msg/IBCSignTx response type.
+type MsgIBCSignTxResponse struct {
+	Status uint32 `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (m *MsgIBCSignTxResponse) Reset()         { *m = MsgIBCSignTxResponse{} }
+func (m *MsgIBCSignTxResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgIBCSignTxResponse) ProtoMessage()    {}
+func (*MsgIBCSignTxResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_73f0ea9ff29132cf, []int{5}
+}
+func (m *MsgIBCSignTxResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgIBCSignTxResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgIBCSignTxResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgIBCSignTxResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgIBCSignTxResponse.Merge(m, src)
+}
+func (m *MsgIBCSignTxResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgIBCSignTxResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgIBCSignTxResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgIBCSignTxResponse proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*MsgInitiateTx)(nil), "cross.core.MsgInitiateTx")
 	proto.RegisterType((*MsgInitiateTxResponse)(nil), "cross.core.MsgInitiateTxResponse")
 	proto.RegisterType((*MsgSignTx)(nil), "cross.core.MsgSignTx")
 	proto.RegisterType((*MsgSignTxResponse)(nil), "cross.core.MsgSignTxResponse")
+	proto.RegisterType((*MsgIBCSignTx)(nil), "cross.core.MsgIBCSignTx")
+	proto.RegisterType((*MsgIBCSignTxResponse)(nil), "cross.core.MsgIBCSignTxResponse")
 }
 
 func init() { proto.RegisterFile("cross/core/msgs.proto", fileDescriptor_73f0ea9ff29132cf) }
 
 var fileDescriptor_73f0ea9ff29132cf = []byte{
-	// 576 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x93, 0x31, 0x6f, 0xda, 0x4e,
-	0x18, 0xc6, 0xed, 0x40, 0x08, 0x5c, 0xfe, 0xf0, 0x6f, 0x4e, 0x50, 0x39, 0x88, 0xd8, 0x2e, 0x52,
-	0x15, 0xab, 0x83, 0xad, 0xd0, 0x4e, 0x19, 0x2a, 0x95, 0x32, 0xc4, 0x95, 0x90, 0x2a, 0x83, 0x54,
-	0x29, 0xaa, 0x44, 0xcd, 0x71, 0x32, 0x27, 0xe1, 0x3b, 0xe4, 0x3b, 0x22, 0xf2, 0x0d, 0x3a, 0xb6,
-	0xdf, 0x20, 0x1f, 0x87, 0xa1, 0x43, 0xc6, 0x4e, 0xa8, 0x85, 0xa5, 0x73, 0xc6, 0x4c, 0x15, 0xf6,
-	0x01, 0xa6, 0x69, 0xa5, 0x0e, 0x9d, 0xb8, 0x7b, 0xde, 0xdf, 0x3d, 0x3c, 0xbe, 0xf7, 0x5e, 0x50,
-	0x41, 0x11, 0xe3, 0xdc, 0x41, 0x2c, 0xc2, 0x4e, 0xc8, 0x03, 0x6e, 0x8f, 0x23, 0x26, 0x18, 0x04,
-	0xb1, 0x6c, 0xaf, 0xe4, 0x6a, 0x39, 0x60, 0x01, 0x8b, 0x65, 0x67, 0xb5, 0x4a, 0x88, 0xaa, 0x41,
-	0xfa, 0x28, 0x39, 0x86, 0x46, 0x04, 0x53, 0xe1, 0x5c, 0x9d, 0xc9, 0x95, 0x04, 0x1e, 0xa7, 0x9c,
-	0xc5, 0xf5, 0x18, 0x4b, 0xeb, 0xfa, 0x97, 0x0c, 0x28, 0xb6, 0x79, 0xe0, 0x52, 0x22, 0x88, 0x2f,
-	0x70, 0x77, 0x0a, 0x9f, 0x82, 0x1c, 0xc7, 0x74, 0x80, 0x23, 0x4d, 0x35, 0x55, 0xeb, 0xbf, 0x66,
-	0xf1, 0x7e, 0x6e, 0x14, 0x5e, 0x21, 0xc4, 0x26, 0x54, 0xb8, 0x2d, 0x4f, 0x16, 0xe1, 0x31, 0xc8,
-	0xa3, 0xa1, 0x4f, 0x68, 0x8f, 0x0c, 0xb4, 0x3d, 0x53, 0xb5, 0x0a, 0xde, 0x41, 0xbc, 0x77, 0x07,
-	0xb0, 0x0c, 0xf6, 0x29, 0xa3, 0x08, 0x6b, 0x19, 0x53, 0xb5, 0xb2, 0x5e, 0xb2, 0x81, 0xa7, 0xe0,
-	0x7f, 0xc4, 0xc2, 0x90, 0x88, 0x5e, 0xfc, 0xcf, 0x88, 0x8d, 0xb4, 0xac, 0xa9, 0x5a, 0x45, 0xaf,
-	0x94, 0xc8, 0x6f, 0xa5, 0x0a, 0x3f, 0x80, 0x92, 0x20, 0x21, 0x66, 0x13, 0xd1, 0x1b, 0x62, 0x12,
-	0x0c, 0x85, 0xb6, 0x6f, 0xaa, 0xd6, 0x61, 0xa3, 0x6a, 0x93, 0x3e, 0x8a, 0x2f, 0xc1, 0x96, 0x9f,
-	0x76, 0x75, 0x66, 0x5f, 0xc4, 0x44, 0xf3, 0x64, 0x36, 0x37, 0x94, 0xbb, 0xb9, 0x51, 0xb9, 0xf6,
-	0xc3, 0xd1, 0x79, 0x7d, 0xf7, 0x7c, 0xdd, 0x2b, 0x4a, 0x21, 0xa1, 0xa1, 0x0b, 0x8e, 0xd6, 0xc4,
-	0xea, 0x97, 0x0b, 0x3f, 0x1c, 0x6b, 0xb9, 0x55, 0xd8, 0x66, 0xed, 0x6e, 0x6e, 0x68, 0xbb, 0x26,
-	0x1b, 0xa4, 0xee, 0x3d, 0x92, 0x5a, 0x77, 0x2d, 0xc1, 0x4b, 0x50, 0x41, 0x8c, 0x8a, 0xc8, 0x47,
-	0xa2, 0x27, 0x22, 0x9f, 0x72, 0x1f, 0x09, 0xc2, 0x28, 0xd7, 0x0e, 0xcc, 0x8c, 0x75, 0xd8, 0x30,
-	0xec, 0x6d, 0xeb, 0xec, 0xd7, 0x12, 0xec, 0x6e, 0xb9, 0x66, 0x76, 0x15, 0xdc, 0x2b, 0xa3, 0x87,
-	0x25, 0x0e, 0x4f, 0xc1, 0x01, 0x27, 0x01, 0xc5, 0x11, 0xd7, 0xf2, 0x66, 0xe6, 0x61, 0x2b, 0xd6,
-	0xd5, 0xf3, 0xfc, 0xc7, 0x1b, 0x43, 0xf9, 0x71, 0x63, 0x28, 0xf5, 0x77, 0xa0, 0xb2, 0xd3, 0x4d,
-	0x0f, 0xf3, 0x31, 0xa3, 0x1c, 0xc3, 0x17, 0x20, 0xc7, 0x85, 0x2f, 0x26, 0x3c, 0xee, 0x6a, 0xa9,
-	0x51, 0x4b, 0x07, 0xdb, 0xf2, 0x9d, 0x98, 0xf1, 0x24, 0x9b, 0x32, 0x7e, 0x0f, 0x0a, 0x6d, 0x1e,
-	0x74, 0x48, 0x40, 0xbb, 0x53, 0x58, 0x03, 0x59, 0x31, 0x75, 0x5b, 0xf2, 0x81, 0xe4, 0xef, 0xe7,
-	0x46, 0xb6, 0x3b, 0x75, 0x5b, 0x5e, 0xac, 0xa6, 0x63, 0xef, 0xfd, 0x65, 0xec, 0x0e, 0x38, 0xda,
-	0xb8, 0xff, 0xab, 0xc8, 0x8d, 0xcf, 0x2a, 0xc8, 0xb4, 0x79, 0x00, 0xdf, 0x00, 0x90, 0x7a, 0xde,
-	0xc7, 0x69, 0x97, 0x9d, 0xbb, 0xaa, 0x3e, 0xf9, 0x63, 0x69, 0x93, 0xe9, 0x25, 0xc8, 0xc9, 0x3b,
-	0xa8, 0xfc, 0x02, 0x27, 0x72, 0xf5, 0xe4, 0xb7, 0xf2, 0xfa, 0x7c, 0xf3, 0x62, 0xf6, 0x5d, 0x57,
-	0x66, 0x0b, 0x5d, 0xbd, 0x5d, 0xe8, 0xea, 0xb7, 0x85, 0xae, 0x7e, 0x5a, 0xea, 0xca, 0xed, 0x52,
-	0x57, 0xbe, 0x2e, 0x75, 0xe5, 0xf2, 0x59, 0x40, 0xc4, 0x70, 0xd2, 0xb7, 0x11, 0x0b, 0x9d, 0x81,
-	0x2f, 0xfc, 0x78, 0xa0, 0x46, 0x7e, 0xdf, 0x49, 0x86, 0x77, 0x9a, 0x1a, 0xdf, 0x7e, 0x2e, 0x9e,
-	0xa2, 0xe7, 0x3f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x7c, 0xef, 0xfd, 0x85, 0x33, 0x04, 0x00, 0x00,
+	// 693 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x95, 0xcd, 0x6a, 0xdb, 0x4a,
+	0x14, 0xc7, 0x25, 0x4b, 0x71, 0xec, 0x49, 0x9c, 0x7b, 0x23, 0xec, 0xa0, 0x98, 0x44, 0xd2, 0x35,
+	0x5c, 0x62, 0xee, 0x42, 0x22, 0xbe, 0x2d, 0x94, 0x2c, 0x0a, 0x71, 0x02, 0x8d, 0x0b, 0x81, 0xa2,
+	0x18, 0x0a, 0xd9, 0xb8, 0xf2, 0x58, 0x95, 0x07, 0xac, 0x19, 0xa3, 0x19, 0x07, 0xfb, 0x0d, 0xda,
+	0x5d, 0x1f, 0x21, 0xef, 0xd2, 0x4d, 0x16, 0x5d, 0x64, 0x59, 0xba, 0x30, 0x6d, 0xb2, 0xe9, 0x3a,
+	0xcb, 0xac, 0x8a, 0x47, 0x23, 0x5b, 0xce, 0x47, 0x4b, 0x3f, 0xc8, 0xca, 0xa3, 0xff, 0xf9, 0x6b,
+	0xce, 0xf1, 0xf9, 0x9d, 0x19, 0x81, 0x12, 0x8c, 0x08, 0xa5, 0x0e, 0x24, 0x91, 0xef, 0x84, 0x34,
+	0xa0, 0x76, 0x3f, 0x22, 0x8c, 0x68, 0x80, 0xcb, 0xf6, 0x44, 0x2e, 0xaf, 0x07, 0x84, 0x04, 0x3d,
+	0xdf, 0xe1, 0x91, 0xf6, 0xe0, 0xb5, 0xe3, 0xe1, 0x51, 0x6c, 0x2b, 0x17, 0x03, 0x12, 0x10, 0xbe,
+	0x74, 0x26, 0x2b, 0xa1, 0x9a, 0xa8, 0x0d, 0xe3, 0x1d, 0x61, 0x0f, 0xf9, 0x98, 0x39, 0x27, 0xdb,
+	0x62, 0x25, 0x0c, 0x6b, 0xa9, 0xa4, 0x6c, 0xd4, 0xf7, 0x45, 0xd6, 0xca, 0x07, 0x05, 0x14, 0x0e,
+	0x69, 0xd0, 0xc0, 0x88, 0x21, 0x8f, 0xf9, 0xcd, 0xa1, 0xf6, 0x2f, 0xc8, 0x52, 0x1f, 0x77, 0xfc,
+	0x48, 0x97, 0x2d, 0xb9, 0xba, 0x5c, 0x2f, 0x5c, 0x8f, 0xcd, 0xfc, 0x2e, 0x84, 0x64, 0x80, 0x59,
+	0x63, 0xdf, 0x15, 0x41, 0x6d, 0x1d, 0xe4, 0x60, 0xd7, 0x43, 0xb8, 0x85, 0x3a, 0x7a, 0xc6, 0x92,
+	0xab, 0x79, 0x77, 0x91, 0x3f, 0x37, 0x3a, 0x5a, 0x11, 0x2c, 0x60, 0x82, 0xa1, 0xaf, 0x2b, 0x96,
+	0x5c, 0x55, 0xdd, 0xf8, 0x41, 0xdb, 0x02, 0x7f, 0x41, 0x12, 0x86, 0x88, 0xb5, 0x78, 0x66, 0x48,
+	0x7a, 0xba, 0x6a, 0xc9, 0xd5, 0x82, 0xbb, 0x12, 0xcb, 0x2f, 0x84, 0xaa, 0xbd, 0x02, 0x2b, 0x0c,
+	0x85, 0x3e, 0x19, 0xb0, 0x56, 0xd7, 0x47, 0x41, 0x97, 0xe9, 0x0b, 0x96, 0x5c, 0x5d, 0xaa, 0x95,
+	0x6d, 0xd4, 0x86, 0xbc, 0x3f, 0xb6, 0xf8, 0x6b, 0x27, 0xdb, 0xf6, 0x01, 0x77, 0xd4, 0x37, 0xcf,
+	0xc6, 0xa6, 0x74, 0x35, 0x36, 0x4b, 0x23, 0x2f, 0xec, 0xed, 0x54, 0xe6, 0xdf, 0xaf, 0xb8, 0x05,
+	0x21, 0xc4, 0x6e, 0xad, 0x01, 0x56, 0x13, 0xc7, 0xe4, 0x97, 0x32, 0x2f, 0xec, 0xeb, 0xd9, 0x49,
+	0xb1, 0xf5, 0x8d, 0xab, 0xb1, 0xa9, 0xcf, 0x6f, 0x32, 0xb5, 0x54, 0xdc, 0xbf, 0x85, 0xd6, 0x4c,
+	0x24, 0xed, 0x18, 0x94, 0x20, 0xc1, 0x2c, 0xf2, 0x20, 0x6b, 0xb1, 0xc8, 0xc3, 0xd4, 0x83, 0x0c,
+	0x11, 0x4c, 0xf5, 0x45, 0x4b, 0xa9, 0x2e, 0xd5, 0x4c, 0x7b, 0x46, 0xd5, 0xde, 0x13, 0xc6, 0xe6,
+	0xcc, 0x57, 0x57, 0x27, 0x85, 0xbb, 0x45, 0x78, 0x3b, 0x44, 0xb5, 0x2d, 0xb0, 0x48, 0x51, 0x80,
+	0xfd, 0x88, 0xea, 0x39, 0x4b, 0xb9, 0x8d, 0x22, 0x89, 0xee, 0xe4, 0xde, 0x9c, 0x9a, 0xd2, 0xd7,
+	0x53, 0x53, 0xaa, 0xbc, 0x04, 0xa5, 0x39, 0x9a, 0xae, 0x4f, 0xfb, 0x04, 0x53, 0x5f, 0x7b, 0x04,
+	0xb2, 0x94, 0x79, 0x6c, 0x40, 0x39, 0xd5, 0x95, 0xda, 0x46, 0xba, 0xb0, 0x99, 0xff, 0x88, 0x7b,
+	0x5c, 0xe1, 0x4d, 0x6d, 0xfc, 0x36, 0x03, 0xf2, 0x87, 0x34, 0x38, 0x42, 0x01, 0x6e, 0x0e, 0xb5,
+	0x0d, 0xa0, 0xb2, 0x61, 0x63, 0x5f, 0x4c, 0x48, 0xee, 0x7a, 0x6c, 0xaa, 0xcd, 0x61, 0x63, 0xdf,
+	0xe5, 0x6a, 0xba, 0xee, 0xcc, 0xf7, 0xea, 0xbe, 0x83, 0xb4, 0xf2, 0x10, 0xa4, 0xd5, 0x5f, 0x21,
+	0x9d, 0xea, 0xc5, 0x11, 0x58, 0x9d, 0xb6, 0xe2, 0x8f, 0x35, 0xf8, 0x7d, 0x06, 0x2c, 0x4f, 0xd0,
+	0xd5, 0xf7, 0x44, 0x8f, 0x1f, 0xa7, 0x0e, 0x98, 0xcc, 0xdb, 0x52, 0xb4, 0xe3, 0x6b, 0xc1, 0x4e,
+	0xae, 0x05, 0x7b, 0x17, 0x8f, 0xf8, 0x04, 0xc9, 0xb3, 0xc3, 0x97, 0xa0, 0xc9, 0xfc, 0x08, 0x8d,
+	0xf2, 0x93, 0x68, 0xd4, 0x87, 0x40, 0xb3, 0xf0, 0x9b, 0x68, 0x9e, 0x80, 0x62, 0xba, 0x89, 0x53,
+	0x3a, 0x6b, 0x73, 0x74, 0x0a, 0xb7, 0xfb, 0x5f, 0xfb, 0x24, 0x03, 0xe5, 0x90, 0x06, 0xda, 0x73,
+	0x00, 0x52, 0x97, 0xe1, 0x7a, 0x9a, 0xe2, 0xdc, 0xc9, 0x2a, 0xff, 0x73, 0x6f, 0x68, 0x9a, 0xf5,
+	0x29, 0xc8, 0x0a, 0x98, 0xa5, 0x1b, 0xe6, 0x58, 0x2e, 0x6f, 0xde, 0x29, 0x4f, 0xdf, 0x7f, 0x06,
+	0xf2, 0xb3, 0x79, 0xd0, 0x6f, 0xe6, 0x4b, 0x22, 0x65, 0xeb, 0xbe, 0x48, 0xb2, 0x51, 0xfd, 0xe0,
+	0xec, 0x8b, 0x21, 0x9d, 0x5d, 0x18, 0xf2, 0xf9, 0x85, 0x21, 0x7f, 0xbe, 0x30, 0xe4, 0x77, 0x97,
+	0x86, 0x74, 0x7e, 0x69, 0x48, 0x1f, 0x2f, 0x0d, 0xe9, 0xf8, 0xbf, 0x00, 0xb1, 0xee, 0xa0, 0x6d,
+	0x43, 0x12, 0x3a, 0x1d, 0x8f, 0x79, 0x7c, 0x94, 0x7a, 0x5e, 0xdb, 0x89, 0xbf, 0x19, 0xc3, 0xd4,
+	0x57, 0xa3, 0x9d, 0xe5, 0xb3, 0xf7, 0xff, 0xb7, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x84, 0x5e,
+	0xf6, 0xc5, 0x06, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -256,6 +356,8 @@ type MsgClient interface {
 	InitiateTx(ctx context.Context, in *MsgInitiateTx, opts ...grpc.CallOption) (*MsgInitiateTxResponse, error)
 	// SignTx defines a rpc handler method for MsgSignTx.
 	SignTx(ctx context.Context, in *MsgSignTx, opts ...grpc.CallOption) (*MsgSignTxResponse, error)
+	// IBCSignTx defines a rpc handler method for MsgIBCSignTx.
+	IBCSignTx(ctx context.Context, in *MsgIBCSignTx, opts ...grpc.CallOption) (*MsgIBCSignTxResponse, error)
 }
 
 type msgClient struct {
@@ -284,12 +386,23 @@ func (c *msgClient) SignTx(ctx context.Context, in *MsgSignTx, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *msgClient) IBCSignTx(ctx context.Context, in *MsgIBCSignTx, opts ...grpc.CallOption) (*MsgIBCSignTxResponse, error) {
+	out := new(MsgIBCSignTxResponse)
+	err := c.cc.Invoke(ctx, "/cross.core.Msg/IBCSignTx", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	// InitiateTx defines a rpc handler method for MsgInitiateTx.
 	InitiateTx(context.Context, *MsgInitiateTx) (*MsgInitiateTxResponse, error)
 	// SignTx defines a rpc handler method for MsgSignTx.
 	SignTx(context.Context, *MsgSignTx) (*MsgSignTxResponse, error)
+	// IBCSignTx defines a rpc handler method for MsgIBCSignTx.
+	IBCSignTx(context.Context, *MsgIBCSignTx) (*MsgIBCSignTxResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
@@ -301,6 +414,9 @@ func (*UnimplementedMsgServer) InitiateTx(ctx context.Context, req *MsgInitiateT
 }
 func (*UnimplementedMsgServer) SignTx(ctx context.Context, req *MsgSignTx) (*MsgSignTxResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SignTx not implemented")
+}
+func (*UnimplementedMsgServer) IBCSignTx(ctx context.Context, req *MsgIBCSignTx) (*MsgIBCSignTxResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IBCSignTx not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
@@ -343,6 +459,24 @@ func _Msg_SignTx_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Msg_IBCSignTx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgIBCSignTx)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).IBCSignTx(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cross.core.Msg/IBCSignTx",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).IBCSignTx(ctx, req.(*MsgIBCSignTx))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cross.core.Msg",
 	HandlerType: (*MsgServer)(nil),
@@ -354,6 +488,10 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SignTx",
 			Handler:    _Msg_SignTx_Handler,
+		},
+		{
+			MethodName: "IBCSignTx",
+			Handler:    _Msg_IBCSignTx_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -493,6 +631,21 @@ func (m *MsgSignTx) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.TimeoutTimestamp != 0 {
+		i = encodeVarintMsgs(dAtA, i, uint64(m.TimeoutTimestamp))
+		i--
+		dAtA[i] = 0x20
+	}
+	{
+		size, err := m.TimeoutHeight.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintMsgs(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
 	if len(m.Signers) > 0 {
 		for iNdEx := len(m.Signers) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.Signers[iNdEx])
@@ -528,6 +681,100 @@ func (m *MsgSignTxResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *MsgSignTxResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Status != 0 {
+		i = encodeVarintMsgs(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgIBCSignTx) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgIBCSignTx) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgIBCSignTx) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.TimeoutTimestamp != 0 {
+		i = encodeVarintMsgs(dAtA, i, uint64(m.TimeoutTimestamp))
+		i--
+		dAtA[i] = 0x28
+	}
+	{
+		size, err := m.TimeoutHeight.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintMsgs(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x22
+	if len(m.Signers) > 0 {
+		for iNdEx := len(m.Signers) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Signers[iNdEx])
+			copy(dAtA[i:], m.Signers[iNdEx])
+			i = encodeVarintMsgs(dAtA, i, uint64(len(m.Signers[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.TxID) > 0 {
+		i -= len(m.TxID)
+		copy(dAtA[i:], m.TxID)
+		i = encodeVarintMsgs(dAtA, i, uint64(len(m.TxID)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ChainId != nil {
+		{
+			size, err := m.ChainId.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintMsgs(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgIBCSignTxResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgIBCSignTxResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgIBCSignTxResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -619,10 +866,55 @@ func (m *MsgSignTx) Size() (n int) {
 			n += 1 + l + sovMsgs(uint64(l))
 		}
 	}
+	l = m.TimeoutHeight.Size()
+	n += 1 + l + sovMsgs(uint64(l))
+	if m.TimeoutTimestamp != 0 {
+		n += 1 + sovMsgs(uint64(m.TimeoutTimestamp))
+	}
 	return n
 }
 
 func (m *MsgSignTxResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + sovMsgs(uint64(m.Status))
+	}
+	return n
+}
+
+func (m *MsgIBCSignTx) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ChainId != nil {
+		l = m.ChainId.Size()
+		n += 1 + l + sovMsgs(uint64(l))
+	}
+	l = len(m.TxID)
+	if l > 0 {
+		n += 1 + l + sovMsgs(uint64(l))
+	}
+	if len(m.Signers) > 0 {
+		for _, b := range m.Signers {
+			l = len(b)
+			n += 1 + l + sovMsgs(uint64(l))
+		}
+	}
+	l = m.TimeoutHeight.Size()
+	n += 1 + l + sovMsgs(uint64(l))
+	if m.TimeoutTimestamp != 0 {
+		n += 1 + sovMsgs(uint64(m.TimeoutTimestamp))
+	}
+	return n
+}
+
+func (m *MsgIBCSignTxResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1082,6 +1374,58 @@ func (m *MsgSignTx) Unmarshal(dAtA []byte) error {
 			m.Signers = append(m.Signers, make([]byte, postIndex-iNdEx))
 			copy(m.Signers[len(m.Signers)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TimeoutHeight", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.TimeoutHeight.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TimeoutTimestamp", wireType)
+			}
+			m.TimeoutTimestamp = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TimeoutTimestamp |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipMsgs(dAtA[iNdEx:])
@@ -1150,6 +1494,285 @@ func (m *MsgSignTxResponse) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.Status |= InitiateTxStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMsgs(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgIBCSignTx) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMsgs
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgIBCSignTx: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgIBCSignTx: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainId", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ChainId == nil {
+				m.ChainId = &types1.Any{}
+			}
+			if err := m.ChainId.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxID", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TxID = append(m.TxID[:0], dAtA[iNdEx:postIndex]...)
+			if m.TxID == nil {
+				m.TxID = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signers", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signers = append(m.Signers, make([]byte, postIndex-iNdEx))
+			copy(m.Signers[len(m.Signers)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TimeoutHeight", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.TimeoutHeight.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TimeoutTimestamp", wireType)
+			}
+			m.TimeoutTimestamp = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TimeoutTimestamp |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMsgs(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMsgs
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgIBCSignTxResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMsgs
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgIBCSignTxResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgIBCSignTxResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMsgs
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

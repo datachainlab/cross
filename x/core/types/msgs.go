@@ -9,7 +9,9 @@ import (
 
 // msg types
 const (
-	TypeInitiate = "initiate"
+	TypeInitiateTx = "InitiateTx"
+	TypeSignTx     = "SignTx"
+	TypeIBCSignTx  = "IBCSignTx"
 )
 
 var _ sdk.Msg = (*MsgInitiateTx)(nil)
@@ -38,7 +40,7 @@ func (MsgInitiateTx) Route() string {
 
 // Type implements sdk.Msg
 func (MsgInitiateTx) Type() string {
-	return TypeInitiate
+	return TypeInitiateTx
 }
 
 // ValidateBasic performs a basic check of the MsgInitiateTx fields.
@@ -92,6 +94,98 @@ func (msg MsgInitiateTx) GetRequiredAccounts() []Account {
 		}
 	}
 	return accs
+}
+
+var _ sdk.Msg = (*MsgSignTx)(nil)
+
+// Route implements sdk.Msg
+func (MsgSignTx) Route() string {
+	return RouterKey
+}
+
+// Type implements sdk.Msg
+func (MsgSignTx) Type() string {
+	return TypeSignTx
+}
+
+// ValidateBasic performs a basic check of the MsgInitiateTx fields.
+// NOTE: timeout height or timestamp values can be 0 to disable the timeout.
+func (msg MsgSignTx) ValidateBasic() error {
+	if len(msg.Signers) == 0 {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing signers")
+	}
+	return nil
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgSignTx) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
+// GetSigners implements sdk.Msg
+// GetSigners returns the addresses that must sign the transaction.
+// Addresses are returned in a deterministic order.
+// Duplicate addresses will be omitted.
+func (msg MsgSignTx) GetSigners() []sdk.AccAddress {
+	seen := map[string]bool{}
+	signers := []sdk.AccAddress{}
+
+	for _, s := range msg.Signers {
+		addr := s.AccAddress().String()
+		if !seen[addr] {
+			signers = append(signers, s.AccAddress())
+			seen[addr] = true
+		}
+	}
+
+	return signers
+}
+
+var _ sdk.Msg = (*MsgIBCSignTx)(nil)
+
+// Route implements sdk.Msg
+func (MsgIBCSignTx) Route() string {
+	return RouterKey
+}
+
+// Type implements sdk.Msg
+func (MsgIBCSignTx) Type() string {
+	return TypeIBCSignTx
+}
+
+// ValidateBasic performs a basic check of the MsgInitiateTx fields.
+// NOTE: timeout height or timestamp values can be 0 to disable the timeout.
+func (msg MsgIBCSignTx) ValidateBasic() error {
+	if len(msg.Signers) == 0 {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing signers")
+	}
+	return nil
+}
+
+// GetSignBytes implements sdk.Msg. The function will panic since it is used
+// for amino transaction verification which IBC does not support.
+func (msg MsgIBCSignTx) GetSignBytes() []byte {
+	panic("IBC messages do not support amino")
+}
+
+// GetSigners implements sdk.Msg
+// GetSigners returns the addresses that must sign the transaction.
+// Addresses are returned in a deterministic order.
+// Duplicate addresses will be omitted.
+func (msg MsgIBCSignTx) GetSigners() []sdk.AccAddress {
+	seen := map[string]bool{}
+	signers := []sdk.AccAddress{}
+
+	for _, s := range msg.Signers {
+		addr := s.AccAddress().String()
+		if !seen[addr] {
+			signers = append(signers, s.AccAddress())
+			seen[addr] = true
+		}
+	}
+
+	return signers
 }
 
 // MakeTxID generates TxID with a given msg

@@ -26,8 +26,8 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 
 	// Check if all participants sign the tx
 
-	txID, ok, err := k.verifyTx(ctx, *msg)
-	if !ok {
+	txID, completed, err := k.verifyTx(ctx, *msg)
+	if !completed {
 		return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_PENDING}, nil
 	}
 
@@ -65,4 +65,39 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 		return nil, err
 	}
 	return &types.MsgSignTxResponse{Status: status}, nil
+}
+
+// IBCSignTx defines a rpc handler method for MsgIBCSignTx.
+func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*types.MsgIBCSignTxResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	chainID, err := types.UnpackChainID(k.m, *msg.ChainId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Run packet middlewares
+
+	ctx, ps, err := k.packetMiddleware.HandleMsg(ctx, msg, packets.NewBasicPacketSender(k.ChannelKeeper()))
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []types.Account
+	for _, addr := range msg.Signers {
+		accounts = append(accounts, types.NewLocalAccount(addr))
+	}
+
+	err = k.SendIBCSignTx(
+		ctx,
+		ps,
+		chainID,
+		msg.TxID,
+		msg.Signers,
+		msg.TimeoutHeight,
+		msg.TimeoutTimestamp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &types.MsgIBCSignTxResponse{Status: 0}, nil
 }

@@ -14,7 +14,7 @@ message PacketDataCall {
   cross.core.ContractTransactionInfo tx_info = 2 [(gogoproto.nullable) = false];
 }
 
-message PacketCallAcknowledgement {
+message PacketAcknowledgementCall {
   option (gogoproto.equal)           = false;
 
   CommitStatus status = 1;

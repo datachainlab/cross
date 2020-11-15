@@ -148,7 +148,7 @@ func (k Keeper) ReceiveCallPacket(
 	destPort,
 	destChannel string,
 	data types.PacketDataCall,
-) (*crosstypes.ContractCallResult, *types.PacketCallAcknowledgement, error) {
+) (*crosstypes.ContractCallResult, *types.PacketAcknowledgementCall, error) {
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
 		return nil, nil, err
@@ -190,16 +190,16 @@ func (k Keeper) ReceiveCallPacket(
 		crosstypes.ChannelInfo{Port: destPort, Channel: destChannel},
 	)
 	k.SetContractTransactionState(ctx, data.TxId, TxIndexParticipant, txinfo)
-	return res, types.NewPacketCallAcknowledgement(commitStatus), nil
+	return res, types.NewPacketAcknowledgementCall(commitStatus), nil
 }
 
-// ReceiveCallAcknowledgement receives PacketCallAcknowledgement to updates CoordinatorState
+// ReceiveCallAcknowledgement receives PacketAcknowledgementCall to updates CoordinatorState
 // caller is coordinator
 func (k Keeper) ReceiveCallAcknowledgement(
 	ctx sdk.Context,
 	sourcePort string,
 	sourceChannel string,
-	ack types.PacketCallAcknowledgement,
+	ack types.PacketAcknowledgementCall,
 	txID crosstypes.TxID,
 ) (isCommittable bool, err error) {
 	cs, found := k.GetCoordinatorState(ctx, txID)
