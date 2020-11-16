@@ -1,6 +1,8 @@
 package types
 
 import (
+	"crypto/sha256"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
@@ -194,5 +196,6 @@ func MakeTxID(msg *MsgInitiateTx) TxID {
 	if err != nil {
 		panic(err)
 	}
-	return bz
+	txID := sha256.Sum256(bz)
+	return txID[:]
 }
