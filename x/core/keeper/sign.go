@@ -47,18 +47,27 @@ func (k Keeper) ReceiveIBCSignTx(
 	destChannel string,
 	data types.PacketDataIBCSignTx,
 ) error {
-
-	// steps:
-	// 1. lookup a tx with ID
-	// 2. call signTx with data.signers
-
 	_, found := k.ChannelKeeper().GetChannel(ctx, destPort, destChannel)
 	if !found {
 		return fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
 	}
 
-	// TODO implements
-	panic("not implemented error")
+	completed, err := k.verifyTx(ctx, data.TxID, data.GetAccounts())
+	if err != nil {
+		return err
+	} else if !completed {
+		// TODO returns a status code of tx
+		return nil
+	}
 
+	// Run a transaction
+
+	msg, found := k.getTxMsg(ctx, data.TxID)
+	if !found {
+		return fmt.Errorf("txMsg '%x' not found", data.TxID)
+	}
+	if err := k.runTx(ctx, data.TxID, msg); err != nil {
+		return err
+	}
 	return nil
 }

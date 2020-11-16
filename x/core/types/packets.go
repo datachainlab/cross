@@ -22,3 +22,11 @@ func NewPacketDataIBCSignTx(
 func (p PacketDataIBCSignTx) ValidateBasic() error {
 	return nil
 }
+
+func (p PacketDataIBCSignTx) GetAccounts() []Account {
+	var accs []Account
+	for _, id := range p.Signers {
+		accs = append(accs, NewLocalAccount(AccountID(id)))
+	}
+	return accs
+}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -26,30 +25,19 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 
 	// Check if all participants sign the tx
 
-	txID, completed, err := k.verifyTx(ctx, *msg)
-	if !completed {
+	txID, completed, err := k.initTx(ctx, msg)
+	if err != nil {
+		return nil, err
+	} else if !completed {
 		return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_PENDING}, nil
 	}
 
-	// Run packet middlewares
+	// Run a transaction
 
-	ctx, ps, err := k.packetMiddleware.HandleMsg(ctx, msg, packets.NewBasicPacketSender(k.ChannelKeeper()))
-	if err != nil {
+	// FIXME can this method returns an error? we should cleanup txState and txMsg.
+	if err := k.runTx(ctx, txID, msg); err != nil {
 		return nil, err
 	}
-
-	// Initiate a transaction
-
-	switch msg.CommitProtocol {
-	case types.CommitProtocolSimple:
-		err := k.SimpleKeeper().SendCall(ctx, ps, txID, msg.ContractTransactions, msg.TimeoutHeight, msg.TimeoutTimestamp)
-		if err != nil {
-			return nil, sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
-		}
-	default:
-		return nil, fmt.Errorf("unknown Commit protocol '%v'", msg.CommitProtocol)
-	}
-
 	return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_VERIFIED}, nil
 }
 
