@@ -46,7 +46,7 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	var accounts []types.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetLocalChainID(), addr))
+		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetOurChainID(ctx), addr))
 	}
 	status, err := k.signTx(ctx, msg.TxID, accounts)
 	if err != nil {
@@ -72,7 +72,7 @@ func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*type
 
 	var accounts []types.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetLocalChainID(), addr))
+		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetOurChainID(ctx), addr))
 	}
 
 	err = k.SendIBCSignTx(

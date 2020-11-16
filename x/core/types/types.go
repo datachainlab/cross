@@ -140,12 +140,11 @@ func (ci ChannelInfo) Type() string {
 }
 
 func (ci *ChannelInfo) Equal(other ChainID) bool {
-	return ci == other
-}
-
-// GetOurChainID returns our chainID
-func GetOurChainID() ChainID {
-	return &ChannelInfo{}
+	oi, ok := other.(*ChannelInfo)
+	if !ok {
+		return false
+	}
+	return ci.Port == oi.Port && ci.Channel == oi.Channel
 }
 
 // ChainResolver defines the interface of resolver resolves chainID to ChannelInfo
@@ -153,7 +152,8 @@ type ChainResolver interface {
 	ResolveChainID(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
 	ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (ChainID, error)
 	ConvertChainID(ctx sdk.Context, calleeID ChainID, callerID ChainID) (calleeIDOnCaller ChainID, err error)
-	GetLocalChainID() ChainID
+	GetOurChainID(ctx sdk.Context) ChainID
+	IsOurChain(ctx sdk.Context, chainID ChainID) bool
 	Capabilities() ChainResolverCapabilities
 }
 
@@ -207,7 +207,7 @@ func (r ChannelInfoResolver) ResolveChannel(ctx sdk.Context, channel *ChannelInf
 
 // ConvertChainID returns a chainID of callee in caller's context
 func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, callee ChainID, caller ChainID) (ChainID, error) {
-	ours := GetOurChainID()
+	ours := r.GetOurChainID(ctx)
 	ourChannelInfo, ok := ours.(*ChannelInfo)
 	if !ok {
 		return nil, errors.New("our chainID must be *ChannelInfo type")
@@ -238,8 +238,14 @@ func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, callee ChainID, cal
 	}
 }
 
-func (ChannelInfoResolver) GetLocalChainID() ChainID {
+// GetOurChainID implements ChainResolver.GetOurChainID
+func (ChannelInfoResolver) GetOurChainID(ctx sdk.Context) ChainID {
 	return &ChannelInfo{}
+}
+
+// IsOurChain implements ChainResolver.IsOurChain
+func (r ChannelInfoResolver) IsOurChain(ctx sdk.Context, chainID ChainID) bool {
+	return chainID.Equal(r.GetOurChainID(ctx))
 }
 
 // Capabilities implements ChainResolver.Capabilities

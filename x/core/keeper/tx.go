@@ -19,7 +19,7 @@ func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (types.TxID, b
 		return nil, false, fmt.Errorf("txID '%X' already exists", txID)
 	}
 
-	signers := msg.GetAccounts(k.ChainResolver().GetLocalChainID())
+	signers := msg.GetAccounts(k.ChainResolver().GetOurChainID(ctx))
 	required := msg.GetRequiredAccounts()
 	remaining := getRemainingAccounts(signers, required)
 

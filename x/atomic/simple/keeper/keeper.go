@@ -72,7 +72,11 @@ func (k Keeper) SendCall(
 	if err != nil {
 		return err
 	}
-	// TODO check if chain0 indicates our chain
+
+	// check if chain0 indicates our chain
+	if !k.ChainResolver().IsOurChain(ctx, chain0) {
+		return fmt.Errorf("a chainID that txIndex '%v' indicates must be our chain", TxIndexCoordinator)
+	}
 
 	chain1, err := tx1.GetChainID(k.cdc)
 	if err != nil {

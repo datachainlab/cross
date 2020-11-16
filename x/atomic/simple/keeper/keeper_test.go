@@ -123,7 +123,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 			cidB, err := crosstypes.PackChainID(&chAB)
 			suite.Require().NoError(err)
-			cidOurs, err := crosstypes.PackChainID(crosstypes.GetOurChainID())
+			cidOurs, err := crosstypes.PackChainID(suite.chainA.App.CrossKeeper.ChainResolver().GetOurChainID(suite.chainA.GetContext()))
 			suite.Require().NoError(err)
 
 			kA := suite.chainA.App.CrossKeeper.SimpleKeeper()

@@ -53,7 +53,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	chBA := crosstypes.ChannelInfo{Port: channelB.PortID, Channel: channelB.ID}
 
 	suite.Require().NoError(err)
-	cidOurs, err := crosstypes.PackChainID(crosstypes.GetOurChainID())
+	cidOurs, err := crosstypes.PackChainID(suite.chainA.App.CrossKeeper.ChainResolver().GetOurChainID(suite.chainA.GetContext()))
 	suite.Require().NoError(err)
 
 	txs := []crosstypes.ContractTransaction{
