@@ -77,11 +77,11 @@ func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-func (msg MsgInitiateTx) GetAccounts() []Account {
+func (msg MsgInitiateTx) GetAccounts(localChainID ChainID) []Account {
 	var accs []Account
 	signers := msg.GetSigners()
 	for _, id := range signers {
-		accs = append(accs, NewLocalAccount(AccountID(id)))
+		accs = append(accs, NewAccount(localChainID, AccountID(id)))
 	}
 	return accs
 }

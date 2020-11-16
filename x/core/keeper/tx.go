@@ -19,7 +19,7 @@ func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (types.TxID, b
 		return nil, false, fmt.Errorf("txID '%X' already exists", txID)
 	}
 
-	signers := msg.GetAccounts()
+	signers := msg.GetAccounts(k.ChainResolver().GetLocalChainID())
 	required := msg.GetRequiredAccounts()
 	remaining := getRemainingAccounts(signers, required)
 
@@ -66,7 +66,7 @@ func (k Keeper) getTxMsg(ctx sdk.Context, txID types.TxID) (*types.MsgInitiateTx
 	if err := proto.Unmarshal(bz, &msg); err != nil {
 		panic(err)
 	}
-	return &msg, false
+	return &msg, true
 }
 
 func (k Keeper) setTxState(ctx sdk.Context, txID types.TxID, state types.InitiateTxState) {

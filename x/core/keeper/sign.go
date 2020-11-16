@@ -48,38 +48,41 @@ func (k Keeper) ReceiveIBCSignTx(
 	destPort,
 	destChannel string,
 	data types.PacketDataIBCSignTx,
-) error {
+) (bool, error) {
 	// Validations
 
+	if err := data.ValidateBasic(); err != nil {
+		return false, err
+	}
 	_, found := k.ChannelKeeper().GetChannel(ctx, destPort, destChannel)
 	if !found {
-		return fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
+		return false, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
 	}
 	chainID, err := k.ChainResolver().ResolveChannel(ctx, &types.ChannelInfo{Port: destPort, Channel: destChannel})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Verify the signers of transaction
 
 	completed, err := k.verifyTx(ctx, data.TxID, makeExternalAccounts(chainID, data.Signers))
 	if err != nil {
-		return err
+		return false, err
 	} else if !completed {
 		// TODO returns a status code of tx
-		return nil
+		return false, nil
 	}
 
 	// Run the transaction
 
 	msg, found := k.getTxMsg(ctx, data.TxID)
 	if !found {
-		return fmt.Errorf("txMsg '%x' not found", data.TxID)
+		return false, fmt.Errorf("txMsg '%x' not found", data.TxID)
 	}
 	if err := k.runTx(ctx, data.TxID, msg); err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 func makeExternalAccounts(chainID types.ChainID, signers []types.AccountID) []types.Account {

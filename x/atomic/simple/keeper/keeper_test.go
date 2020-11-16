@@ -6,7 +6,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
@@ -144,9 +143,8 @@ func (suite *KeeperTestSuite) TestCall() {
 					CallInfo: c.callinfos[1],
 				},
 			}
-			// TODO add test for verifyTx
 
-			ps := newCapturePacketSender(
+			ps := ibctesting.NewCapturePacketSender(
 				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
 			)
 			err = kA.SendCall(
@@ -246,33 +244,6 @@ func (suite *KeeperTestSuite) TestCall() {
 		})
 	}
 
-}
-
-type capturePacketSender struct {
-	inner   packets.PacketSender
-	packets []packets.OutgoingPacket
-}
-
-var _ packets.PacketSender = (*capturePacketSender)(nil)
-
-func newCapturePacketSender(ps packets.PacketSender) *capturePacketSender {
-	return &capturePacketSender{inner: ps}
-}
-
-func (ps *capturePacketSender) SendPacket(
-	ctx sdk.Context,
-	channelCap *capabilitytypes.Capability,
-	packet packets.OutgoingPacket,
-) error {
-	if err := ps.inner.SendPacket(ctx, channelCap, packet); err != nil {
-		return err
-	}
-	ps.packets = append(ps.packets, packet)
-	return nil
-}
-
-func (ps *capturePacketSender) Packets() []packets.OutgoingPacket {
-	return ps.packets
 }
 
 func TestKeeperTestSuite(t *testing.T) {

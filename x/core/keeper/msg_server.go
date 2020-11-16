@@ -29,7 +29,7 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 	if err != nil {
 		return nil, err
 	} else if !completed {
-		return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_PENDING}, nil
+		return &types.MsgInitiateTxResponse{TxID: txID, Status: types.INITIATE_TX_STATUS_PENDING}, nil
 	}
 
 	// Run a transaction
@@ -38,7 +38,7 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 	if err := k.runTx(ctx, txID, msg); err != nil {
 		return nil, err
 	}
-	return &types.MsgInitiateTxResponse{Status: types.INITIATE_TX_STATUS_VERIFIED}, nil
+	return &types.MsgInitiateTxResponse{TxID: txID, Status: types.INITIATE_TX_STATUS_VERIFIED}, nil
 }
 
 // SignTx defines a rpc handler method for MsgSignTx.
@@ -46,7 +46,7 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	var accounts []types.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, types.NewLocalAccount(addr))
+		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetLocalChainID(), addr))
 	}
 	status, err := k.signTx(ctx, msg.TxID, accounts)
 	if err != nil {
@@ -72,7 +72,7 @@ func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*type
 
 	var accounts []types.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, types.NewLocalAccount(addr))
+		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetLocalChainID(), addr))
 	}
 
 	err = k.SendIBCSignTx(

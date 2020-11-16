@@ -39,16 +39,6 @@ func NewAccount(chainID ChainID, id AccountID) Account {
 	return Account{ChainId: anyChainID, Id: id}
 }
 
-// NewLocalAccount creates a new instance of Account
-func NewLocalAccount(id AccountID) Account {
-	return NewAccount(nil, id)
-}
-
-// IsLocalAccount returns a boolean value whether the account is LocalAccount.
-func (acc Account) IsLocalAccount() bool {
-	return acc.ChainId == nil
-}
-
 // GetChainID returns ChainID
 func (acc Account) GetChainID(m codec.Marshaler) ChainID {
 	chainID, err := UnpackChainID(m, *acc.ChainId)
@@ -163,6 +153,7 @@ type ChainResolver interface {
 	ResolveChainID(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
 	ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (ChainID, error)
 	ConvertChainID(ctx sdk.Context, calleeID ChainID, callerID ChainID) (calleeIDOnCaller ChainID, err error)
+	GetLocalChainID() ChainID
 	Capabilities() ChainResolverCapabilities
 }
 
@@ -245,6 +236,10 @@ func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, callee ChainID, cal
 	} else {
 		return calleeChannelInfo, nil
 	}
+}
+
+func (ChannelInfoResolver) GetLocalChainID() ChainID {
+	return &ChannelInfo{}
 }
 
 // Capabilities implements ChainResolver.Capabilities

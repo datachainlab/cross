@@ -46,7 +46,8 @@ message MsgInitiateTxResponse {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  InitiateTxStatus status = 1;
+  bytes txID = 1 [(gogoproto.casttype) = "TxID"];
+  InitiateTxStatus status = 2;
 }
 
 message MsgSignTx {
