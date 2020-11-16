@@ -46,8 +46,9 @@ func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) Cont
 	}
 }
 
-func SetupContractContext(ctx sdk.Context, runtimeInfo ContractRuntimeInfo) sdk.Context {
+func SetupContractContext(ctx sdk.Context, signers []AccountID, runtimeInfo ContractRuntimeInfo) sdk.Context {
 	goCtx := ctx.Context()
 	goCtx = ContextWithContractRuntimeInfo(goCtx, runtimeInfo)
+	goCtx = ContextWithContractSigners(goCtx, signers)
 	return ctx.WithContext(goCtx)
 }

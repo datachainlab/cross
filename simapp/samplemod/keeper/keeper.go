@@ -46,14 +46,17 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.Co
 var counterKey = []byte("counter")
 
 func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
+	// use the account ID as namespace
+	store := k.xstore.Prefix(crosstypes.ContractSignersFromContext(ctx.Context())[0])
+
 	var count uint64
-	v := k.xstore.Get(ctx, counterKey)
+	v := store.Get(ctx, counterKey)
 	if v == nil {
 		count = 0
 	} else {
 		count = sdk.BigEndianToUint64(v)
 	}
 	bz := sdk.Uint64ToBigEndian(count + 1)
-	k.xstore.Set(ctx, counterKey, bz)
+	store.Set(ctx, counterKey, bz)
 	return &crosstypes.ContractCallResult{Data: bz}, nil, nil
 }

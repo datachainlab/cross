@@ -96,9 +96,11 @@ func (k Keeper) setupContext(
 	if err != nil {
 		return ctx, err
 	}
+
 	// Setup a context
 	ctx = crosstypes.SetupContractContext(
 		ctx,
+		tx.Signers,
 		crosstypes.ContractRuntimeInfo{
 			CommitMode:             commitMode,
 			StateConstraintType:    tx.StateConstraint.Type,
