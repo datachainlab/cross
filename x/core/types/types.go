@@ -160,8 +160,9 @@ func GetOurChainID() ChainID {
 
 // ChainResolver defines the interface of resolver resolves chainID to ChannelInfo
 type ChainResolver interface {
-	Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
-	ConvertChainID(ctx sdk.Context, calleeID ChainID, callerID ChainID) (calleeOnCaller ChainID, err error)
+	ResolveChainID(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
+	ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (ChainID, error)
+	ConvertChainID(ctx sdk.Context, calleeID ChainID, callerID ChainID) (calleeIDOnCaller ChainID, err error)
 	Capabilities() ChainResolverCapabilities
 }
 
@@ -194,13 +195,23 @@ func NewChannelInfoResolver(channelKeeper ChannelKeeper) ChannelInfoResolver {
 
 var _ ChainResolver = (*ChannelInfoResolver)(nil)
 
-// Resolve implements ChainResolver.Resolve
-func (r ChannelInfoResolver) Resolve(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error) {
+// ResolveChainID implements ChainResolver.ResolveChainID
+func (r ChannelInfoResolver) ResolveChainID(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error) {
 	ci, ok := chainID.(*ChannelInfo)
 	if !ok {
 		return nil, fmt.Errorf("cannot resolve '%v'", chainID)
 	}
 	return ci, nil
+}
+
+// ResolveChannel implements ChainResolver.ResolveChannel
+func (r ChannelInfoResolver) ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (ChainID, error) {
+	// check if given channel exists in channelKeeper
+	_, found := r.channelKeeper.GetChannel(ctx, channel.Port, channel.Channel)
+	if !found {
+		return nil, fmt.Errorf("channel '%v' not found", channel.String())
+	}
+	return channel, nil
 }
 
 // ConvertChainID returns a chainID of callee in caller's context

@@ -78,11 +78,11 @@ func (k Keeper) SendCall(
 	if err != nil {
 		return err
 	}
-	ch0, err := k.ChainResolver().Resolve(ctx, chain0)
+	ch0, err := k.ChainResolver().ResolveChainID(ctx, chain0)
 	if err != nil {
 		return err
 	}
-	ch1, err := k.ChainResolver().Resolve(ctx, chain1)
+	ch1, err := k.ChainResolver().ResolveChainID(ctx, chain1)
 	if err != nil {
 		return err
 	}
