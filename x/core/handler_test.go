@@ -47,73 +47,121 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 
 	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
 	suite.chainB.CreatePortCapability(crosstypes.PortID)
-	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
+	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
 	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 	cidB, err := crosstypes.PackChainID(&chAB)
 	suite.Require().NoError(err)
+	chBA := crosstypes.ChannelInfo{Port: channelB.PortID, Channel: channelB.ID}
+	cidA, err := crosstypes.PackChainID(&chBA)
+	suite.Require().NoError(err)
+
 	cidOurs, err := crosstypes.PackChainID(suite.chainA.App.CrossKeeper.ChainResolver().GetOurChainID(suite.chainA.GetContext()))
 	suite.Require().NoError(err)
 
+	var txID crosstypes.TxID
+
 	// Send a MsgInitiateTx to chainA
-
-	msg0 := crosstypes.NewMsgInitiateTx(
-		suite.chainA.SenderAccount.GetAddress().Bytes(),
-		suite.chainA.ChainID,
-		0,
-		crosstypes.CommitProtocolSimple,
-		[]crosstypes.ContractTransaction{
-			{
-				ChainId: cidOurs,
-				Signers: []crosstypes.AccountID{
-					crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+	{
+		msg0 := crosstypes.NewMsgInitiateTx(
+			suite.chainA.SenderAccount.GetAddress().Bytes(),
+			suite.chainA.ChainID,
+			0,
+			crosstypes.CommitProtocolSimple,
+			[]crosstypes.ContractTransaction{
+				{
+					ChainId: cidOurs,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
-				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
-			},
-			{
-				ChainId: cidB,
-				Signers: []crosstypes.AccountID{
-					crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+				{
+					ChainId: cidB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
-				CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 			},
-		},
-		clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
-		0,
-	)
-	res, err := sendMsgs(suite.coordinator, suite.chainA, suite.chainB, clientB, msg0)
-	suite.Require().NoError(err)
-	suite.chainA.NextBlock()
+			clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
+			0,
+		)
+		res0, err := sendMsgs(suite.coordinator, suite.chainA, suite.chainB, clientB, msg0)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
 
-	var txMsgData sdk.TxMsgData
-	var initiateTxRes crosstypes.MsgInitiateTxResponse
-	suite.Require().NoError(proto.Unmarshal(res.Data, &txMsgData))
-	suite.Require().NoError(proto.Unmarshal(txMsgData.Data[0].Data, &initiateTxRes))
-	suite.Require().Equal(crosstypes.INITIATE_TX_STATUS_PENDING, initiateTxRes.Status)
-	// TODO write more tests
-	return
+		var txMsgData sdk.TxMsgData
+		var initiateTxRes crosstypes.MsgInitiateTxResponse
+		suite.Require().NoError(proto.Unmarshal(res0.Data, &txMsgData))
+		suite.Require().NoError(proto.Unmarshal(txMsgData.Data[0].Data, &initiateTxRes))
+		suite.Require().Equal(crosstypes.INITIATE_TX_STATUS_PENDING, initiateTxRes.Status)
+		txID = initiateTxRes.TxID
+	}
 
-	p, err := getPacketFromResult(res)
-	suite.Require().NoError(err)
+	// Send a MsgIBCSignTx to chainB & receive the MsgIBCSignTx to run the transaction on chainA
+	var packetCall *channeltypes.Packet
+	{
+		msg1 := crosstypes.MsgIBCSignTx{
+			ChainId:          cidA,
+			TxID:             txID,
+			Signers:          []crosstypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+			TimeoutHeight:    clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
+			TimeoutTimestamp: 0,
+		}
+		res1, err := sendMsgs(suite.coordinator, suite.chainB, suite.chainA, clientA, &msg1)
+		suite.Require().NoError(err)
+		suite.chainB.NextBlock()
 
-	res, err = recvPacket(
-		suite.coordinator, suite.chainA, suite.chainB, clientA, *p,
-	)
-	suite.Require().NoError(err)
-	suite.chainB.NextBlock()
+		p, err := getPacketFromResult(res1)
+		suite.Require().NoError(err)
 
-	ack, err := getACKFromResult(res)
-	suite.Require().NoError(err)
+		res2, err := recvPacket(
+			suite.coordinator, suite.chainB, suite.chainA, clientB, *p,
+		)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
+		packetCall, err = getPacketFromResult(res2)
+		suite.Require().NoError(err)
 
-	res, err = acknowledgePacket(
-		suite.coordinator,
-		suite.chainA,
-		suite.chainB,
-		clientB,
-		*p,
-		ack,
-	)
-	suite.Require().NoError(err)
+		ack, err := getACKFromResult(res2)
+		suite.Require().NoError(err)
+		_, err = acknowledgePacket(
+			suite.coordinator,
+			suite.chainB,
+			suite.chainA,
+			clientA,
+			*p,
+			ack,
+		)
+		suite.Require().NoError(err)
+		suite.chainB.NextBlock()
+	}
+
+	// Send a PacketDataCall to chainB
+	{
+		suite.Require().NoError(
+			suite.coordinator.UpdateClient(suite.chainB, suite.chainA, clientB, ibctesting.Tendermint),
+		)
+		res, err := recvPacket(
+			suite.coordinator, suite.chainA, suite.chainB, clientA, *packetCall,
+		)
+		suite.Require().NoError(err)
+		suite.chainB.NextBlock()
+
+		ack, err := getACKFromResult(res)
+		suite.Require().NoError(err)
+		_, err = acknowledgePacket(
+			suite.coordinator,
+			suite.chainA,
+			suite.chainB,
+			clientB,
+			*packetCall,
+			ack,
+		)
+		suite.Require().NoError(err)
+		suite.chainB.NextBlock()
+	}
 }
 
 func sendMsgs(coord *ibctesting.Coordinator, source, counterparty *ibctesting.TestChain, counterpartyClientID string, msgs ...sdk.Msg) (*sdk.Result, error) {
