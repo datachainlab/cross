@@ -56,6 +56,7 @@ type Store struct {
 	stateStore crosstypes.Store
 	lockStore  LockStore
 	txStore    crosstypes.Store
+	prefix     []byte
 }
 
 var _ crosstypes.Store = (*Store)(nil)
@@ -74,6 +75,11 @@ func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
 func (s Store) Prefix(prefix []byte) crosstypes.Store {
 	s.stateStore = s.stateStore.Prefix(prefix)
 	s.lockStore = s.lockStore.Prefix(prefix)
+	// for OPManager
+	newprefix := make([]byte, len(s.prefix)+len(prefix))
+	copy(newprefix[:len(s.prefix)], s.prefix)
+	copy(newprefix[len(s.prefix):], prefix)
+	s.prefix = newprefix
 	return s
 }
 
@@ -90,7 +96,7 @@ func (s Store) Set(ctx sdk.Context, key, value []byte) {
 		s.stateStore.Set(ctx, key, value)
 		return
 	case crosstypes.AtomicMode:
-		types.OPManagerFromContext(ctx.Context()).AddWrite(key, value)
+		types.OPManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), value)
 		return
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
@@ -106,11 +112,11 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 		return s.stateStore.Get(ctx, key)
 	case crosstypes.AtomicMode:
 		opmgr := types.OPManagerFromContext(ctx.Context())
-		v, ok := opmgr.GetUpdatedValue(key)
+		v, ok := opmgr.GetUpdatedValue(s.buildKey(key))
 		if !ok {
 			v = s.stateStore.Get(ctx, key)
 		}
-		opmgr.AddRead(key, v)
+		opmgr.AddRead(s.buildKey(key), v)
 		return v
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
@@ -127,7 +133,7 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 	case crosstypes.AtomicMode:
 		opmgr := types.OPManagerFromContext(ctx.Context())
 		found := false
-		v, ok := opmgr.GetUpdatedValue(key)
+		v, ok := opmgr.GetUpdatedValue(s.buildKey(key))
 		if !ok {
 			v = s.stateStore.Get(ctx, key)
 			if v != nil {
@@ -136,7 +142,7 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 		} else {
 			found = true
 		}
-		opmgr.AddRead(key, v)
+		opmgr.AddRead(s.buildKey(key), v)
 		return found
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
@@ -152,7 +158,7 @@ func (s Store) Delete(ctx sdk.Context, key []byte) {
 		s.stateStore.Delete(ctx, key)
 		return
 	case crosstypes.AtomicMode:
-		types.OPManagerFromContext(ctx.Context()).AddWrite(key, nil)
+		types.OPManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), nil)
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}
@@ -232,4 +238,11 @@ func (s Store) clean(ctx sdk.Context, id []byte, ops []types.LockOP) {
 	for _, op := range ops {
 		s.lockStore.Unlock(ctx, op.Key())
 	}
+}
+
+func (s Store) buildKey(key []byte) []byte {
+	newkey := make([]byte, len(s.prefix)+len(key))
+	copy(newkey[:len(s.prefix)], s.prefix)
+	copy(newkey[len(s.prefix):], key)
+	return newkey
 }

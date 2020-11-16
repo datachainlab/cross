@@ -173,6 +173,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			// check if concurrent access is failed
 			suite.Require().Panics(func() {
 				ctx, _ := suite.chainA.GetContext().CacheContext()
+				ctx = crosstypes.SetupContractContext(ctx, txs[0].Signers, crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.BasicMode})
 				_, _, err = suite.chainA.App.SamplemodKeeper.HandleCounter(
 					ctx,
 					samplemodtypes.NewContractCallRequest("counter"),
@@ -208,6 +209,7 @@ func (suite *KeeperTestSuite) TestCall() {
 				// check if concurrent access is success
 				suite.Require().NotPanics(func() {
 					ctx, _ := suite.chainB.GetContext().CacheContext()
+					ctx = crosstypes.SetupContractContext(ctx, txs[1].Signers, crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.BasicMode})
 					_, _, err = suite.chainB.App.SamplemodKeeper.HandleCounter(
 						ctx,
 						samplemodtypes.NewContractCallRequest("counter"),
