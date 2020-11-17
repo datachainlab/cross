@@ -60,7 +60,7 @@ func (k Keeper) SendCall(
 	tx0 := transactions[TxIndexCoordinator]
 	tx1 := transactions[TxIndexParticipant]
 
-	if !k.CrossChainChannelResolver().Capabilities().CrossChainCalls(ctx) && (len(tx0.Links) > 0 || len(tx1.Links) > 0) {
+	if !k.CrossChainChannelResolver().Capabilities().CrossChainCalls(ctx, crosstypes.COMMIT_PROTOCOL_SIMPLE) && (len(tx0.Links) > 0 || len(tx1.Links) > 0) {
 		return errors.New("this chainResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
@@ -127,7 +127,7 @@ func (k Keeper) SendCall(
 	}
 
 	cs := commontypes.NewCoordinatorState(
-		commontypes.COMMIT_FLOW_SIMPLE,
+		crosstypes.COMMIT_PROTOCOL_SIMPLE,
 		commontypes.COORDINATOR_PHASE_PREPARE,
 		[]crosstypes.ChannelInfo{*ch0, *ch1},
 	)
@@ -167,7 +167,7 @@ func (k Keeper) ReceiveCallPacket(
 		return nil, nil, fmt.Errorf("txID '%x' already exists", data.TxId)
 	}
 
-	if !k.CrossChainChannelResolver().Capabilities().CrossChainCalls(ctx) && len(data.TxInfo.Tx.Links) > 0 {
+	if !k.CrossChainChannelResolver().Capabilities().CrossChainCalls(ctx, crosstypes.COMMIT_PROTOCOL_SIMPLE) && len(data.TxInfo.Tx.Links) > 0 {
 		return nil, nil, errors.New("CrossChainResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 

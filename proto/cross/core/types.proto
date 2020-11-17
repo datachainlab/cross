@@ -14,6 +14,14 @@ message Account {
   bytes id = 2 [(gogoproto.casttype) = "AccountID"];
 }
 
+enum CommitProtocol {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  COMMIT_PROTOCOL_UNKNOWN = 0;
+  COMMIT_PROTOCOL_SIMPLE  = 1;
+  COMMIT_PROTOCOL_TPC     = 2;
+}
+
 message ContractTransaction {
   option (gogoproto.equal) = false;
 

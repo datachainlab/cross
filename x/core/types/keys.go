@@ -27,11 +27,6 @@ const (
 )
 
 const (
-	CommitProtocolSimple uint32 = iota // Simple commit
-	CommitProtocolTPC                  // Two-phase commit
-)
-
-const (
 	KeyInitiateTxPrefix uint8 = iota
 	KeyInitiateTxStatePrefix
 	KeyCoreKeeperPrefix

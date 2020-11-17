@@ -26,7 +26,7 @@ message MsgInitiateTx {
   bytes  sender   = 1 [(gogoproto.casttype) = "AccountID"];
   string chain_id = 2;
   uint64 nonce    = 3;
-  uint32 commit_protocol = 4;
+  cross.core.CommitProtocol commit_protocol = 4;
   repeated cross.core.ContractTransaction contract_transactions = 5 [(gogoproto.nullable) = false];
   repeated bytes signers = 6 [(gogoproto.casttype) = "AccountID"];
   // Timeout height relative to the current block height.

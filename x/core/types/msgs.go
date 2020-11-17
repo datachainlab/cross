@@ -21,7 +21,7 @@ var _ sdk.Msg = (*MsgInitiateTx)(nil)
 // NewMsgInitiateTx creates a new MsgInitiateTx instance
 func NewMsgInitiateTx(
 	sender AccountID, chainID string, nonce uint64,
-	commitProtocol uint32, ctxs []ContractTransaction,
+	commitProtocol CommitProtocol, ctxs []ContractTransaction,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgInitiateTx {
 	return &MsgInitiateTx{

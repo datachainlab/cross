@@ -159,16 +159,16 @@ type CrossChainChannelResolver interface {
 // CrossChainChannelResolverCapabilities defines the capabilities for the ChainResolver
 type CrossChainChannelResolverCapabilities interface {
 	// CrossChainCalls returns true if support for cross-chain calls is enabled.
-	CrossChainCalls(ctx sdk.Context) bool
+	CrossChainCalls(ctx sdk.Context, commitProtocol CommitProtocol) bool
 }
 
 type crossChainChannelResolverCapabilities struct {
-	crossChainCalls bool
+	crossChainCalls map[CommitProtocol]bool
 }
 
 // CrossChainCalls implements ChainResolverCapabilities.CrossChainCalls
-func (c crossChainChannelResolverCapabilities) CrossChainCalls(ctx sdk.Context) bool {
-	return c.crossChainCalls
+func (c crossChainChannelResolverCapabilities) CrossChainCalls(ctx sdk.Context, cp CommitProtocol) bool {
+	return c.crossChainCalls[cp]
 }
 
 // ChannelInfoResolver just returns a given ChannelInfo as is.
@@ -211,20 +211,20 @@ func (r ChannelInfoResolver) ConvertCrossChainChannel(ctx sdk.Context, calleeXCC
 
 	if !isLocalCallee && !isLocalCaller {
 		return nil, fmt.Errorf("either callee or caller must be self xcc")
-	} else if !isLocalCallee {
+	} else if !isLocalCallee && isLocalCaller {
 		return calleeXCC, nil
-	} else if !isLocalCaller {
-		calleeChannelInfo, err := r.ResolveCrossChainChannel(ctx, calleeXCC)
+	} else if !isLocalCaller && isLocalCallee {
+		callerChannelInfo, err := r.ResolveCrossChainChannel(ctx, callerXCC)
 		if err != nil {
 			return nil, err
 		}
-		calleeChannel, found := r.channelKeeper.GetChannel(ctx, calleeChannelInfo.Channel, calleeChannelInfo.Port)
+		callerChannel, found := r.channelKeeper.GetChannel(ctx, callerChannelInfo.Port, callerChannelInfo.Channel)
 		if !found {
-			return nil, fmt.Errorf("channel '%v' not found", calleeChannel.String())
+			return nil, fmt.Errorf("channel '%v' not found", callerChannelInfo.String())
 		}
-		return &ChannelInfo{Port: calleeChannel.GetCounterparty().GetPortID(), Channel: calleeChannel.GetCounterparty().GetChannelID()}, nil
+		return &ChannelInfo{Port: callerChannel.GetCounterparty().GetPortID(), Channel: callerChannel.GetCounterparty().GetChannelID()}, nil
 	} else {
-		return calleeXCC, nil
+		panic("unreachable")
 	}
 }
 
@@ -240,7 +240,12 @@ func (r ChannelInfoResolver) IsSelfCrossChainChannel(ctx sdk.Context, xcc CrossC
 
 // Capabilities implements CrossChainChannelResolver.Capabilities
 func (r ChannelInfoResolver) Capabilities() CrossChainChannelResolverCapabilities {
-	return crossChainChannelResolverCapabilities{crossChainCalls: false}
+	return crossChainChannelResolverCapabilities{
+		crossChainCalls: map[CommitProtocol]bool{
+			COMMIT_PROTOCOL_SIMPLE: true,
+			COMMIT_PROTOCOL_TPC:    false,
+		},
+	}
 }
 
 func NewContractTransactionInfo(tx ContractTransaction, linkObjects []Object) ContractTransactionInfo {

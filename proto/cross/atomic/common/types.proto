@@ -10,20 +10,12 @@ option (gogoproto.goproto_getters_all)  = false;
 message CoordinatorState {
   option (gogoproto.equal)           = false;
 
-  CommitFlowType type = 1;
+  cross.core.CommitProtocol type = 1;
   repeated cross.core.ChannelInfo channels = 2 [(gogoproto.nullable) = false];
   CoordinatorPhase phase = 3;
   CoordinatorDecision decision = 4;
   bytes confirmed_txs = 5 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxIndexSlice"];
   bytes acks = 6 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxIndexSlice"];
-}
-
-enum CommitFlowType {
-  option (gogoproto.goproto_enum_prefix) = false;
-
-  COMMIT_FLOW_UNKNOWN = 0;
-  COMMIT_FLOW_SIMPLE  = 1;
-  COMMIT_FLOW_TPC     = 2;
 }
 
 enum CoordinatorPhase {

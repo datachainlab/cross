@@ -67,7 +67,7 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 			suite.chainA.SenderAccount.GetAddress().Bytes(),
 			suite.chainA.ChainID,
 			0,
-			crosstypes.CommitProtocolSimple,
+			crosstypes.COMMIT_PROTOCOL_SIMPLE,
 			[]crosstypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,

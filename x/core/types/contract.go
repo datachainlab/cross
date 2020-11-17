@@ -52,3 +52,29 @@ func SetupContractContext(ctx sdk.Context, signers []AccountID, runtimeInfo Cont
 	goCtx = ContextWithContractSigners(goCtx, signers)
 	return ctx.WithContext(goCtx)
 }
+
+type ExternalContractCaller interface {
+	Call(ctx sdk.Context, xcc CrossChainChannel, callInfo ContractCallInfo, signers []AccountID) []byte
+}
+
+type externalContractCaller struct{}
+
+var _ ExternalContractCaller = (*externalContractCaller)(nil)
+
+func (cc externalContractCaller) Call(ctx sdk.Context, xcc CrossChainChannel, callInfo ContractCallInfo, signers []AccountID) []byte {
+	r := ContractRuntimeFromContext(ctx.Context()).ExternalObjectResolver
+	key := makeObjectKey(callInfo, signers)
+	obj, err := r.Resolve(xcc, key)
+	if err != nil {
+		panic(err)
+	}
+	v, err := obj.Evaluate(key)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func NewExternalContractCaller() ExternalContractCaller {
+	return externalContractCaller{}
+}

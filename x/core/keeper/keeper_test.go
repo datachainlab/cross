@@ -78,7 +78,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 		Sender:               suite.chainA.SenderAccount.GetAddress().Bytes(),
 		ChainId:              suite.chainA.ChainID,
 		Nonce:                0,
-		CommitProtocol:       crosstypes.CommitProtocolSimple,
+		CommitProtocol:       crosstypes.COMMIT_PROTOCOL_SIMPLE,
 		ContractTransactions: txs,
 		Signers: []crosstypes.AccountID{
 			suite.chainA.SenderAccount.GetAddress().Bytes(),

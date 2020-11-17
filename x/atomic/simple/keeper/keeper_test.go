@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -48,103 +49,221 @@ func (suite *KeeperTestSuite) TestCall() {
 
 	_, _, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
 	suite.chainB.CreatePortCapability(crosstypes.PortID)
-	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
+	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
+
+	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
+	xccB, err := crosstypes.PackCrossChainChannel(&chAB)
+	suite.Require().NoError(err)
+	xccSelf, err := crosstypes.PackCrossChainChannel(
+		suite.chainA.App.CrossKeeper.CrossChainChannelResolver().GetSelfCrossChainChannel(suite.chainA.GetContext()),
+	)
+	suite.Require().NoError(err)
 
 	var cases = []struct {
-		callinfos                            [2]crosstypes.ContractCallInfo
+		name                                 string
+		txs                                  [2]crosstypes.ContractTransaction
 		hasErrorSendCall                     bool
 		participantCommitStatus              types.CommitStatus
 		participantContractTransactionStatus atomictypes.ContractTransactionStatus
 		participantPrepareResult             atomictypes.PrepareResult
+		concurrentAccessCheck                bool
 		initiatorCommittable                 bool
 		expectedResult                       [2][]byte
 	}{
 		{
-			[2]crosstypes.ContractCallInfo{
-				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
-				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
-			},
-			false,
-			types.COMMIT_STATUS_OK,
-			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
-			atomictypes.PREPARE_RESULT_OK,
-			true,
-			[2][]byte{sdk.Uint64ToBigEndian(1), sdk.Uint64ToBigEndian(1)},
-		},
-		{
-			[2]crosstypes.ContractCallInfo{
-				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
-				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
-			},
-			false,
-			types.COMMIT_STATUS_FAILED,
-			atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT,
-			atomictypes.PREPARE_RESULT_FAILED,
-			false,
-			[2][]byte{nil, nil},
-		},
-		{
-			[2]crosstypes.ContractCallInfo{
-				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
-				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
-			},
-			true,
-			// the following parameters are ignored
-			0, 0, 0, false, [2][]byte{nil, nil},
-		},
-		{
-			[2]crosstypes.ContractCallInfo{
-				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
-				samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
-			},
-			true,
-			// the following parameters are ignored
-			0, 0, 0, false, [2][]byte{nil, nil},
-		},
-		{
-			[2]crosstypes.ContractCallInfo{
-				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
-				samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
-			},
-			false,
-			types.COMMIT_STATUS_OK,
-			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
-			atomictypes.PREPARE_RESULT_OK,
-			true,
-			[2][]byte{sdk.Uint64ToBigEndian(2), sdk.Uint64ToBigEndian(2)},
-		},
-	}
-
-	for i, c := range cases {
-		suite.Run(fmt.Sprint(i), func() {
-			// check if SendCall call is expected
-
-			txID := []byte(fmt.Sprintf("txid-%v", i))
-			chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
-			xccB, err := crosstypes.PackCrossChainChannel(&chAB)
-			suite.Require().NoError(err)
-			xccSelf, err := crosstypes.PackCrossChainChannel(
-				suite.chainA.App.CrossKeeper.CrossChainChannelResolver().GetSelfCrossChainChannel(suite.chainA.GetContext()),
-			)
-			suite.Require().NoError(err)
-
-			kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
-			txs := []crosstypes.ContractTransaction{
+			"case0",
+			[2]crosstypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
 					Signers: []crosstypes.AccountID{
 						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 					},
-					CallInfo: c.callinfos[0],
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
 					Signers: []crosstypes.AccountID{
 						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
-					CallInfo: c.callinfos[1],
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
-			}
+			},
+			false,
+			types.COMMIT_STATUS_OK,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+			atomictypes.PREPARE_RESULT_OK,
+			true,
+			true,
+			[2][]byte{sdk.Uint64ToBigEndian(1), sdk.Uint64ToBigEndian(1)},
+		},
+		{
+			"case1",
+			[2]crosstypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+			},
+			false,
+			types.COMMIT_STATUS_FAILED,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT,
+			atomictypes.PREPARE_RESULT_FAILED,
+			true,
+			false,
+			[2][]byte{nil, nil},
+		},
+		{
+			"case2",
+			[2]crosstypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+			},
+			true,
+			// the following parameters are ignored
+			0, 0, 0, false, false, [2][]byte{nil, nil},
+		},
+		{
+			"case3",
+			[2]crosstypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+			},
+			true,
+			// the following parameters are ignored
+			0, 0, 0, false, false, [2][]byte{nil, nil},
+		},
+		{
+			"case4",
+			[2]crosstypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+			},
+			false,
+			types.COMMIT_STATUS_OK,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+			atomictypes.PREPARE_RESULT_OK,
+			true,
+			true,
+			[2][]byte{sdk.Uint64ToBigEndian(2), sdk.Uint64ToBigEndian(2)},
+		},
+		{
+			"case5",
+			[2]crosstypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest(
+						"external-call",
+						hex.EncodeToString(suite.chainB.SenderAccount.GetAddress()),
+						channelA.ID,
+					).ContractCallInfo(suite.chainA.App.AppCodec()),
+					Links: []crosstypes.Link{{SrcIndex: 1}},
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo:    samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+					ReturnValue: crosstypes.NewReturnValue(sdk.Uint64ToBigEndian(3)),
+				},
+			},
+			false,
+			types.COMMIT_STATUS_OK,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+			atomictypes.PREPARE_RESULT_OK,
+			false,
+			true,
+			[2][]byte{sdk.Uint64ToBigEndian(3), sdk.Uint64ToBigEndian(3)},
+		},
+		{
+			"case6",
+			[2]crosstypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					},
+					CallInfo:    samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+					ReturnValue: crosstypes.NewReturnValue(sdk.Uint64ToBigEndian(3)),
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []crosstypes.AccountID{
+						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest(
+						"external-call",
+						hex.EncodeToString(suite.chainA.SenderAccount.GetAddress()),
+						channelB.ID,
+					).ContractCallInfo(suite.chainB.App.AppCodec()),
+					Links: []crosstypes.Link{{SrcIndex: 0}},
+				},
+			},
+			false,
+			types.COMMIT_STATUS_OK,
+			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+			atomictypes.PREPARE_RESULT_OK,
+			false,
+			true,
+			[2][]byte{sdk.Uint64ToBigEndian(3), sdk.Uint64ToBigEndian(3)},
+		},
+	}
+
+	for i, c := range cases {
+		suite.Run(c.name, func() {
+			// check if SendCall call is expected
+
+			txID := []byte(fmt.Sprintf("txid-%v", i))
+			kA := suite.chainA.App.CrossKeeper.SimpleKeeper()
 
 			ps := ibctesting.NewCapturePacketSender(
 				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
@@ -153,7 +272,7 @@ func (suite *KeeperTestSuite) TestCall() {
 				suite.chainA.GetContext(),
 				ps,
 				txID,
-				txs,
+				c.txs[:],
 				clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
 				0,
 			)
@@ -172,15 +291,17 @@ func (suite *KeeperTestSuite) TestCall() {
 
 			suite.chainA.NextBlock()
 
-			// check if concurrent access is failed
-			suite.Require().Panics(func() {
-				ctx, _ := suite.chainA.GetContext().CacheContext()
-				ctx = crosstypes.SetupContractContext(ctx, txs[0].Signers, crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.BasicMode})
-				_, _, err = suite.chainA.App.SamplemodKeeper.HandleCounter(
-					ctx,
-					samplemodtypes.NewContractCallRequest("counter"),
-				)
-			})
+			if c.concurrentAccessCheck {
+				// check if concurrent access is failed
+				suite.Require().Panics(func() {
+					ctx, _ := suite.chainA.GetContext().CacheContext()
+					ctx = crosstypes.SetupContractContext(ctx, c.txs[0].Signers, crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.BasicMode})
+					_, _, err = suite.chainA.App.SamplemodKeeper.HandleCounter(
+						ctx,
+						samplemodtypes.NewContractCallRequest("counter"),
+					)
+				})
+			}
 
 			// check if coordinator state is expected
 
@@ -211,7 +332,7 @@ func (suite *KeeperTestSuite) TestCall() {
 				// check if concurrent access is success
 				suite.Require().NotPanics(func() {
 					ctx, _ := suite.chainB.GetContext().CacheContext()
-					ctx = crosstypes.SetupContractContext(ctx, txs[1].Signers, crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.BasicMode})
+					ctx = crosstypes.SetupContractContext(ctx, c.txs[1].Signers, crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.BasicMode})
 					_, _, err = suite.chainB.App.SamplemodKeeper.HandleCounter(
 						ctx,
 						samplemodtypes.NewContractCallRequest("counter"),

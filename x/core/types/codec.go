@@ -28,6 +28,10 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*packets.PacketAcknowledgementPayload)(nil),
 		&PacketAcknowledgementIBCSignTx{},
 	)
+	registry.RegisterImplementations(
+		(*Object)(nil),
+		&ConstantValueObject{},
+	)
 }
 
 var (

@@ -14,16 +14,17 @@ import (
 
 // Linker resolves links that each ContractTransaction has.
 type Linker struct {
-	cdc           codec.Marshaler
-	chainResolver CrossChainChannelResolver
-	objects       map[TxIndex]lazyObject
+	cdc                       codec.Marshaler
+	crossChainChannelResolver CrossChainChannelResolver
+	objects                   map[TxIndex]lazyObject
 }
 
 // MakeLinker returns Linker
-func MakeLinker(cdc codec.Marshaler, chainResolver CrossChainChannelResolver, txs []ContractTransaction) (*Linker, error) {
-	lkr := Linker{cdc: cdc, objects: make(map[TxIndex]lazyObject, len(txs))}
+func MakeLinker(cdc codec.Marshaler, xccResolver CrossChainChannelResolver, txs []ContractTransaction) (*Linker, error) {
+	lkr := Linker{cdc: cdc, crossChainChannelResolver: xccResolver, objects: make(map[TxIndex]lazyObject, len(txs))}
 	for i, tx := range txs {
 		idx := TxIndex(i)
+		tx := tx
 		lkr.objects[idx] = makeLazyObject(func() returnObject {
 			if tx.ReturnValue.IsNil() {
 				return returnObject{err: errors.New("On cross-chain call, each contractTransaction must be specified a return-value")}
@@ -32,7 +33,7 @@ func MakeLinker(cdc codec.Marshaler, chainResolver CrossChainChannelResolver, tx
 			if err != nil {
 				return returnObject{err: err}
 			}
-			obj := MakeConstantValueObject(xcc, MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
+			obj := MakeConstantValueObject(xcc, makeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
 			return returnObject{obj: &obj}
 		})
 	}
@@ -53,7 +54,7 @@ func (lkr Linker) Resolve(ctx sdk.Context, callerc CrossChainChannel, lks []Link
 			return nil, ret.err
 		}
 		calleeID := ret.obj.GetCrossChainChannel(lkr.cdc)
-		xcc, err := lkr.chainResolver.ConvertCrossChainChannel(ctx, calleeID, callerc)
+		xcc, err := lkr.crossChainChannelResolver.ConvertCrossChainChannel(ctx, calleeID, callerc)
 		if err != nil {
 			return nil, err
 		}
@@ -82,8 +83,8 @@ func makeLazyObject(f func() returnObject) lazyObject {
 	}
 }
 
-// MakeObjectKey returns a key that can be used to identify a contract call
-func MakeObjectKey(callInfo ContractCallInfo, signers []AccountID) []byte {
+// makeObjectKey returns a key that can be used to identify a contract call
+func makeObjectKey(callInfo ContractCallInfo, signers []AccountID) []byte {
 	h := tmhash.New()
 	h.Write(callInfo)
 	for _, signer := range signers {

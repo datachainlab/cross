@@ -126,7 +126,7 @@ func (k Keeper) runTx(ctx sdk.Context, txID types.TxID, msg *types.MsgInitiateTx
 	// Run a transaction
 
 	switch msg.CommitProtocol {
-	case types.CommitProtocolSimple:
+	case types.COMMIT_PROTOCOL_SIMPLE:
 		err := k.SimpleKeeper().SendCall(ctx, ps, txID, msg.ContractTransactions, msg.TimeoutHeight, msg.TimeoutTimestamp)
 		if err != nil {
 			return sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())

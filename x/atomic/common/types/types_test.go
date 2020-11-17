@@ -13,9 +13,9 @@ func TestCoordinatorState(t *testing.T) {
 		{Port: "port1", Channel: "channel1"},
 	}
 
-	for _, tp := range []CommitFlowType{COMMIT_FLOW_SIMPLE, COMMIT_FLOW_TPC} {
+	for _, tp := range []crosstypes.CommitProtocol{crosstypes.COMMIT_PROTOCOL_SIMPLE, crosstypes.COMMIT_PROTOCOL_TPC} {
 		t.Run(tp.String(), func(t *testing.T) {
-			cs := NewCoordinatorState(COMMIT_FLOW_SIMPLE, COORDINATOR_PHASE_PREPARE, channels)
+			cs := NewCoordinatorState(tp, COORDINATOR_PHASE_PREPARE, channels)
 			require.False(t, cs.IsCompleted())
 			require.False(t, cs.IsReceivedALLAcks())
 
@@ -36,7 +36,7 @@ func TestCoordinatorState(t *testing.T) {
 	// if `channels` is empty, constructor panics
 	{
 		require.Panics(t, func() {
-			NewCoordinatorState(COMMIT_FLOW_SIMPLE, COORDINATOR_PHASE_PREPARE, nil)
+			NewCoordinatorState(crosstypes.COMMIT_PROTOCOL_SIMPLE, COORDINATOR_PHASE_PREPARE, nil)
 		})
 	}
 }
