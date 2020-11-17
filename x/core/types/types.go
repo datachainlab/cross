@@ -2,7 +2,6 @@ package types
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math"
 
@@ -206,35 +205,26 @@ func (r ChannelInfoResolver) ResolveChannel(ctx sdk.Context, channel *ChannelInf
 }
 
 // ConvertCrossChainChannel returns a xcc of callee in caller's context
-func (r ChannelInfoResolver) ConvertCrossChainChannel(ctx sdk.Context, callee CrossChainChannel, caller CrossChainChannel) (CrossChainChannel, error) {
-	selfc := r.GetSelfCrossChainChannel(ctx)
-	ourChannelInfo, ok := selfc.(*ChannelInfo)
-	if !ok {
-		return nil, errors.New("our xcc must be *ChannelInfo type")
-	}
-	calleeChannelInfo, ok := callee.(*ChannelInfo)
-	if !ok {
-		return nil, errors.New("callee's xcc must be *ChannelInfo type")
-	}
-	callerChannelInfo, ok := caller.(*ChannelInfo)
-	if !ok {
-		return nil, errors.New("caller's xcc must be *ChannelInfo type")
-	}
-	isLocalCallee := calleeChannelInfo == ourChannelInfo
-	isLocalCaller := callerChannelInfo == ourChannelInfo
+func (r ChannelInfoResolver) ConvertCrossChainChannel(ctx sdk.Context, calleeXCC CrossChainChannel, callerXCC CrossChainChannel) (CrossChainChannel, error) {
+	isLocalCallee := r.IsSelfCrossChainChannel(ctx, calleeXCC)
+	isLocalCaller := r.IsSelfCrossChainChannel(ctx, callerXCC)
 
 	if !isLocalCallee && !isLocalCaller {
-		return nil, fmt.Errorf("either callee or caller must be our chain")
+		return nil, fmt.Errorf("either callee or caller must be self xcc")
 	} else if !isLocalCallee {
-		return calleeChannelInfo, nil
+		return calleeXCC, nil
 	} else if !isLocalCaller {
+		calleeChannelInfo, err := r.ResolveCrossChainChannel(ctx, calleeXCC)
+		if err != nil {
+			return nil, err
+		}
 		calleeChannel, found := r.channelKeeper.GetChannel(ctx, calleeChannelInfo.Channel, calleeChannelInfo.Port)
 		if !found {
 			return nil, fmt.Errorf("channel '%v' not found", calleeChannel.String())
 		}
 		return &ChannelInfo{Port: calleeChannel.GetCounterparty().GetPortID(), Channel: calleeChannel.GetCounterparty().GetChannelID()}, nil
 	} else {
-		return calleeChannelInfo, nil
+		return calleeXCC, nil
 	}
 }
 
