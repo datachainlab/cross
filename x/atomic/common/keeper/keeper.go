@@ -103,7 +103,6 @@ func (k Keeper) setupContext(
 		tx.Signers,
 		crosstypes.ContractRuntimeInfo{
 			CommitMode:             commitMode,
-			StateConstraintType:    tx.StateConstraint.Type,
 			ExternalObjectResolver: rs,
 		},
 	)
@@ -117,8 +116,8 @@ func (k Keeper) setupContext(
 func (k Keeper) processTransaction(
 	ctx sdk.Context,
 	tx crosstypes.ContractTransaction,
-) (res *crosstypes.ContractCallResult, err error) {
-	res, ops, err := k.contractModule.OnContractCall(
+) (*crosstypes.ContractCallResult, error) {
+	res, err := k.contractModule.OnContractCall(
 		sdk.WrapSDKContext(ctx),
 		tx.CallInfo,
 	)
@@ -128,10 +127,6 @@ func (k Keeper) processTransaction(
 
 	if !tx.ReturnValue.IsNil() && !tx.ReturnValue.Equal(crosstypes.NewReturnValue(res.Data)) {
 		return nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *tx.ReturnValue, res.Data)
-	}
-
-	if !tx.StateConstraint.Ops.Equal(ops) {
-		return nil, fmt.Errorf("unexpected ops: actual(%v) != expected(%v)", ops.String(), tx.StateConstraint.Ops.String())
 	}
 
 	return res, nil

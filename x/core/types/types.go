@@ -98,29 +98,7 @@ type ContractCallInfo []byte
 
 type ContractRuntimeInfo struct {
 	CommitMode             CommitMode
-	StateConstraintType    StateConstraintType
 	ExternalObjectResolver ObjectResolver
-}
-
-type StateConstraintType = uint32
-
-const (
-	NoStateConstraint         StateConstraintType = iota // NoStateConstraint indicates that no constraints on the state before and after the precommit is performed
-	ExactMatchStateConstraint                            // ExactMatchStateConstraint indicates the constraint on state state before and after the precommit is performed
-	PreStateConstraint                                   // PreStateConstraint indicates the constraint on state before the precommit is performed
-	PostStateConstraint                                  // PostStateConstraint indicates the constraint on state after the precommit is performed
-)
-
-func NewStateConstraint(tp StateConstraintType, opItems []OP) StateConstraint {
-	ops, err := PackOPs(opItems)
-	if err != nil {
-		panic(err)
-	}
-	return StateConstraint{Type: tp, Ops: ops}
-}
-
-type OP interface {
-	proto.Message
 }
 
 // CrossChainChannel represents a channel of chain that contains a contract function to be called

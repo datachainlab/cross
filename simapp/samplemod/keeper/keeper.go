@@ -30,21 +30,21 @@ func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey, xstore crosstypes.Store
 }
 
 // HandleContractCall is called by ContractModule
-func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
+func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, error) {
 	var req types.ContractCallRequest
 	if err := k.m.UnmarshalJSON(callInfo, &req); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	switch req.Method {
 	case "nop":
-		return &crosstypes.ContractCallResult{}, nil, nil
+		return &crosstypes.ContractCallResult{}, nil
 	case "counter":
 		return k.HandleCounter(ctx, req)
 	case "external-call":
 		return k.HandleExternalCall(ctx, req)
 	case "fail":
-		return nil, nil, errors.New("failed to process a contract request")
+		return nil, errors.New("failed to process a contract request")
 	default:
 		panic(fmt.Sprintf("unknown method '%v'", req.Method))
 	}
@@ -52,7 +52,7 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.Co
 
 var counterKey = []byte("counter")
 
-func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
+func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, error) {
 	// use the account ID as namespace
 	store := k.xstore.Prefix(crosstypes.ContractSignersFromContext(ctx.Context())[0])
 
@@ -65,17 +65,17 @@ func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*
 	}
 	bz := sdk.Uint64ToBigEndian(count + 1)
 	store.Set(ctx, counterKey, bz)
-	return &crosstypes.ContractCallResult{Data: bz}, nil, nil
+	return &crosstypes.ContractCallResult{Data: bz}, nil
 }
 
-func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
+func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, error) {
 	if len(req.Args) != 2 {
-		return nil, nil, fmt.Errorf("the number of arguments must be 2")
+		return nil, fmt.Errorf("the number of arguments must be 2")
 	}
 
 	accID, err := hex.DecodeString(req.Args[0])
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	channelID := req.Args[1]
 
@@ -91,5 +91,5 @@ func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallReques
 		callInfo,
 		[]crosstypes.AccountID{accID},
 	)
-	return &crosstypes.ContractCallResult{Data: ret}, nil, nil
+	return &crosstypes.ContractCallResult{Data: ret}, nil
 }

@@ -43,18 +43,6 @@ var (
 	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 )
 
-func PackOPs(opItems []OP) (*OPs, error) {
-	var ops OPs
-	for _, it := range opItems {
-		var any codectypes.Any
-		if err := any.Pack(it); err != nil {
-			return nil, err
-		}
-		ops.Items = append(ops.Items, any)
-	}
-	return &ops, nil
-}
-
 func PackObjects(objs []Object) ([]codectypes.Any, error) {
 	var anys []codectypes.Any
 	for _, obj := range objs {

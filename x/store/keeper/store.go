@@ -75,7 +75,7 @@ func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
 func (s Store) Prefix(prefix []byte) crosstypes.Store {
 	s.stateStore = s.stateStore.Prefix(prefix)
 	s.lockStore = s.lockStore.Prefix(prefix)
-	// for OPManager
+	// for LockManager
 	newprefix := make([]byte, len(s.prefix)+len(prefix))
 	copy(newprefix[:len(s.prefix)], s.prefix)
 	copy(newprefix[len(s.prefix):], prefix)
@@ -96,7 +96,7 @@ func (s Store) Set(ctx sdk.Context, key, value []byte) {
 		s.stateStore.Set(ctx, key, value)
 		return
 	case crosstypes.AtomicMode:
-		types.OPManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), value)
+		types.LockManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), value)
 		return
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
@@ -111,12 +111,11 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
 		return s.stateStore.Get(ctx, key)
 	case crosstypes.AtomicMode:
-		opmgr := types.OPManagerFromContext(ctx.Context())
-		v, ok := opmgr.GetUpdatedValue(s.buildKey(key))
+		lkmgr := types.LockManagerFromContext(ctx.Context())
+		v, ok := lkmgr.GetUpdatedValue(s.buildKey(key))
 		if !ok {
 			v = s.stateStore.Get(ctx, key)
 		}
-		opmgr.AddRead(s.buildKey(key), v)
 		return v
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
@@ -131,9 +130,9 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
 		return s.stateStore.Has(ctx, key)
 	case crosstypes.AtomicMode:
-		opmgr := types.OPManagerFromContext(ctx.Context())
+		lkmgr := types.LockManagerFromContext(ctx.Context())
 		found := false
-		v, ok := opmgr.GetUpdatedValue(s.buildKey(key))
+		v, ok := lkmgr.GetUpdatedValue(s.buildKey(key))
 		if !ok {
 			v = s.stateStore.Get(ctx, key)
 			if v != nil {
@@ -142,7 +141,6 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 		} else {
 			found = true
 		}
-		opmgr.AddRead(s.buildKey(key), v)
 		return found
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
@@ -158,7 +156,7 @@ func (s Store) Delete(ctx sdk.Context, key []byte) {
 		s.stateStore.Delete(ctx, key)
 		return
 	case crosstypes.AtomicMode:
-		types.OPManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), nil)
+		types.LockManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), nil)
 	default:
 		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
 	}
@@ -168,17 +166,13 @@ func (s Store) Precommit(ctx sdk.Context, id []byte) error {
 	if s.txStore.Has(ctx, id) {
 		return fmt.Errorf("id '%x' already exists", id)
 	}
-	lks := types.OPManagerFromContext(ctx.Context()).LockOPs()
-	ops, err := types.ConvertLockOPsToOPs(lks)
-	if err != nil {
-		return err
-	}
-	bz, err := proto.Marshal(ops)
+	lks := types.LockManagerFromContext(ctx.Context()).LockOPs()
+	bz, err := proto.Marshal(&lks)
 	if err != nil {
 		return err
 	}
 	s.txStore.Set(ctx, id, bz)
-	for _, lk := range lks {
+	for _, lk := range lks.Ops {
 		s.lockStore.Lock(ctx, lk.Key())
 	}
 	return nil
@@ -189,15 +183,11 @@ func (s Store) Abort(ctx sdk.Context, id []byte) error {
 	if bz == nil {
 		return fmt.Errorf("id '%x' not found", id)
 	}
-	var ops crosstypes.OPs
-	if err := proto.Unmarshal(bz, &ops); err != nil {
+	var lks types.LockOPs
+	if err := proto.Unmarshal(bz, &lks); err != nil {
 		return err
 	}
-	lks, err := types.ConvertOPsToLockOPs(s.m, ops)
-	if err != nil {
-		return err
-	}
-	s.clean(ctx, id, lks)
+	s.clean(ctx, id, lks.Ops)
 	return nil
 }
 
@@ -206,22 +196,18 @@ func (s Store) Commit(ctx sdk.Context, id []byte) error {
 	if bz == nil {
 		return fmt.Errorf("id '%x' not found", id)
 	}
-	var ops crosstypes.OPs
-	if err := proto.Unmarshal(bz, &ops); err != nil {
+	var lks types.LockOPs
+	if err := proto.Unmarshal(bz, &lks); err != nil {
 		return err
 	}
-	lks, err := types.ConvertOPsToLockOPs(s.m, ops)
-	if err != nil {
-		return err
-	}
-	s.apply(ctx, lks)
-	s.clean(ctx, id, lks)
+	s.apply(ctx, lks.Ops)
+	s.clean(ctx, id, lks.Ops)
 	return nil
 }
 
 func (s Store) CommitImmediately(ctx sdk.Context) {
-	lks := types.OPManagerFromContext(ctx.Context()).LockOPs()
-	s.apply(ctx, lks)
+	lks := types.LockManagerFromContext(ctx.Context()).LockOPs()
+	s.apply(ctx, lks.Ops)
 }
 
 func (s Store) apply(ctx sdk.Context, ops []types.LockOP) {

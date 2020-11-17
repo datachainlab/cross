@@ -28,18 +28,12 @@ message ContractTransaction {
   google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
   repeated bytes signers = 2 [(gogoproto.casttype) = "AccountID"];
   bytes call_info = 3 [(gogoproto.casttype) = "ContractCallInfo"];
-  StateConstraint state_constraint = 4 [(gogoproto.nullable) = false];
-  ReturnValue return_value = 5;
-  repeated Link links = 6 [(gogoproto.nullable) = false];
+  ReturnValue return_value = 4;
+  repeated Link links = 5 [(gogoproto.nullable) = false];
 }
 
 message Link {
   uint32 src_index = 1;
-}
-
-message StateConstraint {
-  uint32 type = 1 [(gogoproto.casttype) = "StateConstraintType"];
-  OPs ops = 2;
 }
 
 message ReturnValue {
@@ -51,12 +45,6 @@ message ContractCallResult {
   repeated tendermint.abci.Event events = 2 [
     (gogoproto.nullable) = false
   ];
-}
-
-message OPs {
-  option (gogoproto.equal)           = true;
-
-  repeated google.protobuf.Any items = 1 [(gogoproto.nullable) = false];
 }
 
 message ChannelInfo {

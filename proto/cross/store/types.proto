@@ -1,14 +1,16 @@
 syntax = "proto3";
 package cross.store;
 
-option go_package = "github.com/datachainlab/cross/x/store/types";
+import "gogoproto/gogo.proto";
 
-message ReadOP {
+option go_package = "github.com/datachainlab/cross/x/store/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message LockOP {
   bytes k = 1;
   bytes v = 2;
 }
 
-message WriteOP {
-  bytes k = 1;
-  bytes v = 2;
+message LockOPs {
+  repeated LockOP ops = 1 [(gogoproto.nullable) = false];
 }

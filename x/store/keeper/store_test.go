@@ -79,30 +79,27 @@ func TestCommitStore(t *testing.T) {
 	types.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 
-	var unpackOPItem = func(anyOPItem codectypes.Any) types.OP {
-		opItem, err := types.UnpackOPItem(cdc, anyOPItem)
-		if err != nil {
-			panic(err)
-		}
-		return opItem
-	}
+	// var unpackOPItem = func(anyOPItem codectypes.Any) types.OP {
+	// 	opItem, err := types.UnpackOPItem(cdc, anyOPItem)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	return opItem
+	// }
 
 	stk := sdk.NewKVStoreKey("main")
 	k0, v0 := []byte("k0"), []byte("v0")
 	k1, v1 := []byte("k1"), []byte("v1")
 	cms := makeCMStore(t, stk)
 	{
-		opmgr, err := types.GetOPManager(crosstypes.ExactMatchStateConstraint)
-		require.NoError(err)
-		ctx := makeAtomicModeContext(cms, opmgr)
+		lkmgr := types.NewLockManager()
+		ctx := makeAtomicModeContext(cms, lkmgr)
 		id0 := []byte("id0")
 		st := NewStore(cdc, stk)
 		st.Set(ctx, k0, v0)
 		require.NoError(st.Precommit(ctx, id0))
-		require.Equal(1, len(opmgr.OPs().Items))
-		require.Equal(&types.WriteOP{K: k0, V: v0}, unpackOPItem(opmgr.OPs().Items[0]))
-		require.Equal(1, len(opmgr.LockOPs()))
-		require.Equal(&types.WriteOP{K: k0, V: v0}, opmgr.LockOPs()[0])
+		require.Equal(1, len(lkmgr.LockOPs().Ops))
+		require.Equal(types.LockOP{K: k0, V: v0}, lkmgr.LockOPs().Ops[0])
 		cms.Commit()
 
 		// check if concurrent access is failed
@@ -125,19 +122,15 @@ func TestCommitStore(t *testing.T) {
 		require.Equal(v0, st.Get(ctx, k0))
 	}
 	{
-		opmgr, err := types.GetOPManager(crosstypes.ExactMatchStateConstraint)
-		require.NoError(err)
-		ctx := makeAtomicModeContext(cms, opmgr)
+		lkmgr := types.NewLockManager()
+		ctx := makeAtomicModeContext(cms, lkmgr)
 		id1 := []byte("id1")
 		st := NewStore(cdc, stk)
 		require.Equal(v0, st.Get(ctx, k0))
 		st.Set(ctx, k1, v1)
 		require.NoError(st.Precommit(ctx, id1))
-		require.Equal(2, len(opmgr.OPs().Items))
-		require.Equal(&types.ReadOP{K: k0, V: v0}, unpackOPItem(opmgr.OPs().Items[0]))
-		require.Equal(&types.WriteOP{K: k1, V: v1}, unpackOPItem(opmgr.OPs().Items[1]))
-		require.Equal(1, len(opmgr.LockOPs()))
-		require.Equal(&types.WriteOP{K: k1, V: v1}, opmgr.LockOPs()[0])
+		require.Equal(1, len(lkmgr.LockOPs().Ops))
+		require.Equal(types.LockOP{K: k1, V: v1}, lkmgr.LockOPs().Ops[0])
 		cms.Commit()
 
 		// check if concurrent access is failed
@@ -166,9 +159,9 @@ func makeContext(cms sdk.CommitMultiStore) sdk.Context {
 	return sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())
 }
 
-func makeAtomicModeContext(cms sdk.CommitMultiStore, opmgr types.OPManager) sdk.Context {
+func makeAtomicModeContext(cms sdk.CommitMultiStore, lkmgr types.LockManager) sdk.Context {
 	ctx := sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())
-	ctx = ctx.WithContext(types.ContextWithOPManager(ctx.Context(), opmgr))
+	ctx = ctx.WithContext(types.ContextWithLockManager(ctx.Context(), lkmgr))
 	return ctx.WithContext(
 		crosstypes.ContextWithContractRuntimeInfo(
 			ctx.Context(),

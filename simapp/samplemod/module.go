@@ -153,6 +153,6 @@ func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.Valid
 }
 
 // OnContractCall implements crosstypes.CrossModule
-func (am AppModule) OnContractCall(ctx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, *crosstypes.OPs, error) {
+func (am AppModule) OnContractCall(ctx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, error) {
 	return am.contractHandler(ctx, callInfo)
 }

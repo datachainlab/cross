@@ -17,19 +17,16 @@ type SetUpContractHandleDecorator struct{}
 var _ crosstypes.ContractHandleDecorator = (*SetUpContractHandleDecorator)(nil)
 
 func (cd SetUpContractHandleDecorator) Handle(ctx context.Context, callInfo crosstypes.ContractCallInfo) (newCtx context.Context, err error) {
-	opmgr, err := GetOPManager(crosstypes.ContractRuntimeFromContext(ctx).StateConstraintType)
-	if err != nil {
-		return nil, err
-	}
-	return ContextWithOPManager(ctx, opmgr), nil
+	lkmgr := NewLockManager()
+	return ContextWithLockManager(ctx, lkmgr), nil
 }
 
-type opManagerContextKey struct{}
+type lkManagerContextKey struct{}
 
-func OPManagerFromContext(ctx context.Context) OPManager {
-	return ctx.Value(opManagerContextKey{}).(OPManager)
+func LockManagerFromContext(ctx context.Context) LockManager {
+	return ctx.Value(lkManagerContextKey{}).(LockManager)
 }
 
-func ContextWithOPManager(ctx context.Context, opmgr OPManager) context.Context {
-	return context.WithValue(ctx, opManagerContextKey{}, opmgr)
+func ContextWithLockManager(ctx context.Context, lkmgr LockManager) context.Context {
+	return context.WithValue(ctx, lkManagerContextKey{}, lkmgr)
 }
