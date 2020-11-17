@@ -60,7 +60,7 @@ func (k Keeper) SendCall(
 	tx0 := transactions[TxIndexCoordinator]
 	tx1 := transactions[TxIndexParticipant]
 
-	if !k.ChainResolver().Capabilities().CrossChainCalls() && (len(tx0.Links) > 0 || len(tx1.Links) > 0) {
+	if !k.CrossChainChannelResolver().Capabilities().CrossChainCalls(ctx) && (len(tx0.Links) > 0 || len(tx1.Links) > 0) {
 		return errors.New("this chainResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
@@ -68,39 +68,39 @@ func (k Keeper) SendCall(
 		return fmt.Errorf("txID '%X' already exists", txID)
 	}
 
-	chain0, err := tx0.GetChainID(k.cdc)
+	xcc0, err := tx0.GetCrossChainChannel(k.cdc)
 	if err != nil {
 		return err
 	}
 
-	// check if chain0 indicates our chain
-	if !k.ChainResolver().IsOurChain(ctx, chain0) {
-		return fmt.Errorf("a chainID that txIndex '%v' indicates must be our chain", TxIndexCoordinator)
+	// check if xcc0 indicates our chain
+	if !k.CrossChainChannelResolver().IsSelfCrossChainChannel(ctx, xcc0) {
+		return fmt.Errorf("a cross-chain channel that txIndex '%v' indicates must be our chain", TxIndexCoordinator)
 	}
 
-	chain1, err := tx1.GetChainID(k.cdc)
+	xcc1, err := tx1.GetCrossChainChannel(k.cdc)
 	if err != nil {
 		return err
 	}
-	ch0, err := k.ChainResolver().ResolveChainID(ctx, chain0)
+	ch0, err := k.CrossChainChannelResolver().ResolveCrossChainChannel(ctx, xcc0)
 	if err != nil {
 		return err
 	}
-	ch1, err := k.ChainResolver().ResolveChainID(ctx, chain1)
+	ch1, err := k.CrossChainChannelResolver().ResolveCrossChainChannel(ctx, xcc1)
 	if err != nil {
 		return err
 	}
 
-	lkr, err := crosstypes.MakeLinker(k.cdc, k.ChainResolver(), transactions)
+	lkr, err := crosstypes.MakeLinker(k.cdc, k.CrossChainChannelResolver(), transactions)
 	if err != nil {
 		return err
 	}
-	// chain0 always indicates our chain
-	objs0, err := lkr.Resolve(ctx, chain0, tx0.Links)
+	// xcc0 always indicates our chain
+	objs0, err := lkr.Resolve(ctx, xcc0, tx0.Links)
 	if err != nil {
 		return err
 	}
-	objs1, err := lkr.Resolve(ctx, chain1, tx1.Links)
+	objs1, err := lkr.Resolve(ctx, xcc1, tx1.Links)
 	if err != nil {
 		return err
 	}
@@ -167,8 +167,8 @@ func (k Keeper) ReceiveCallPacket(
 		return nil, nil, fmt.Errorf("txID '%x' already exists", data.TxId)
 	}
 
-	if !k.ChainResolver().Capabilities().CrossChainCalls() && len(data.TxInfo.Tx.Links) > 0 {
-		return nil, nil, errors.New("this chainResolver cannot resolve cannot support the cross-chain calls feature")
+	if !k.CrossChainChannelResolver().Capabilities().CrossChainCalls(ctx) && len(data.TxInfo.Tx.Links) > 0 {
+		return nil, nil, errors.New("CrossChainResolver cannot resolve cannot support the cross-chain calls feature")
 	}
 
 	var (

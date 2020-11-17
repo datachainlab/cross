@@ -48,23 +48,23 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
 	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
-	cidB, err := crosstypes.PackChainID(&chAB)
+	xccB, err := crosstypes.PackCrossChainChannel(&chAB)
 
 	chBA := crosstypes.ChannelInfo{Port: channelB.PortID, Channel: channelB.ID}
 
-	cidOurs, err := crosstypes.PackChainID(suite.chainA.App.CrossKeeper.ChainResolver().GetOurChainID(suite.chainA.GetContext()))
+	xccSelf, err := crosstypes.PackCrossChainChannel(suite.chainA.App.CrossKeeper.CrossChainChannelResolver().GetSelfCrossChainChannel(suite.chainA.GetContext()))
 	suite.Require().NoError(err)
 
 	txs := []crosstypes.ContractTransaction{
 		{
-			ChainId: cidOurs,
+			CrossChainChannel: xccSelf,
 			Signers: []crosstypes.AccountID{
 				crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 			},
 			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
 		},
 		{
-			ChainId: cidB,
+			CrossChainChannel: xccB,
 			Signers: []crosstypes.AccountID{
 				crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 			},

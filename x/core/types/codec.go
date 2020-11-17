@@ -17,7 +17,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgIBCSignTx{},
 	)
 	registry.RegisterImplementations(
-		(*ChainID)(nil),
+		(*CrossChainChannel)(nil),
 		&ChannelInfo{},
 	)
 	registry.RegisterImplementations(
@@ -75,18 +75,18 @@ func UnpackObjects(m codec.Marshaler, objects []codectypes.Any) ([]Object, error
 	return objs, nil
 }
 
-func PackChainID(chainID ChainID) (*codectypes.Any, error) {
+func PackCrossChainChannel(xcc CrossChainChannel) (*codectypes.Any, error) {
 	var any codectypes.Any
-	if err := any.Pack(chainID); err != nil {
+	if err := any.Pack(xcc); err != nil {
 		return nil, err
 	}
 	return &any, nil
 }
 
-func UnpackChainID(m codec.Marshaler, anyChainID codectypes.Any) (ChainID, error) {
-	var chainID ChainID
-	if err := m.UnpackAny(&anyChainID, &chainID); err != nil {
+func UnpackCrossChainChannel(m codec.Marshaler, anyXCC codectypes.Any) (CrossChainChannel, error) {
+	var xcc CrossChainChannel
+	if err := m.UnpackAny(&anyXCC, &xcc); err != nil {
 		return nil, err
 	}
-	return chainID, nil
+	return xcc, nil
 }

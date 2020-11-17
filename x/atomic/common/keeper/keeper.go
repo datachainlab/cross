@@ -28,7 +28,7 @@ type Keeper struct {
 	contractModule          crosstypes.ContractModule
 	contractHandleDecorator crosstypes.ContractHandleDecorator
 	resolverProvider        crosstypes.ObjectResolverProvider
-	chainResolver           crosstypes.ChainResolver
+	xccResolver             crosstypes.CrossChainChannelResolver
 }
 
 func NewKeeper(
@@ -40,7 +40,7 @@ func NewKeeper(
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 	contractModule crosstypes.ContractModule,
 	contractHandleDecorator crosstypes.ContractHandleDecorator,
-	chainResolver crosstypes.ChainResolver,
+	xccResolver crosstypes.CrossChainChannelResolver,
 	commitStore crosstypes.CommitStore,
 ) Keeper {
 	return Keeper{
@@ -54,7 +54,7 @@ func NewKeeper(
 		contractModule:          contractModule,
 		contractHandleDecorator: contractHandleDecorator,
 		resolverProvider:        crosstypes.DefaultResolverProvider(),
-		chainResolver:           chainResolver,
+		xccResolver:             xccResolver,
 	}
 }
 
@@ -62,8 +62,8 @@ func (k Keeper) ChannelKeeper() crosstypes.ChannelKeeper {
 	return k.channelKeeper
 }
 
-func (k Keeper) ChainResolver() crosstypes.ChainResolver {
-	return k.chainResolver
+func (k Keeper) CrossChainChannelResolver() crosstypes.CrossChainChannelResolver {
+	return k.xccResolver
 }
 
 func (k Keeper) PrepareCommit(

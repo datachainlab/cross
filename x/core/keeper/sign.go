@@ -13,13 +13,13 @@ import (
 func (k Keeper) SendIBCSignTx(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,
-	chainID types.ChainID,
+	xcc types.CrossChainChannel,
 	txID types.TxID,
 	signers []types.AccountID,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
-	ci, err := k.ChainResolver().ResolveChainID(ctx, chainID)
+	ci, err := k.CrossChainChannelResolver().ResolveCrossChainChannel(ctx, xcc)
 	if err != nil {
 		return err
 	}
@@ -58,14 +58,14 @@ func (k Keeper) ReceiveIBCSignTx(
 	if !found {
 		return false, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
 	}
-	chainID, err := k.ChainResolver().ResolveChannel(ctx, &types.ChannelInfo{Port: destPort, Channel: destChannel})
+	xcc, err := k.CrossChainChannelResolver().ResolveChannel(ctx, &types.ChannelInfo{Port: destPort, Channel: destChannel})
 	if err != nil {
 		return false, err
 	}
 
 	// Verify the signers of transaction
 
-	completed, err := k.verifyTx(ctx, data.TxID, makeExternalAccounts(chainID, data.Signers))
+	completed, err := k.verifyTx(ctx, data.TxID, makeExternalAccounts(xcc, data.Signers))
 	if err != nil {
 		return false, err
 	} else if !completed {
@@ -85,10 +85,10 @@ func (k Keeper) ReceiveIBCSignTx(
 	return true, nil
 }
 
-func makeExternalAccounts(chainID types.ChainID, signers []types.AccountID) []types.Account {
+func makeExternalAccounts(xcc types.CrossChainChannel, signers []types.AccountID) []types.Account {
 	var accs []types.Account
 	for _, id := range signers {
-		accs = append(accs, types.NewAccount(chainID, id))
+		accs = append(accs, types.NewAccount(xcc, id))
 	}
 	return accs
 }

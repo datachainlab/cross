@@ -27,18 +27,16 @@ message MsgInitiateTx {
   string chain_id = 2;
   uint64 nonce    = 3;
   uint32 commit_protocol = 4;
-
+  repeated cross.core.ContractTransaction contract_transactions = 5 [(gogoproto.nullable) = false];
+  repeated bytes signers = 6 [(gogoproto.casttype) = "AccountID"];
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.
-  ibc.core.client.v1.Height timeout_height = 5
+  ibc.core.client.v1.Height timeout_height = 7
       [(gogoproto.moretags) = "yaml:\"timeout_height\"", (gogoproto.nullable) = false];
   // Timeout timestamp (in nanoseconds) relative to the current block timestamp.
   // The timeout is disabled when set to 0.
-  uint64 timeout_timestamp = 6
+  uint64 timeout_timestamp = 8
     [(gogoproto.moretags) = "yaml:\"timeout_timestamp\""];
-
-  repeated cross.core.ContractTransaction contract_transactions = 7 [(gogoproto.nullable) = false];
-  repeated bytes signers = 8 [(gogoproto.casttype) = "AccountID"];
 }
 
 // MsgInitiateTxResponse defines the Msg/InitiateTx response type.
@@ -78,7 +76,7 @@ message MsgIBCSignTx {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  google.protobuf.Any chain_id = 1 [(gogoproto.nullable) = true];
+  google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
   bytes txID = 2 [(gogoproto.casttype) = "TxID"];
   repeated bytes signers = 3 [(gogoproto.casttype) = "AccountID"];
   // Timeout height relative to the current block height.

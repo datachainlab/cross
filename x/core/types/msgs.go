@@ -79,11 +79,11 @@ func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-func (msg MsgInitiateTx) GetAccounts(localChainID ChainID) []Account {
+func (msg MsgInitiateTx) GetAccounts(selfXCC CrossChainChannel) []Account {
 	var accs []Account
 	signers := msg.GetSigners()
 	for _, id := range signers {
-		accs = append(accs, NewAccount(localChainID, AccountID(id)))
+		accs = append(accs, NewAccount(selfXCC, AccountID(id)))
 	}
 	return accs
 }
@@ -92,7 +92,7 @@ func (msg MsgInitiateTx) GetRequiredAccounts() []Account {
 	var accs []Account
 	for _, tx := range msg.ContractTransactions {
 		for _, id := range tx.Signers {
-			accs = append(accs, Account{ChainId: tx.ChainId, Id: id})
+			accs = append(accs, Account{CrossChainChannel: tx.CrossChainChannel, Id: id})
 		}
 	}
 	return accs

@@ -15,12 +15,12 @@ import (
 // Linker resolves links that each ContractTransaction has.
 type Linker struct {
 	cdc           codec.Marshaler
-	chainResolver ChainResolver
+	chainResolver CrossChainChannelResolver
 	objects       map[TxIndex]lazyObject
 }
 
 // MakeLinker returns Linker
-func MakeLinker(cdc codec.Marshaler, chainResolver ChainResolver, txs []ContractTransaction) (*Linker, error) {
+func MakeLinker(cdc codec.Marshaler, chainResolver CrossChainChannelResolver, txs []ContractTransaction) (*Linker, error) {
 	lkr := Linker{cdc: cdc, objects: make(map[TxIndex]lazyObject, len(txs))}
 	for i, tx := range txs {
 		idx := TxIndex(i)
@@ -28,11 +28,11 @@ func MakeLinker(cdc codec.Marshaler, chainResolver ChainResolver, txs []Contract
 			if tx.ReturnValue.IsNil() {
 				return returnObject{err: errors.New("On cross-chain call, each contractTransaction must be specified a return-value")}
 			}
-			chainID, err := tx.GetChainID(lkr.cdc)
+			xcc, err := tx.GetCrossChainChannel(lkr.cdc)
 			if err != nil {
 				return returnObject{err: err}
 			}
-			obj := MakeConstantValueObject(chainID, MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
+			obj := MakeConstantValueObject(xcc, MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
 			return returnObject{obj: &obj}
 		})
 	}
@@ -40,7 +40,7 @@ func MakeLinker(cdc codec.Marshaler, chainResolver ChainResolver, txs []Contract
 }
 
 // Resolve resolves given links and returns resolved Object
-func (lkr Linker) Resolve(ctx sdk.Context, callerID ChainID, lks []Link) ([]Object, error) {
+func (lkr Linker) Resolve(ctx sdk.Context, callerc CrossChainChannel, lks []Link) ([]Object, error) {
 	var objects []Object
 	for _, lk := range lks {
 		idx := lk.GetSrcIndex()
@@ -52,12 +52,12 @@ func (lkr Linker) Resolve(ctx sdk.Context, callerID ChainID, lks []Link) ([]Obje
 		if ret.err != nil {
 			return nil, ret.err
 		}
-		calleeID := ret.obj.GetChainID(lkr.cdc)
-		chainID, err := lkr.chainResolver.ConvertChainID(ctx, calleeID, callerID)
+		calleeID := ret.obj.GetCrossChainChannel(lkr.cdc)
+		xcc, err := lkr.chainResolver.ConvertCrossChainChannel(ctx, calleeID, callerc)
 		if err != nil {
 			return nil, err
 		}
-		obj := ret.obj.WithChainID(lkr.cdc, chainID)
+		obj := ret.obj.WithCrossChainChannel(lkr.cdc, xcc)
 		objects = append(objects, obj)
 	}
 	return objects, nil
@@ -105,23 +105,23 @@ type Object interface {
 	proto.Message
 	Type() ObjectType
 	Key() []byte
-	GetChainID(m codec.Marshaler) ChainID
-	WithChainID(m codec.Marshaler, chainID ChainID) Object
+	GetCrossChainChannel(m codec.Marshaler) CrossChainChannel
+	WithCrossChainChannel(m codec.Marshaler, xcc CrossChainChannel) Object
 	Evaluate([]byte) ([]byte, error)
 }
 
 var _ Object = (*ConstantValueObject)(nil)
 
 // MakeConstantValueObject returns ConstantValueObject
-func MakeConstantValueObject(chainID ChainID, key []byte, value []byte) ConstantValueObject {
-	anyChainID, err := PackChainID(chainID)
+func MakeConstantValueObject(xcc CrossChainChannel, key []byte, value []byte) ConstantValueObject {
+	anyXCC, err := PackCrossChainChannel(xcc)
 	if err != nil {
 		panic(err)
 	}
 	return ConstantValueObject{
-		ChainId: *anyChainID,
-		K:       key,
-		V:       value,
+		CrossChainChannel: *anyXCC,
+		K:                 key,
+		V:                 value,
 	}
 }
 
@@ -130,22 +130,22 @@ func (ConstantValueObject) Type() ObjectType {
 	return ObjectTypeConstantValue
 }
 
-// GetChainID implements Object.GetChainID
-func (obj ConstantValueObject) GetChainID(m codec.Marshaler) ChainID {
-	chainID, err := UnpackChainID(m, obj.ChainId)
+// GetCrossChainChannel implements Object.GetCrossChainChannel
+func (obj ConstantValueObject) GetCrossChainChannel(m codec.Marshaler) CrossChainChannel {
+	xcc, err := UnpackCrossChainChannel(m, obj.CrossChainChannel)
 	if err != nil {
 		panic(err)
 	}
-	return chainID
+	return xcc
 }
 
-// WithChainID implements Object.WithChainID
-func (obj ConstantValueObject) WithChainID(m codec.Marshaler, chainID ChainID) Object {
-	anyChainID, err := PackChainID(chainID)
+// WithChainID implements Object.WithCrossChainChannel
+func (obj ConstantValueObject) WithCrossChainChannel(m codec.Marshaler, xcc CrossChainChannel) Object {
+	anyXCC, err := PackCrossChainChannel(xcc)
 	if err != nil {
 		panic(err)
 	}
-	obj.ChainId = *anyChainID
+	obj.CrossChainChannel = *anyXCC
 	return &obj
 }
 
@@ -171,7 +171,7 @@ func DefaultResolverProvider() ObjectResolverProvider {
 
 // ObjectResolver resolves a given key to Object
 type ObjectResolver interface {
-	Resolve(id ChainID, key []byte) (Object, error)
+	Resolve(xcc CrossChainChannel, key []byte) (Object, error)
 }
 
 // SequentialResolver is a resolver that resolves an object in sequential
@@ -190,7 +190,7 @@ func NewSequentialResolver(m codec.Marshaler, objects []Object) *SequentialResol
 
 // Resolve implements ObjectResolver.Resolve
 // If success, resolver increments the internal sequence
-func (r *SequentialResolver) Resolve(id ChainID, key []byte) (Object, error) {
+func (r *SequentialResolver) Resolve(xcc CrossChainChannel, key []byte) (Object, error) {
 	if len(r.objects) <= int(r.seq) {
 		return nil, fmt.Errorf("object not found: seq=%X", r.seq)
 	}
@@ -198,8 +198,8 @@ func (r *SequentialResolver) Resolve(id ChainID, key []byte) (Object, error) {
 	if !bytes.Equal(obj.Key(), key) {
 		return nil, fmt.Errorf("keys mismatch: %X != %X", obj.Key(), key)
 	}
-	if cid := obj.GetChainID(r.m); !cid.Equal(id) {
-		return nil, fmt.Errorf("chainID mismatch: %v != %v", cid, id)
+	if objXCC := obj.GetCrossChainChannel(r.m); !objXCC.Equal(xcc) {
+		return nil, fmt.Errorf("cross-chain channel mismatch: %v != %v", objXCC, xcc)
 	}
 	r.seq++
 	return obj, nil
@@ -216,6 +216,6 @@ func NewFakeResolver() FakeResolver {
 }
 
 // Resolve implements ObjectResolver.Resolve
-func (FakeResolver) Resolve(id ChainID, key []byte) (Object, error) {
-	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%v' '%X'", id, key))
+func (FakeResolver) Resolve(xcc CrossChainChannel, key []byte) (Object, error) {
+	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%v' '%X'", xcc, key))
 }

@@ -50,13 +50,13 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
 	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
-	cidB, err := crosstypes.PackChainID(&chAB)
+	xccB, err := crosstypes.PackCrossChainChannel(&chAB)
 	suite.Require().NoError(err)
 	chBA := crosstypes.ChannelInfo{Port: channelB.PortID, Channel: channelB.ID}
-	cidA, err := crosstypes.PackChainID(&chBA)
+	xccA, err := crosstypes.PackCrossChainChannel(&chBA)
 	suite.Require().NoError(err)
 
-	cidOurs, err := crosstypes.PackChainID(suite.chainA.App.CrossKeeper.ChainResolver().GetOurChainID(suite.chainA.GetContext()))
+	xccSelf, err := crosstypes.PackCrossChainChannel(suite.chainA.App.CrossKeeper.CrossChainChannelResolver().GetSelfCrossChainChannel(suite.chainA.GetContext()))
 	suite.Require().NoError(err)
 
 	var txID crosstypes.TxID
@@ -70,14 +70,14 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 			crosstypes.CommitProtocolSimple,
 			[]crosstypes.ContractTransaction{
 				{
-					ChainId: cidOurs,
+					CrossChainChannel: xccSelf,
 					Signers: []crosstypes.AccountID{
 						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
-					ChainId: cidB,
+					CrossChainChannel: xccB,
 					Signers: []crosstypes.AccountID{
 						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
@@ -103,11 +103,11 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	var packetCall *channeltypes.Packet
 	{
 		msg1 := crosstypes.MsgIBCSignTx{
-			ChainId:          cidA,
-			TxID:             txID,
-			Signers:          []crosstypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
-			TimeoutHeight:    clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
-			TimeoutTimestamp: 0,
+			CrossChainChannel: xccA,
+			TxID:              txID,
+			Signers:           []crosstypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+			TimeoutHeight:     clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
+			TimeoutTimestamp:  0,
 		}
 		res1, err := sendMsgs(suite.coordinator, suite.chainB, suite.chainA, clientA, &msg1)
 		suite.Require().NoError(err)

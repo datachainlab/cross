@@ -27,33 +27,33 @@ func (id AccountID) AccAddress() sdk.AccAddress {
 // Account definition
 
 // NewAccount creates a new instance of Account
-func NewAccount(chainID ChainID, id AccountID) Account {
-	var anyChainID *codectypes.Any
-	if chainID != nil {
+func NewAccount(xcc CrossChainChannel, id AccountID) Account {
+	var anyCrossChainChannel *codectypes.Any
+	if xcc != nil {
 		var err error
-		anyChainID, err = PackChainID(chainID)
+		anyCrossChainChannel, err = PackCrossChainChannel(xcc)
 		if err != nil {
 			panic(err)
 		}
 	}
-	return Account{ChainId: anyChainID, Id: id}
+	return Account{CrossChainChannel: anyCrossChainChannel, Id: id}
 }
 
-// GetChainID returns ChainID
-func (acc Account) GetChainID(m codec.Marshaler) ChainID {
-	chainID, err := UnpackChainID(m, *acc.ChainId)
+// GetCrossChainChannel returns CrossChainChannel
+func (acc Account) GetCrossChainChannel(m codec.Marshaler) CrossChainChannel {
+	xcc, err := UnpackCrossChainChannel(m, *acc.CrossChainChannel)
 	if err != nil {
 		panic(err)
 	}
-	return chainID
+	return xcc
 }
 
-func (tx ContractTransaction) GetChainID(m codec.Marshaler) (ChainID, error) {
-	var chainID ChainID
-	if err := m.UnpackAny(tx.ChainId, &chainID); err != nil {
+func (tx ContractTransaction) GetCrossChainChannel(m codec.Marshaler) (CrossChainChannel, error) {
+	var xcc CrossChainChannel
+	if err := m.UnpackAny(tx.CrossChainChannel, &xcc); err != nil {
 		return nil, err
 	}
-	return chainID, nil
+	return xcc, nil
 }
 
 func (tx ContractTransaction) ValidateBasic() error {
@@ -124,22 +124,22 @@ type OP interface {
 	proto.Message
 }
 
-// ChainID represents an ID of chain that contains a contract function to be called
-type ChainID interface {
+// CrossChainChannel represents a channel of chain that contains a contract function to be called
+type CrossChainChannel interface {
 	proto.Message
 	Type() string
-	Equal(ChainID) bool
+	Equal(CrossChainChannel) bool
 	String() string
 }
 
-var _ ChainID = (*ChannelInfo)(nil)
+var _ CrossChainChannel = (*ChannelInfo)(nil)
 
-// Type implements ChainID.Type
+// Type implements CrossChainChannel.Type
 func (ci ChannelInfo) Type() string {
 	return "channelinfo"
 }
 
-func (ci *ChannelInfo) Equal(other ChainID) bool {
+func (ci *ChannelInfo) Equal(other CrossChainChannel) bool {
 	oi, ok := other.(*ChannelInfo)
 	if !ok {
 		return false
@@ -147,28 +147,28 @@ func (ci *ChannelInfo) Equal(other ChainID) bool {
 	return ci.Port == oi.Port && ci.Channel == oi.Channel
 }
 
-// ChainResolver defines the interface of resolver resolves chainID to ChannelInfo
-type ChainResolver interface {
-	ResolveChainID(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error)
-	ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (ChainID, error)
-	ConvertChainID(ctx sdk.Context, calleeID ChainID, callerID ChainID) (calleeIDOnCaller ChainID, err error)
-	GetOurChainID(ctx sdk.Context) ChainID
-	IsOurChain(ctx sdk.Context, chainID ChainID) bool
-	Capabilities() ChainResolverCapabilities
+// CrossChainChannelResolver defines the interface of resolver resolves cross-chain channel to ChannelInfo
+type CrossChainChannelResolver interface {
+	ResolveCrossChainChannel(ctx sdk.Context, xcc CrossChainChannel) (*ChannelInfo, error)
+	ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (CrossChainChannel, error)
+	ConvertCrossChainChannel(ctx sdk.Context, calleeXCC CrossChainChannel, callerXCC CrossChainChannel) (calleeXCCOnCaller CrossChainChannel, err error)
+	GetSelfCrossChainChannel(ctx sdk.Context) CrossChainChannel
+	IsSelfCrossChainChannel(ctx sdk.Context, xcc CrossChainChannel) bool
+	Capabilities() CrossChainChannelResolverCapabilities
 }
 
-// ChainResolverCapabilities defines the capabilities for the ChainResolver
-type ChainResolverCapabilities interface {
+// CrossChainChannelResolverCapabilities defines the capabilities for the ChainResolver
+type CrossChainChannelResolverCapabilities interface {
 	// CrossChainCalls returns true if support for cross-chain calls is enabled.
-	CrossChainCalls() bool
+	CrossChainCalls(ctx sdk.Context) bool
 }
 
-type chainResolverCapabilities struct {
+type crossChainChannelResolverCapabilities struct {
 	crossChainCalls bool
 }
 
 // CrossChainCalls implements ChainResolverCapabilities.CrossChainCalls
-func (c chainResolverCapabilities) CrossChainCalls() bool {
+func (c crossChainChannelResolverCapabilities) CrossChainCalls(ctx sdk.Context) bool {
 	return c.crossChainCalls
 }
 
@@ -184,19 +184,19 @@ func NewChannelInfoResolver(channelKeeper ChannelKeeper) ChannelInfoResolver {
 	}
 }
 
-var _ ChainResolver = (*ChannelInfoResolver)(nil)
+var _ CrossChainChannelResolver = (*ChannelInfoResolver)(nil)
 
-// ResolveChainID implements ChainResolver.ResolveChainID
-func (r ChannelInfoResolver) ResolveChainID(ctx sdk.Context, chainID ChainID) (*ChannelInfo, error) {
-	ci, ok := chainID.(*ChannelInfo)
+// ResolveCrossChainChannel implements CrossChainChannelResolver.ResolveCrossChainChannel
+func (r ChannelInfoResolver) ResolveCrossChainChannel(ctx sdk.Context, xcc CrossChainChannel) (*ChannelInfo, error) {
+	ci, ok := xcc.(*ChannelInfo)
 	if !ok {
-		return nil, fmt.Errorf("cannot resolve '%v'", chainID)
+		return nil, fmt.Errorf("cannot resolve '%v'", xcc)
 	}
 	return ci, nil
 }
 
-// ResolveChannel implements ChainResolver.ResolveChannel
-func (r ChannelInfoResolver) ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (ChainID, error) {
+// ResolveChannel implements CrossChainChannelResolver.ResolveChannel
+func (r ChannelInfoResolver) ResolveChannel(ctx sdk.Context, channel *ChannelInfo) (CrossChainChannel, error) {
 	// check if given channel exists in channelKeeper
 	_, found := r.channelKeeper.GetChannel(ctx, channel.Port, channel.Channel)
 	if !found {
@@ -205,20 +205,20 @@ func (r ChannelInfoResolver) ResolveChannel(ctx sdk.Context, channel *ChannelInf
 	return channel, nil
 }
 
-// ConvertChainID returns a chainID of callee in caller's context
-func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, callee ChainID, caller ChainID) (ChainID, error) {
-	ours := r.GetOurChainID(ctx)
-	ourChannelInfo, ok := ours.(*ChannelInfo)
+// ConvertCrossChainChannel returns a xcc of callee in caller's context
+func (r ChannelInfoResolver) ConvertCrossChainChannel(ctx sdk.Context, callee CrossChainChannel, caller CrossChainChannel) (CrossChainChannel, error) {
+	selfc := r.GetSelfCrossChainChannel(ctx)
+	ourChannelInfo, ok := selfc.(*ChannelInfo)
 	if !ok {
-		return nil, errors.New("our chainID must be *ChannelInfo type")
+		return nil, errors.New("our xcc must be *ChannelInfo type")
 	}
 	calleeChannelInfo, ok := callee.(*ChannelInfo)
 	if !ok {
-		return nil, errors.New("callee's chainID must be *ChannelInfo type")
+		return nil, errors.New("callee's xcc must be *ChannelInfo type")
 	}
 	callerChannelInfo, ok := caller.(*ChannelInfo)
 	if !ok {
-		return nil, errors.New("caller's chainID must be *ChannelInfo type")
+		return nil, errors.New("caller's xcc must be *ChannelInfo type")
 	}
 	isLocalCallee := calleeChannelInfo == ourChannelInfo
 	isLocalCaller := callerChannelInfo == ourChannelInfo
@@ -238,19 +238,19 @@ func (r ChannelInfoResolver) ConvertChainID(ctx sdk.Context, callee ChainID, cal
 	}
 }
 
-// GetOurChainID implements ChainResolver.GetOurChainID
-func (ChannelInfoResolver) GetOurChainID(ctx sdk.Context) ChainID {
+// GetSelfCrossChainChannel implements CrossChainChannelResolver.GetSelfCrossChainChannel
+func (ChannelInfoResolver) GetSelfCrossChainChannel(ctx sdk.Context) CrossChainChannel {
 	return &ChannelInfo{}
 }
 
-// IsOurChain implements ChainResolver.IsOurChain
-func (r ChannelInfoResolver) IsOurChain(ctx sdk.Context, chainID ChainID) bool {
-	return chainID.Equal(r.GetOurChainID(ctx))
+// IsSelfCrossChainChannel implements CrossChainChannelResolver.IsSelfCrossChainChannel
+func (r ChannelInfoResolver) IsSelfCrossChainChannel(ctx sdk.Context, xcc CrossChainChannel) bool {
+	return xcc.Equal(r.GetSelfCrossChainChannel(ctx))
 }
 
-// Capabilities implements ChainResolver.Capabilities
-func (r ChannelInfoResolver) Capabilities() ChainResolverCapabilities {
-	return chainResolverCapabilities{crossChainCalls: false}
+// Capabilities implements CrossChainChannelResolver.Capabilities
+func (r ChannelInfoResolver) Capabilities() CrossChainChannelResolverCapabilities {
+	return crossChainChannelResolverCapabilities{crossChainCalls: false}
 }
 
 func NewContractTransactionInfo(tx ContractTransaction, linkObjects []Object) ContractTransactionInfo {

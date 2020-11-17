@@ -46,7 +46,7 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	var accounts []types.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetOurChainID(ctx), addr))
+		accounts = append(accounts, types.NewAccount(k.CrossChainChannelResolver().GetSelfCrossChainChannel(ctx), addr))
 	}
 	status, err := k.signTx(ctx, msg.TxID, accounts)
 	if err != nil {
@@ -58,7 +58,7 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 // IBCSignTx defines a rpc handler method for MsgIBCSignTx.
 func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*types.MsgIBCSignTxResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	chainID, err := types.UnpackChainID(k.m, *msg.ChainId)
+	xcc, err := types.UnpackCrossChainChannel(k.m, *msg.CrossChainChannel)
 	if err != nil {
 		return nil, err
 	}
@@ -72,13 +72,13 @@ func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*type
 
 	var accounts []types.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, types.NewAccount(k.ChainResolver().GetOurChainID(ctx), addr))
+		accounts = append(accounts, types.NewAccount(k.CrossChainChannelResolver().GetSelfCrossChainChannel(ctx), addr))
 	}
 
 	err = k.SendIBCSignTx(
 		ctx,
 		ps,
-		chainID,
+		xcc,
 		msg.TxID,
 		msg.Signers,
 		msg.TimeoutHeight,
