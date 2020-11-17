@@ -211,9 +211,9 @@ func (r ChannelInfoResolver) ConvertCrossChainChannel(ctx sdk.Context, calleeXCC
 
 	if !isLocalCallee && !isLocalCaller {
 		return nil, fmt.Errorf("either callee or caller must be self xcc")
-	} else if !isLocalCallee && isLocalCaller {
+	} else if isLocalCaller {
 		return calleeXCC, nil
-	} else if !isLocalCaller && isLocalCallee {
+	} else if isLocalCallee {
 		callerChannelInfo, err := r.ResolveCrossChainChannel(ctx, callerXCC)
 		if err != nil {
 			return nil, err
