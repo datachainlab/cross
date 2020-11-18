@@ -31,8 +31,8 @@ $RLY q bal $CHAINID_TWO
 $RLY paths gen $CHAINID_ONE $CHAINID_TWO $PATH_NAME \
 --force \
 --unordered \
---port transfer \
---version ics20-1 \
+--port cross \
+--version cross-1 \
 --strategy naive
 
 retry 5 "$RLY tx clients $PATH_NAME"
