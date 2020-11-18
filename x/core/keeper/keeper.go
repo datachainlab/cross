@@ -99,6 +99,12 @@ func (k Keeper) AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Cap
 	return k.scopedKeeper.AuthenticateCapability(ctx, cap, name)
 }
 
+// IsBound checks if the transfer module is already bound to the desired port
+func (k Keeper) IsBound(ctx sdk.Context, portID string) bool {
+	_, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(portID))
+	return ok
+}
+
 func (k Keeper) store(ctx sdk.Context) sdk.KVStore {
 	return prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyCoreKeeperPrefixBytes())
 }
