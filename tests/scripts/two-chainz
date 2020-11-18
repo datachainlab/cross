@@ -9,7 +9,7 @@ CHAIN_DATA="$(pwd)/data"
 RELAYER_DIR="$(dirname $SCRIPTDIR)"
 RELAYER_CONF="$HOME/.relayer"
 CHAIN_BINARY=../build/simd
-RLY_BINARY=../build/rly
+RLY_BINARY=./bin/rly
 
 # Ensure ${CHAIN_BINARY} is installed
 if ! [ -x ${CHAIN_BINARY} ]; then

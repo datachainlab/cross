@@ -12,4 +12,4 @@ test:
 
 .PHONY: e2e-test
 e2e-test:
-	# $(MAKE) -C ./tests e2e-test
+	$(MAKE) -C ./tests e2e-test

@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eux
+
+PREV_DIR=$(pwd)
+RELAYER_DIR=$(mktemp -d)
+RLY_REVISION=3080dab10e37e6db9e691c343b1c0cdb6d845753
+
+echo "RELAYER_DIR is ${RELAYER_DIR}"
+
+cd ${RELAYER_DIR}
+git clone git@github.com:cosmos/relayer.git
+cd ./relayer
+git checkout ${RLY_REVISION}
+echo "Building Relayer..."
+make build
+mv ./build/rly ${PREV_DIR}/bin/rly
