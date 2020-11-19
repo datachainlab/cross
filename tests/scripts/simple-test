@@ -33,3 +33,10 @@ ${CHAIN_0_CMD} query cross create-contract-tx \
     -o json \
     --output-document=./data/ibc-0-tx \
     ${KEY_OPT}
+
+${CHAIN_0_CMD} tx cross initiate-tx \
+    --from=user \
+    --yes \
+    --chain-id=ibc-0 \
+    --contract-txs="./data/ibc-0-tx,./data/ibc-1-tx" \
+    ${KEY_OPT}

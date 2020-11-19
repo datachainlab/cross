@@ -6,8 +6,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
+	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/types/time"
@@ -31,14 +31,11 @@ func NewInitiateTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cTxPaths := viper.GetStringSlice(flagContractTransactions)
-
 			sender := types.AccountIDFromAccAddress(clientCtx.GetFromAddress())
-			ctxs, err := readContractTransactions(cTxPaths)
+			ctxs, err := readContractTransactions(clientCtx.JSONMarshaler, viper.GetStringSlice(flagContractTransactions))
 			if err != nil {
 				return err
 			}
-
 			msg := types.NewMsgInitiateTx(
 				sender,
 				clientCtx.ChainID,
@@ -46,7 +43,7 @@ func NewInitiateTxCmd() *cobra.Command {
 				types.COMMIT_PROTOCOL_SIMPLE,
 				ctxs,
 				clienttypes.ZeroHeight(),
-				uint64(time.Now().Unix()),
+				uint64(time.Now().Unix())+1000,
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
@@ -61,7 +58,7 @@ func NewInitiateTxCmd() *cobra.Command {
 	return cmd
 }
 
-func readContractTransactions(pathList []string) ([]types.ContractTransaction, error) {
+func readContractTransactions(m codec.JSONMarshaler, pathList []string) ([]types.ContractTransaction, error) {
 	var cTxs []types.ContractTransaction
 	for _, path := range pathList {
 		bz, err := ioutil.ReadFile(path)
@@ -69,7 +66,7 @@ func readContractTransactions(pathList []string) ([]types.ContractTransaction, e
 			return nil, err
 		}
 		var cTx types.ContractTransaction
-		if err := proto.Unmarshal(bz, &cTx); err != nil {
+		if err := m.UnmarshalJSON(bz, &cTx); err != nil {
 			return nil, err
 		}
 		cTxs = append(cTxs, cTx)
