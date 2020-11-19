@@ -19,6 +19,10 @@ func GetQueryCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
+	queryCmd.AddCommand(
+		GetCreateContractTransaction(),
+	)
+
 	return queryCmd
 }
 
