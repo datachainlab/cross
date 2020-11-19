@@ -11,12 +11,14 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/datachainlab/cross/x/core/types"
 )
 
 func GetCreateContractTransaction() *cobra.Command {
 	const (
+		flagInitiatorChain        = "initiator-chain"
 		flagInitiatorChainChannel = "initiator-chain-channel"
 		flagSigners               = "signers"
 		flagCallInfo              = "call-info"
@@ -34,6 +36,36 @@ func GetCreateContractTransaction() *cobra.Command {
 				return err
 			}
 
+			var anyXCC *codectypes.Any
+
+			// Validations
+			initiatorChannel := viper.GetString(flagInitiatorChainChannel)
+			isInitiator := viper.GetBool(flagInitiatorChain)
+			if isInitiator {
+				// Query self-XCC to query server
+				crossClient := types.NewQueryClient(clientCtx)
+				res, err := crossClient.SelfXCC(context.Background(), &types.QuerySelfXCCRequest{})
+				if err != nil {
+					return err
+				}
+				anyXCC = res.Xcc
+			} else {
+				// This channel info indicates a channel betwwen this chain to initiator chain(source chain?)
+				ci, err := parseChannelInfoFromString(initiatorChannel)
+				if err != nil {
+					return err
+				}
+				channelClient := channeltypes.NewQueryClient(clientCtx)
+				xcc, err := resolveXCCFromChannel(channelClient, *ci)
+				if err != nil {
+					return err
+				}
+				anyXCC, err = types.PackCrossChainChannel(xcc)
+				if err != nil {
+					return err
+				}
+			}
+
 			var signers []types.AccountID
 			for _, s := range viper.GetStringSlice(flagSigners) {
 				keyInfo, err := clientCtx.Keyring.Key(s)
@@ -44,23 +76,6 @@ func GetCreateContractTransaction() *cobra.Command {
 			}
 
 			callInfo := []byte(viper.GetString(flagCallInfo))
-
-			// This channel info indicates a channel betwwen this chain to initiator chain(source chain?)
-			ci, err := parseChannelInfoFromString(viper.GetString(flagInitiatorChainChannel))
-			if err != nil {
-				return err
-			}
-
-			channelClient := channeltypes.NewQueryClient(clientCtx)
-			xcc, err := resolveXCCFromChannel(channelClient, *ci)
-			if err != nil {
-				return err
-			}
-
-			anyXCC, err := types.PackCrossChainChannel(xcc)
-			if err != nil {
-				return err
-			}
 			cTx := types.ContractTransaction{
 				CrossChainChannel: anyXCC,
 				Signers:           signers,
@@ -76,17 +91,17 @@ func GetCreateContractTransaction() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().Bool(flagInitiatorChain, false, "")
 	cmd.Flags().String(flagInitiatorChainChannel, "", "")
 	cmd.Flags().StringSlice(flagSigners, nil, "")
 	cmd.Flags().String(flagCallInfo, "", "")
 	cmd.Flags().String(flags.FlagOutputDocument, "", "The document will be written to the given file instead of STDOUT")
 
-	cmd.MarkFlagRequired(flagInitiatorChainChannel)
 	cmd.MarkFlagRequired(flagSigners)
 	cmd.MarkFlagRequired(flagCallInfo)
 
-	// flags.AddQueryFlagsToCmd(cmd)
-	flags.AddTxFlagsToCmd(cmd)
+	flags.AddQueryFlagsToCmd(cmd)
+	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 	return cmd
 }
 

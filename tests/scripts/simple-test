@@ -16,20 +16,20 @@ CHAIN_0_CMD="${CHAIN_BINARY} --home ${CHAIN_0_HOME} --node tcp://localhost:26657
 CHAIN_1_CMD="${CHAIN_BINARY} --home ${CHAIN_1_HOME} --node tcp://localhost:26557"
 KEY_OPT="--keyring-backend=test"
 
-# ${CHAIN_0_CMD} query ibc channel channels -o json | jq -r '.channels[0] | .channel_id + ":" + .port_id'
 initiator_cc=$(${CHAIN_1_CMD} query ibc channel channels -o json | jq -r '.channels[0] | .channel_id + ":" + .port_id')
 
 ${CHAIN_1_CMD} query cross create-contract-tx \
     --call-info="{\"method\":\"counter\"}" \
     --signers=user \
     --initiator-chain-channel=${initiator_cc} \
+    -o json \
     --output-document=./data/ibc-1-tx \
     ${KEY_OPT}
 
-# TODO need to specify self channel
-# ${CHAIN_0_CMD} query cross create-contract-tx \
-#     --call-info="{\"method\":\"counter\"}" \
-#     --signers=user \
-#     --initiator-chain \
-#     --output-document=./data/ibc-0-tx \
-#     ${KEY_OPT}
+${CHAIN_0_CMD} query cross create-contract-tx \
+    --call-info="{\"method\":\"counter\"}" \
+    --signers=user \
+    --initiator-chain=true \
+    -o json \
+    --output-document=./data/ibc-0-tx \
+    ${KEY_OPT}
