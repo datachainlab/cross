@@ -9,7 +9,7 @@ import (
 	"github.com/datachainlab/cross/x/packets"
 )
 
-var _ types.MsgServer = Keeper{}
+var _ types.MsgServer = (*Keeper)(nil)
 
 // InitiateTx defines a rpc handler method for MsgInitiateTx.
 func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*types.MsgInitiateTxResponse, error) {
