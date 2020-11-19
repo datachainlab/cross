@@ -18,6 +18,7 @@ KEY_OPT="--keyring-backend=test"
 
 initiator_cc=$(${CHAIN_1_CMD} query ibc channel channels -o json | jq -r '.channels[0] | .channel_id + ":" + .port_id')
 
+# Create a contract transaction of chain1 (no broadcast)
 ${CHAIN_1_CMD} query cross create-contract-tx \
     --call-info="{\"method\":\"counter\"}" \
     --signers=user \
@@ -26,6 +27,7 @@ ${CHAIN_1_CMD} query cross create-contract-tx \
     --output-document=./data/ibc-1-tx \
     ${KEY_OPT}
 
+# Create a contract transaction of chain0 (no broadcast)
 ${CHAIN_0_CMD} query cross create-contract-tx \
     --call-info="{\"method\":\"counter\"}" \
     --signers=user \
@@ -34,9 +36,23 @@ ${CHAIN_0_CMD} query cross create-contract-tx \
     --output-document=./data/ibc-0-tx \
     ${KEY_OPT}
 
-${CHAIN_0_CMD} tx cross initiate-tx \
+# Initiate a cross-chain transaction on chain0
+res0=$(${CHAIN_0_CMD} tx cross initiate-tx \
     --from=user \
     --yes \
     --chain-id=ibc-0 \
     --contract-txs="./data/ibc-0-tx,./data/ibc-1-tx" \
+    ${KEY_OPT})
+echo $res0
+tx_id=$(echo $res0 | jq -r '.data')
+
+# Sign a cross-chain transaction on chain0 from chain1
+${CHAIN_1_CMD} tx cross ibc-signtx \
+    --from=user \
+    --yes \
+    --chain-id=ibc-1 \
+    --tx-id=${tx_id} \
+    --initiator-chain-channel=${initiator_cc} \
     ${KEY_OPT}
+
+# TODO relay a packet

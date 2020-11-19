@@ -50,20 +50,10 @@ func GetCreateContractTransaction() *cobra.Command {
 				}
 				anyXCC = res.Xcc
 			} else {
-				// This channel info indicates a channel betwwen this chain to initiator chain(source chain?)
-				ci, err := parseChannelInfoFromString(initiatorChannel)
-				if err != nil {
-					return err
-				}
-				channelClient := channeltypes.NewQueryClient(clientCtx)
-				xcc, err := resolveXCCFromChannel(channelClient, *ci)
-				if err != nil {
-					return err
-				}
-				anyXCC, err = types.PackCrossChainChannel(xcc)
-				if err != nil {
-					return err
-				}
+				anyXCC, err = resolveAnyXCCFromChannelString(
+					channeltypes.NewQueryClient(clientCtx),
+					initiatorChannel,
+				)
 			}
 
 			var signers []types.AccountID
@@ -91,10 +81,10 @@ func GetCreateContractTransaction() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool(flagInitiatorChain, false, "")
-	cmd.Flags().String(flagInitiatorChainChannel, "", "")
-	cmd.Flags().StringSlice(flagSigners, nil, "")
-	cmd.Flags().String(flagCallInfo, "", "")
+	cmd.Flags().Bool(flagInitiatorChain, false, "A boolean value whether the chain is an initiator of the cross-chain tx includes this contract tx")
+	cmd.Flags().String(flagInitiatorChainChannel, "", "The channel info: '<channelID>:<portID>'")
+	cmd.Flags().StringSlice(flagSigners, nil, "Signers info")
+	cmd.Flags().String(flagCallInfo, "", "A contract call info")
 	cmd.Flags().String(flags.FlagOutputDocument, "", "The document will be written to the given file instead of STDOUT")
 
 	cmd.MarkFlagRequired(flagSigners)
@@ -111,6 +101,18 @@ func parseChannelInfoFromString(s string) (*types.ChannelInfo, error) {
 		return nil, errors.New("channel format must be follow a format: '<channelID>:<portID>'")
 	}
 	return &types.ChannelInfo{Channel: parts[0], Port: parts[1]}, nil
+}
+
+func resolveAnyXCCFromChannelString(queryClient channeltypes.QueryClient, s string) (*codectypes.Any, error) {
+	ci, err := parseChannelInfoFromString(s)
+	if err != nil {
+		return nil, err
+	}
+	xcc, err := resolveXCCFromChannel(queryClient, *ci)
+	if err != nil {
+		return nil, err
+	}
+	return types.PackCrossChainChannel(xcc)
 }
 
 func resolveXCCFromChannel(queryClient channeltypes.QueryClient, ci types.ChannelInfo) (types.CrossChainChannel, error) {

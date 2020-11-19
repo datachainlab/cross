@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/hex"
 	"io/ioutil"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -8,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/types/time"
@@ -72,4 +74,54 @@ func readContractTransactions(m codec.JSONMarshaler, pathList []string) ([]types
 		cTxs = append(cTxs, cTx)
 	}
 	return cTxs, nil
+}
+
+func NewIBCSignTxCmd() *cobra.Command {
+	const (
+		flagTxID                  = "tx-id"
+		flagInitiatorChainChannel = "initiator-chain-channel"
+	)
+
+	cmd := &cobra.Command{
+		Use:   "ibc-signtx",
+		Short: "Sign the cross-chain transaction on other chain via the chain",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
+			anyXCC, err := resolveAnyXCCFromChannelString(
+				channeltypes.NewQueryClient(clientCtx),
+				viper.GetString(flagInitiatorChainChannel),
+			)
+			if err != nil {
+				return err
+			}
+			signer := types.AccountIDFromAccAddress(clientCtx.FromAddress)
+			txID, err := hex.DecodeString(viper.GetString(flagTxID))
+			if err != nil {
+				return err
+			}
+			msg := types.NewMsgIBCSignTx(
+				anyXCC,
+				txID,
+				[]types.AccountID{signer},
+				clienttypes.ZeroHeight(),
+				uint64(time.Now().Unix())+1000,
+			)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+	cmd.Flags().String(flagTxID, "", "hex encoding of the TxID")
+	cmd.Flags().String(flagInitiatorChainChannel, "", "channel info: '<channelID>:<portID>'")
+	cmd.MarkFlagRequired(flagTxID)
+	cmd.MarkFlagRequired(flagInitiatorChainChannel)
+
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
 }
