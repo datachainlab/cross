@@ -13,7 +13,6 @@ import (
 
 func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (types.TxID, bool, error) {
 	txID := types.MakeTxID(msg)
-
 	_, found := k.getTxState(ctx, txID)
 	if found {
 		return nil, false, fmt.Errorf("txID '%X' already exists", txID)

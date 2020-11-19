@@ -3,16 +3,17 @@ package cli
 import (
 	"encoding/hex"
 	"io/ioutil"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/types/time"
 
 	"github.com/datachainlab/cross/x/core/types"
 )
@@ -41,11 +42,11 @@ func NewInitiateTxCmd() *cobra.Command {
 			msg := types.NewMsgInitiateTx(
 				sender,
 				clientCtx.ChainID,
-				0,
+				uint64(time.Now().Unix()),
 				types.COMMIT_PROTOCOL_SIMPLE,
 				ctxs,
-				clienttypes.ZeroHeight(),
-				uint64(time.Now().Unix())+1000,
+				clienttypes.NewHeight(0, 10000000), // TODO make configurable
+				uint64(time.Now().Add(100*time.Hour).UnixNano()), // TODO make configurable
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
@@ -92,7 +93,7 @@ func NewIBCSignTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			anyXCC, err := resolveAnyXCCFromChannelString(
+			anyXCC, err := resolveXCC(
 				channeltypes.NewQueryClient(clientCtx),
 				viper.GetString(flagInitiatorChainChannel),
 			)
@@ -108,8 +109,8 @@ func NewIBCSignTxCmd() *cobra.Command {
 				anyXCC,
 				txID,
 				[]types.AccountID{signer},
-				clienttypes.ZeroHeight(),
-				uint64(time.Now().Unix())+1000,
+				clienttypes.NewHeight(0, 10000000), // TODO make configurable
+				uint64(time.Now().Add(100*time.Hour).UnixNano()), // TODO make configurable
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
@@ -124,4 +125,12 @@ func NewIBCSignTxCmd() *cobra.Command {
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
+}
+
+func resolveXCC(queryClient channeltypes.QueryClient, s string) (*codectypes.Any, error) {
+	ci, err := parseChannelInfoFromString(s)
+	if err != nil {
+		return nil, err
+	}
+	return types.PackCrossChainChannel(ci)
 }

@@ -10,8 +10,8 @@ RLY="${RLY_BINARY} --debug"
 
 # initiator: chain0
 # participant: chain1
-CHAIN_0_HOME=./data/ibc-0
-CHAIN_1_HOME=./data/ibc-1
+CHAIN_0_HOME=./data/ibc0
+CHAIN_1_HOME=./data/ibc1
 CHAIN_0_CMD="${CHAIN_BINARY} --home ${CHAIN_0_HOME} --node tcp://localhost:26657"
 CHAIN_1_CMD="${CHAIN_BINARY} --home ${CHAIN_1_HOME} --node tcp://localhost:26557"
 KEY_OPT="--keyring-backend=test"
@@ -24,7 +24,7 @@ ${CHAIN_1_CMD} query cross create-contract-tx \
     --signers=user \
     --initiator-chain-channel=${initiator_cc} \
     -o json \
-    --output-document=./data/ibc-1-tx \
+    --output-document=./data/ibc1-tx \
     ${KEY_OPT}
 
 # Create a contract transaction of chain0 (no broadcast)
@@ -33,24 +33,26 @@ ${CHAIN_0_CMD} query cross create-contract-tx \
     --signers=user \
     --initiator-chain=true \
     -o json \
-    --output-document=./data/ibc-0-tx \
+    --output-document=./data/ibc0-tx \
     ${KEY_OPT}
 
 # Initiate a cross-chain transaction on chain0
 res0=$(${CHAIN_0_CMD} tx cross initiate-tx \
     --from=user \
     --yes \
-    --chain-id=ibc-0 \
-    --contract-txs="./data/ibc-0-tx,./data/ibc-1-tx" \
+    --chain-id=ibc0 \
+    --contract-txs="./data/ibc0-tx,./data/ibc1-tx" \
     ${KEY_OPT})
 echo $res0
-tx_id=$(echo $res0 | jq -r '.data')
+tx_id=$(echo $res0 | jq -r '.logs[0].events[1].attributes[0].value')
+
+sleep 3
 
 # Sign a cross-chain transaction on chain0 from chain1
 ${CHAIN_1_CMD} tx cross ibc-signtx \
     --from=user \
     --yes \
-    --chain-id=ibc-1 \
+    --chain-id=ibc1 \
     --tx-id=${tx_id} \
     --initiator-chain-channel=${initiator_cc} \
     ${KEY_OPT}

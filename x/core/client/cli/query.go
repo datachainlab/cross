@@ -50,7 +50,7 @@ func GetCreateContractTransaction() *cobra.Command {
 				}
 				anyXCC = res.Xcc
 			} else {
-				anyXCC, err = resolveAnyXCCFromChannelString(
+				anyXCC, err = resolveXCCForInitiator(
 					channeltypes.NewQueryClient(clientCtx),
 					initiatorChannel,
 				)
@@ -103,7 +103,7 @@ func parseChannelInfoFromString(s string) (*types.ChannelInfo, error) {
 	return &types.ChannelInfo{Channel: parts[0], Port: parts[1]}, nil
 }
 
-func resolveAnyXCCFromChannelString(queryClient channeltypes.QueryClient, s string) (*codectypes.Any, error) {
+func resolveXCCForInitiator(queryClient channeltypes.QueryClient, s string) (*codectypes.Any, error) {
 	ci, err := parseChannelInfoFromString(s)
 	if err != nil {
 		return nil, err

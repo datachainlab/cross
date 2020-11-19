@@ -7,9 +7,9 @@ source $(cd $(dirname "$0"); pwd)/util
 RLY_BINARY=./bin/rly
 RLY="${RLY_BINARY} --debug"
 
-CHAINID_ONE=ibc-0
+CHAINID_ONE=ibc0
 RLYKEY=testkey
-CHAINID_TWO=ibc-1
+CHAINID_TWO=ibc1
 PATH_NAME=ibc01
 
 $RLY keys show $CHAINID_ONE $RLYKEY

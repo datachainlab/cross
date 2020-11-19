@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,7 +31,11 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 	txID, completed, err := k.initTx(ctx, msg)
 	if err != nil {
 		return nil, err
-	} else if !completed {
+	}
+
+	ctx.EventManager().EmitEvent(sdk.NewEvent("tx", sdk.NewAttribute("id", hex.EncodeToString(txID))))
+
+	if !completed {
 		return &types.MsgInitiateTxResponse{TxID: txID, Status: types.INITIATE_TX_STATUS_PENDING}, nil
 	}
 
