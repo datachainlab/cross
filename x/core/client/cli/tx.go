@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/hex"
 	"io/ioutil"
 	"time"
@@ -12,8 +13,10 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	ibctmtypes "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/datachainlab/cross/x/core/types"
 )
@@ -39,14 +42,20 @@ func NewInitiateTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			version := clienttypes.ParseChainID(clientCtx.ChainID)
+			_, height, err := QueryTendermintHeader(clientCtx)
+			if err != nil {
+				return err
+			}
+
 			msg := types.NewMsgInitiateTx(
 				sender,
 				clientCtx.ChainID,
 				uint64(time.Now().Unix()),
 				types.COMMIT_PROTOCOL_SIMPLE,
 				ctxs,
-				clienttypes.NewHeight(0, 10000000), // TODO make configurable
-				uint64(time.Now().Add(100*time.Hour).UnixNano()), // TODO make configurable
+				clienttypes.NewHeight(version, uint64(height)+100),
+				0,
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
@@ -105,12 +114,17 @@ func NewIBCSignTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			version := clienttypes.ParseChainID(clientCtx.ChainID)
+			_, height, err := QueryTendermintHeader(clientCtx)
+			if err != nil {
+				return err
+			}
 			msg := types.NewMsgIBCSignTx(
 				anyXCC,
 				txID,
 				[]types.AccountID{signer},
-				clienttypes.NewHeight(0, 10000000), // TODO make configurable
-				uint64(time.Now().Add(100*time.Hour).UnixNano()), // TODO make configurable
+				clienttypes.NewHeight(version, uint64(height)+100),
+				0,
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
@@ -133,4 +147,46 @@ func resolveXCC(queryClient channeltypes.QueryClient, s string) (*codectypes.Any
 		return nil, err
 	}
 	return types.PackCrossChainChannel(ci)
+}
+
+// QueryTendermintHeader takes a client context and returns the appropriate
+// tendermint header
+func QueryTendermintHeader(clientCtx client.Context) (ibctmtypes.Header, int64, error) {
+	node, err := clientCtx.GetNode()
+	if err != nil {
+		return ibctmtypes.Header{}, 0, err
+	}
+
+	info, err := node.ABCIInfo(context.Background())
+	if err != nil {
+		return ibctmtypes.Header{}, 0, err
+	}
+
+	height := info.Response.LastBlockHeight
+
+	commit, err := node.Commit(context.Background(), &height)
+	if err != nil {
+		return ibctmtypes.Header{}, 0, err
+	}
+
+	page := 1
+	count := 10_000
+
+	validators, err := node.Validators(context.Background(), &height, &page, &count)
+	if err != nil {
+		return ibctmtypes.Header{}, 0, err
+	}
+
+	protoCommit := commit.SignedHeader.ToProto()
+	protoValset, err := tmtypes.NewValidatorSet(validators.Validators).ToProto()
+	if err != nil {
+		return ibctmtypes.Header{}, 0, err
+	}
+
+	header := ibctmtypes.Header{
+		SignedHeader: protoCommit,
+		ValidatorSet: protoValset,
+	}
+
+	return header, height, nil
 }
