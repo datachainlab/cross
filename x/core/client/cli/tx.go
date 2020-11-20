@@ -42,11 +42,12 @@ func NewInitiateTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			version := clienttypes.ParseChainID(clientCtx.ChainID)
-			_, height, err := QueryTendermintHeader(clientCtx)
+
+			h, height, err := QueryTendermintHeader(clientCtx)
 			if err != nil {
 				return err
 			}
+			version := clienttypes.ParseChainID(h.Header.ChainID)
 
 			msg := types.NewMsgInitiateTx(
 				sender,
@@ -114,11 +115,11 @@ func NewIBCSignTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			version := clienttypes.ParseChainID(clientCtx.ChainID)
-			_, height, err := QueryTendermintHeader(clientCtx)
+			h, height, err := QueryTendermintHeader(clientCtx)
 			if err != nil {
 				return err
 			}
+			version := clienttypes.ParseChainID(h.Header.ChainID)
 			msg := types.NewMsgIBCSignTx(
 				anyXCC,
 				txID,
@@ -151,6 +152,7 @@ func resolveXCC(queryClient channeltypes.QueryClient, s string) (*codectypes.Any
 
 // QueryTendermintHeader takes a client context and returns the appropriate
 // tendermint header
+// Original implementation(but has a little) is here: https://github.com/cosmos/cosmos-sdk/blob/300b7393addba8c162cae929db90b083dcf93bd0/x/ibc/core/02-client/client/utils/utils.go#L123
 func QueryTendermintHeader(clientCtx client.Context) (ibctmtypes.Header, int64, error) {
 	node, err := clientCtx.GetNode()
 	if err != nil {
