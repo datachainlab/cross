@@ -17,9 +17,8 @@ import (
 )
 
 type Keeper struct {
-	cdc       codec.Marshaler
-	storeKey  sdk.StoreKey
-	keyPrefix []byte
+	cdc      codec.Marshaler
+	storeKey sdk.StoreKey
 
 	channelKeeper crosstypes.ChannelKeeper
 	portKeeper    crosstypes.PortKeeper
@@ -35,7 +34,6 @@ type Keeper struct {
 func NewKeeper(
 	cdc codec.Marshaler,
 	storeKey sdk.StoreKey,
-	keyPrefix []byte,
 	channelKeeper crosstypes.ChannelKeeper,
 	portKeeper crosstypes.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
@@ -47,7 +45,6 @@ func NewKeeper(
 	return Keeper{
 		cdc:                     cdc,
 		storeKey:                storeKey,
-		keyPrefix:               keyPrefix,
 		channelKeeper:           channelKeeper,
 		portKeeper:              portKeeper,
 		scopedKeeper:            scopedKeeper,

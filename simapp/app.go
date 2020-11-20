@@ -91,6 +91,8 @@ import (
 	samplemodkeeper "github.com/datachainlab/cross/simapp/samplemod/keeper"
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	crossatomic "github.com/datachainlab/cross/x/atomic"
+	atomickeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
+	atomictypes "github.com/datachainlab/cross/x/atomic/common/types"
 	cross "github.com/datachainlab/cross/x/core"
 	crosskeeper "github.com/datachainlab/cross/x/core/keeper"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
@@ -236,7 +238,7 @@ func NewSimApp(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
-		evidencetypes.StoreKey, ibctransfertypes.StoreKey, crosstypes.StoreKey, samplemodtypes.StoreKey, capabilitytypes.StoreKey,
+		evidencetypes.StoreKey, ibctransfertypes.StoreKey, crosstypes.StoreKey, atomictypes.StoreKey, samplemodtypes.StoreKey, capabilitytypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -328,12 +330,19 @@ func NewSimApp(
 	app.SamplemodKeeper = samplemodkeeper.NewKeeper(appCodec, keys[samplemodtypes.StoreKey], xstore)
 	samplemodModule := samplemod.NewAppModule(app.SamplemodKeeper)
 
+	atomicKeeper := atomickeeper.NewKeeper(
+		appCodec, keys[atomictypes.StoreKey],
+		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper, scopedCrossKeeper,
+		samplemodModule, crossstoretypes.DefaultContractHandleDecorators(), crosstypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper), xstore,
+	)
+	crossAtomicModule := crossatomic.NewAppModule(atomicKeeper)
+
 	// Create Cross Keepers
 	app.CrossKeeper = crosskeeper.NewKeeper(
 		appCodec, keys[crosstypes.StoreKey],
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper, packets.NewNOPPacketMiddleware(),
-		samplemodModule, crossstoretypes.DefaultContractHandleDecorators(), crosstypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper), xstore,
+		atomicKeeper,
 	)
 	crossModule := cross.NewAppModule(appCodec, app.CrossKeeper)
 
@@ -384,6 +393,7 @@ func NewSimApp(
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
 		crossModule,
+		crossAtomicModule,
 		samplemodModule,
 	)
 
@@ -405,7 +415,7 @@ func NewSimApp(
 	app.mm.SetOrderInitGenesis(
 		capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName, distrtypes.ModuleName, stakingtypes.ModuleName,
 		slashingtypes.ModuleName, govtypes.ModuleName, minttypes.ModuleName, crisistypes.ModuleName,
-		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName, samplemodtypes.ModuleName, crosstypes.ModuleName,
+		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName, samplemodtypes.ModuleName, crosstypes.ModuleName, atomictypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

@@ -1,6 +1,7 @@
 package atomic
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/gorilla/mux"
@@ -10,13 +11,18 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	commontypes "github.com/datachainlab/cross/x/atomic/common/types"
+	"github.com/datachainlab/cross/x/atomic/common/client/cli"
+	"github.com/datachainlab/cross/x/atomic/common/keeper"
+	"github.com/datachainlab/cross/x/atomic/common/types"
 	simpletypes "github.com/datachainlab/cross/x/atomic/simple/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 var (
 	_ module.AppModuleBasic = AppModuleBasic{}
+	_ module.AppModule      = AppModule{}
 )
 
 // ----------------------------------------------------------------------------
@@ -29,7 +35,7 @@ type AppModuleBasic struct {
 
 // Name returns the capability module's name.
 func (AppModuleBasic) Name() string {
-	return commontypes.ModuleName
+	return types.ModuleName
 }
 
 // RegisterLegacyAminoCodec implements AppModuleBasic interface
@@ -55,6 +61,7 @@ func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Rout
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
 }
 
 // GetTxCmd returns the capability module's root tx command.
@@ -64,5 +71,67 @@ func (a AppModuleBasic) GetTxCmd() *cobra.Command {
 
 // GetQueryCmd returns the capability module's root query command.
 func (AppModuleBasic) GetQueryCmd() *cobra.Command {
+	return cli.GetQueryCmd()
+}
+
+// ----------------------------------------------------------------------------
+// AppModule
+// ----------------------------------------------------------------------------
+
+// AppModule implements the AppModule interface for the capability module.
+type AppModule struct {
+	AppModuleBasic
+
+	keeper keeper.Keeper
+}
+
+func NewAppModule(k keeper.Keeper) AppModule {
+	return AppModule{keeper: k}
+}
+
+// Name returns the capability module's name.
+func (am AppModule) Name() string {
+	return am.AppModuleBasic.Name()
+}
+
+// Route returns the capability module's message routing key.
+func (am AppModule) Route() sdk.Route {
+	return sdk.Route{}
+}
+
+// QuerierRoute returns the capability module's query routing key.
+func (AppModule) QuerierRoute() string { return "" }
+
+// LegacyQuerierHandler returns the capability module's Querier.
+func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 	return nil
+}
+
+// RegisterInvariants registers the capability module's invariants.
+func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
+
+// RegisterServices registers a GRPC query service to respond to the
+// module-specific GRPC queries.
+func (am AppModule) RegisterServices(cfg module.Configurator) {
+	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
+}
+
+// InitGenesis performs the capability module's genesis initialization It returns
+// no validator updates.
+func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, gs json.RawMessage) []abci.ValidatorUpdate {
+	return nil
+}
+
+// ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
+func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json.RawMessage {
+	return nil
+}
+
+// BeginBlock executes all ABCI BeginBlock logic respective to the capability module.
+func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
+
+// EndBlock executes all ABCI EndBlock logic respective to the capability module. It
+// returns no validator updates.
+func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+	return []abci.ValidatorUpdate{}
 }

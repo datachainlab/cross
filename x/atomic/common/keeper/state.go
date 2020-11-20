@@ -3,7 +3,6 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/datachainlab/cross/x/atomic/common/types"
@@ -93,5 +92,5 @@ func (k Keeper) UpdateContractTransactionStatus(ctx sdk.Context, txID crosstypes
 }
 
 func (k Keeper) store(ctx sdk.Context) sdk.KVStore {
-	return prefix.NewStore(ctx.KVStore(k.storeKey), k.keyPrefix)
+	return ctx.KVStore(k.storeKey)
 }
