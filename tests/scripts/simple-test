@@ -6,17 +6,27 @@ source $(cd $(dirname "$0"); pwd)/util
 
 CHAIN_BINARY=../build/simd
 RLY_BINARY=./bin/rly
-RLY="${RLY_BINARY} --debug"
+RLY_CMD="${RLY_BINARY} --debug"
 
 # initiator: chain0
 # participant: chain1
 CHAIN_0_HOME=./data/ibc0
 CHAIN_1_HOME=./data/ibc1
+PATH_NAME=ibc01
+
 CHAIN_0_CMD="${CHAIN_BINARY} --home ${CHAIN_0_HOME} --node tcp://localhost:26657"
 CHAIN_1_CMD="${CHAIN_BINARY} --home ${CHAIN_1_HOME} --node tcp://localhost:26557"
 KEY_OPT="--keyring-backend=test"
 
 initiator_cc=$(${CHAIN_1_CMD} query ibc channel channels -o json | jq -r '.channels[0] | .channel_id + ":" + .port_id')
+
+# Start the relayer
+echo "==> (Re)starting the relayer"
+PID=$(pgrep rly || echo "")
+if [[ $PID != "" ]]; then
+	pkill rly
+fi
+${RLY_CMD} start ${PATH_NAME} &
 
 # Create a contract transaction of chain1 (no broadcast)
 ${CHAIN_1_CMD} query cross create-contract-tx \
@@ -57,4 +67,22 @@ ${CHAIN_1_CMD} tx cross ibc-signtx \
     --initiator-chain-channel=${initiator_cc} \
     ${KEY_OPT}
 
-# TODO relay a packet
+# Wait until all packets are relayed
+sleep 10
+
+echo "==> Stopping the relayer"
+pkill rly
+
+# Check if the tx is completed
+res1=$(${CHAIN_0_CMD} query cross-atomic coordinator-state \
+    ${tx_id} \
+    -o json)
+echo $res1
+decision=$(echo $res1 | jq -r '.decision')
+
+if [ ${decision} = "COORDINATOR_DECISION_COMMIT" ]; then
+  echo "The test has passed!"
+else
+  echo "The test was not successful: ${decision}"
+  exit 1
+fi
