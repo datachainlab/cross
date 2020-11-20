@@ -384,6 +384,7 @@ func NewSimApp(
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
 		crossModule,
+		samplemodModule,
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -404,7 +405,7 @@ func NewSimApp(
 	app.mm.SetOrderInitGenesis(
 		capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName, distrtypes.ModuleName, stakingtypes.ModuleName,
 		slashingtypes.ModuleName, govtypes.ModuleName, minttypes.ModuleName, crisistypes.ModuleName,
-		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName, crosstypes.ModuleName,
+		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName, samplemodtypes.ModuleName, crosstypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

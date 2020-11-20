@@ -1,25 +1,47 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/spf13/cobra"
 )
 
-// GetQueryCmd returns the cli query commands for this module
-func GetQueryCmd(queryRoute string) *cobra.Command {
-	// Group bridge queries under a subcommand
+func GetCounter() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:                        types.ModuleName,
-		Short:                      fmt.Sprintf("Querying commands for the %s module", types.ModuleName),
-		DisableFlagParsing:         true,
-		SuggestionsMinimumDistance: 2,
-		RunE:                       client.ValidateCmd,
+		Use:  "counter",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := client.GetClientContextFromCmd(cmd)
+			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			keyName := args[0]
+			keyInfo, err := clientCtx.Keyring.Key(keyName)
+			if err != nil {
+				return err
+			}
+
+			q := types.NewQueryClient(clientCtx)
+			res, err := q.Counter(
+				context.Background(),
+				&types.QueryCounterRequest{
+					Account: crosstypes.AccountIDFromAccAddress(keyInfo.GetAddress()),
+				},
+			)
+			if err != nil {
+				return err
+			}
+			return clientCtx.PrintString(fmt.Sprint(res.Value))
+		},
 	}
-
-	// this line is used by starport scaffolding # 1
-
+	flags.AddQueryFlagsToCmd(cmd)
+	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 	return cmd
 }

@@ -1,9 +1,22 @@
 syntax = "proto3";
 package samplemod.types;
 
+import "google/api/annotations.proto";
 import "gogoproto/gogo.proto";
 
 option go_package = "github.com/datachainlab/cross/simapp/samplemod/types";
 option (gogoproto.goproto_getters_all) = false;
 
-service Query {}
+service Query {
+  rpc Counter(QueryCounterRequest) returns (QueryCounterResponse) {
+    option (google.api.http).get = "/samplemod/types/counter";
+  }
+}
+
+message QueryCounterRequest {
+  bytes account = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.AccountID"];
+}
+
+message QueryCounterResponse {
+  uint64 value = 1;
+}
