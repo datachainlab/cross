@@ -8,7 +8,7 @@ import (
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	contracttypes "github.com/datachainlab/cross/x/contract/types"
 	"github.com/datachainlab/cross/x/store/types"
 	"github.com/stretchr/testify/require"
 	tmlog "github.com/tendermint/tendermint/libs/log"
@@ -163,9 +163,9 @@ func makeAtomicModeContext(cms sdk.CommitMultiStore, lkmgr types.LockManager) sd
 	ctx := sdk.NewContext(cms, tmproto.Header{}, false, tmlog.NewNopLogger())
 	ctx = ctx.WithContext(types.ContextWithLockManager(ctx.Context(), lkmgr))
 	return ctx.WithContext(
-		crosstypes.ContextWithContractRuntimeInfo(
+		contracttypes.ContextWithContractRuntimeInfo(
 			ctx.Context(),
-			crosstypes.ContractRuntimeInfo{CommitMode: crosstypes.AtomicMode},
+			contracttypes.ContractRuntimeInfo{CommitMode: contracttypes.AtomicMode},
 		),
 	)
 }

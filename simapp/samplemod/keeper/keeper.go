@@ -9,28 +9,32 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	accounttypes "github.com/datachainlab/cross/x/account/types"
+	contracttype "github.com/datachainlab/cross/x/contract/types"
+	"github.com/datachainlab/cross/x/core/host"
+	txtypes "github.com/datachainlab/cross/x/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 
 type Keeper struct {
 	m        codec.Marshaler
 	storeKey sdk.StoreKey
-	xstore   crosstypes.Store
+	xstore   contracttype.Store
 
-	exContractCaller crosstypes.ExternalContractCaller
+	exContractCaller contracttype.ExternalContractCaller
 }
 
-func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey, xstore crosstypes.Store) Keeper {
+func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey, xstore contracttype.Store) Keeper {
 	return Keeper{
 		m:                m,
 		storeKey:         storeKey,
 		xstore:           xstore,
-		exContractCaller: crosstypes.NewExternalContractCaller(),
+		exContractCaller: contracttype.NewExternalContractCaller(),
 	}
 }
 
 // HandleContractCall is called by ContractModule
-func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, error) {
+func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.ContractCallInfo) (*contracttype.ContractCallResult, error) {
 	var req types.ContractCallRequest
 	if err := k.m.UnmarshalJSON(callInfo, &req); err != nil {
 		return nil, err
@@ -38,7 +42,7 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.Co
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	switch req.Method {
 	case "nop":
-		return &crosstypes.ContractCallResult{}, nil
+		return &contracttype.ContractCallResult{}, nil
 	case "counter":
 		return k.HandleCounter(ctx, req)
 	case "external-call":
@@ -52,15 +56,15 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo crosstypes.Co
 
 var counterKey = []byte("counter")
 
-func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, error) {
+func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*contracttype.ContractCallResult, error) {
 	// use the account ID as namespace
-	account := crosstypes.ContractSignersFromContext(ctx.Context())[0]
+	account := contracttype.ContractSignersFromContext(ctx.Context())[0]
 	v := k.getCounter(ctx, account)
 	bz := k.setCounter(ctx, account, v+1)
-	return &crosstypes.ContractCallResult{Data: bz}, nil
+	return &contracttype.ContractCallResult{Data: bz}, nil
 }
 
-func (k Keeper) getCounter(ctx sdk.Context, account crosstypes.AccountID) uint64 {
+func (k Keeper) getCounter(ctx sdk.Context, account accounttypes.AccountID) uint64 {
 	var count uint64
 	v := k.xstore.Prefix(account).Get(ctx, counterKey)
 	if v == nil {
@@ -71,13 +75,13 @@ func (k Keeper) getCounter(ctx sdk.Context, account crosstypes.AccountID) uint64
 	return count
 }
 
-func (k Keeper) setCounter(ctx sdk.Context, account crosstypes.AccountID, value uint64) []byte {
+func (k Keeper) setCounter(ctx sdk.Context, account accounttypes.AccountID, value uint64) []byte {
 	bz := sdk.Uint64ToBigEndian(value)
 	k.xstore.Prefix(account).Set(ctx, counterKey, bz)
 	return bz
 }
 
-func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, error) {
+func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallRequest) (*contracttype.ContractCallResult, error) {
 	if len(req.Args) != 2 {
 		return nil, fmt.Errorf("the number of arguments must be 2")
 	}
@@ -89,16 +93,16 @@ func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallReques
 	channelID := req.Args[1]
 
 	r := types.NewContractCallRequest("counter")
-	callInfo := crosstypes.ContractCallInfo(k.m.MustMarshalJSON(&r))
+	callInfo := txtypes.ContractCallInfo(k.m.MustMarshalJSON(&r))
 
 	ret := k.exContractCaller.Call(
 		ctx,
-		&crosstypes.ChannelInfo{
-			Port:    crosstypes.PortID,
+		&xcctypes.ChannelInfo{
+			Port:    host.PortID,
 			Channel: channelID,
 		},
 		callInfo,
-		[]crosstypes.AccountID{accID},
+		[]accounttypes.AccountID{accID},
 	)
-	return &crosstypes.ContractCallResult{Data: ret}, nil
+	return &contracttype.ContractCallResult{Data: ret}, nil
 }

@@ -43,6 +43,10 @@ func makeMockContext() sdk.Context {
 	return sdk.Context{}
 }
 
+func (p TestPacketDataPayload) Type() string {
+	return "cross/packets/test"
+}
+
 type testPacket struct {
 	exported.PacketI
 	pd      PacketData

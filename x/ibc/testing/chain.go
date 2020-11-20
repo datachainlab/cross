@@ -39,7 +39,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/datachainlab/cross/simapp"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	crosshost "github.com/datachainlab/cross/x/core/host"
 )
 
 const (
@@ -52,7 +52,7 @@ const (
 	UnbondingPeriod time.Duration = time.Hour * 24 * 7 * 3
 	MaxClockDrift   time.Duration = time.Second * 10
 
-	DefaultChannelVersion = crosstypes.Version
+	DefaultChannelVersion = crosshost.Version
 	InvalidID             = "IDisInvalid"
 
 	ConnectionIDPrefix = "conn"
@@ -724,7 +724,7 @@ func (chain *TestChain) CreatePortCapability(portID string) {
 			// claim capability using the transfer capability keeper
 			err = chain.App.ScopedTransferKeeper.ClaimCapability(chain.GetContext(), cap, host.PortPath(portID))
 			require.NoError(chain.t, err)
-		case crosstypes.PortID:
+		case crosshost.PortID:
 			err = chain.App.ScopedCrossKeeper.ClaimCapability(chain.GetContext(), cap, host.PortPath(portID))
 			require.NoError(chain.t, err)
 		default:

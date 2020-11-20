@@ -6,23 +6,24 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	contracttypes "github.com/datachainlab/cross/x/contract/types"
+	"github.com/datachainlab/cross/x/core/host"
 	"github.com/datachainlab/cross/x/store/types"
 	"github.com/gogo/protobuf/proto"
 )
 
-var _ crosstypes.Store = (*kvStore)(nil)
+var _ contracttypes.Store = (*kvStore)(nil)
 
 type kvStore struct {
 	storeKey sdk.StoreKey
 	prefix   []byte
 }
 
-func newKVStore(storeKey sdk.StoreKey) crosstypes.Store {
+func newKVStore(storeKey sdk.StoreKey) contracttypes.Store {
 	return &kvStore{storeKey: storeKey}
 }
 
-func (s kvStore) Prefix(prefix []byte) crosstypes.Store {
+func (s kvStore) Prefix(prefix []byte) contracttypes.Store {
 	p := make([]byte, len(s.prefix)+len(prefix))
 	copy(p[0:len(s.prefix)], s.prefix)
 	copy(p[len(s.prefix):], prefix)
@@ -31,7 +32,7 @@ func (s kvStore) Prefix(prefix []byte) crosstypes.Store {
 }
 
 func (s kvStore) KVStore(ctx sdk.Context) sdk.KVStore {
-	return prefix.NewStore(ctx.KVStore(s.storeKey), s.prefix)
+	return prefix.NewStore(s.store(ctx), s.prefix)
 }
 
 func (s kvStore) Set(ctx sdk.Context, key, value []byte) {
@@ -50,17 +51,26 @@ func (s kvStore) Delete(ctx sdk.Context, key []byte) {
 	s.KVStore(ctx).Delete(key)
 }
 
+func (s kvStore) store(ctx sdk.Context) sdk.KVStore {
+	switch storeKey := s.storeKey.(type) {
+	case *host.PrefixStoreKey:
+		return prefix.NewStore(ctx.KVStore(storeKey.StoreKey), storeKey.Prefix)
+	default:
+		return ctx.KVStore(s.storeKey)
+	}
+}
+
 type Store struct {
 	storeKey   sdk.StoreKey
 	m          codec.Marshaler
-	stateStore crosstypes.Store
+	stateStore contracttypes.Store
 	lockStore  LockStore
-	txStore    crosstypes.Store
+	txStore    contracttypes.Store
 	prefix     []byte
 }
 
-var _ crosstypes.Store = (*Store)(nil)
-var _ crosstypes.CommitStore = (*Store)(nil)
+var _ contracttypes.Store = (*Store)(nil)
+var _ contracttypes.CommitStore = (*Store)(nil)
 
 func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
 	return Store{
@@ -72,7 +82,7 @@ func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) Store {
 	}
 }
 
-func (s Store) Prefix(prefix []byte) crosstypes.Store {
+func (s Store) Prefix(prefix []byte) contracttypes.Store {
 	s.stateStore = s.stateStore.Prefix(prefix)
 	s.lockStore = s.lockStore.Prefix(prefix)
 	// for LockManager
@@ -91,15 +101,15 @@ func (s Store) Set(ctx sdk.Context, key, value []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch crosstypes.CommitModeFromContext(ctx.Context()) {
-	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
+	switch contracttypes.CommitModeFromContext(ctx.Context()) {
+	case contracttypes.UnspecifiedMode, contracttypes.BasicMode:
 		s.stateStore.Set(ctx, key, value)
 		return
-	case crosstypes.AtomicMode:
+	case contracttypes.AtomicMode:
 		types.LockManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), value)
 		return
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", contracttypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -107,10 +117,10 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch crosstypes.CommitModeFromContext(ctx.Context()) {
-	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
+	switch contracttypes.CommitModeFromContext(ctx.Context()) {
+	case contracttypes.UnspecifiedMode, contracttypes.BasicMode:
 		return s.stateStore.Get(ctx, key)
-	case crosstypes.AtomicMode:
+	case contracttypes.AtomicMode:
 		lkmgr := types.LockManagerFromContext(ctx.Context())
 		v, ok := lkmgr.GetUpdatedValue(s.buildKey(key))
 		if !ok {
@@ -118,7 +128,7 @@ func (s Store) Get(ctx sdk.Context, key []byte) []byte {
 		}
 		return v
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", contracttypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -126,10 +136,10 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch crosstypes.CommitModeFromContext(ctx.Context()) {
-	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
+	switch contracttypes.CommitModeFromContext(ctx.Context()) {
+	case contracttypes.UnspecifiedMode, contracttypes.BasicMode:
 		return s.stateStore.Has(ctx, key)
-	case crosstypes.AtomicMode:
+	case contracttypes.AtomicMode:
 		lkmgr := types.LockManagerFromContext(ctx.Context())
 		found := false
 		v, ok := lkmgr.GetUpdatedValue(s.buildKey(key))
@@ -143,7 +153,7 @@ func (s Store) Has(ctx sdk.Context, key []byte) bool {
 		}
 		return found
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", contracttypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 
@@ -151,14 +161,14 @@ func (s Store) Delete(ctx sdk.Context, key []byte) {
 	if s.lockStore.IsLocked(ctx, key) {
 		panic(fmt.Errorf("currently key '%x' is non-available", key))
 	}
-	switch crosstypes.CommitModeFromContext(ctx.Context()) {
-	case crosstypes.UnspecifiedMode, crosstypes.BasicMode:
+	switch contracttypes.CommitModeFromContext(ctx.Context()) {
+	case contracttypes.UnspecifiedMode, contracttypes.BasicMode:
 		s.stateStore.Delete(ctx, key)
 		return
-	case crosstypes.AtomicMode:
+	case contracttypes.AtomicMode:
 		types.LockManagerFromContext(ctx.Context()).AddWrite(s.buildKey(key), nil)
 	default:
-		panic(fmt.Sprintf("unknown mode '%v'", crosstypes.CommitModeFromContext(ctx.Context())))
+		panic(fmt.Sprintf("unknown mode '%v'", contracttypes.CommitModeFromContext(ctx.Context())))
 	}
 }
 

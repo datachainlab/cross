@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	txtypes "github.com/datachainlab/cross/x/tx/types"
 )
 
 // NewContractCallRequest creates a new instance of ContractCallRequest
@@ -14,6 +14,6 @@ func NewContractCallRequest(method string, args ...string) ContractCallRequest {
 }
 
 // ContractCallInfo converts the ContractCallRequest to a ContractCallInfo
-func (r ContractCallRequest) ContractCallInfo(m codec.Marshaler) crosstypes.ContractCallInfo {
+func (r ContractCallRequest) ContractCallInfo(m codec.Marshaler) txtypes.ContractCallInfo {
 	return m.MustMarshalJSON(&r)
 }

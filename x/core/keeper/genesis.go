@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/core/host"
 	"github.com/datachainlab/cross/x/core/types"
 )
 
@@ -11,10 +12,10 @@ import (
 func (k Keeper) InitGenesis(ctx sdk.Context, state types.GenesisState) {
 	// Only try to bind to port if it is not already bound, since we may already own
 	// port capability from capability InitGenesis
-	if !k.IsBound(ctx, types.PortID) {
+	if !k.IsBound(ctx, host.PortID) {
 		// cross module binds to the cross port on InitChain
 		// and claims the returned capability
-		err := k.BindPort(ctx, types.PortID)
+		err := k.BindPort(ctx, host.PortID)
 		if err != nil {
 			panic(fmt.Sprintf("could not claim port capability: %v", err))
 		}

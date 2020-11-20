@@ -16,8 +16,12 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	accounttypes "github.com/datachainlab/cross/x/account/types"
+	crosshost "github.com/datachainlab/cross/x/core/host"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
+	initiatortypes "github.com/datachainlab/cross/x/initiator/types"
+	txtypes "github.com/datachainlab/cross/x/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 
 type CrossTestSuite struct {
@@ -46,40 +50,40 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	// setup
 
 	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(crosstypes.PortID)
-	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
+	suite.chainB.CreatePortCapability(crosshost.PortID)
+	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosshost.PortID, crosshost.PortID, channeltypes.UNORDERED)
 
-	chAB := crosstypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
-	xccB, err := crosstypes.PackCrossChainChannel(&chAB)
+	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
+	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
 	suite.Require().NoError(err)
-	chBA := crosstypes.ChannelInfo{Port: channelB.PortID, Channel: channelB.ID}
-	xccA, err := crosstypes.PackCrossChainChannel(&chBA)
-	suite.Require().NoError(err)
-
-	xccSelf, err := crosstypes.PackCrossChainChannel(suite.chainA.App.CrossKeeper.CrossChainChannelResolver().GetSelfCrossChainChannel(suite.chainA.GetContext()))
+	chBA := xcctypes.ChannelInfo{Port: channelB.PortID, Channel: channelB.ID}
+	xccA, err := xcctypes.PackCrossChainChannel(&chBA)
 	suite.Require().NoError(err)
 
-	var txID crosstypes.TxID
+	xccSelf, err := xcctypes.PackCrossChainChannel(suite.chainA.App.XCCResolver.GetSelfCrossChainChannel(suite.chainA.GetContext()))
+	suite.Require().NoError(err)
+
+	var txID txtypes.TxID
 
 	// Send a MsgInitiateTx to chainA
 	{
-		msg0 := crosstypes.NewMsgInitiateTx(
+		msg0 := initiatortypes.NewMsgInitiateTx(
 			suite.chainA.SenderAccount.GetAddress().Bytes(),
 			suite.chainA.ChainID,
 			0,
-			crosstypes.COMMIT_PROTOCOL_SIMPLE,
-			[]crosstypes.ContractTransaction{
+			txtypes.COMMIT_PROTOCOL_SIMPLE,
+			[]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []crosstypes.AccountID{
-						crosstypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []crosstypes.AccountID{
-						crosstypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -92,20 +96,20 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 		suite.chainA.NextBlock()
 
 		var txMsgData sdk.TxMsgData
-		var initiateTxRes crosstypes.MsgInitiateTxResponse
+		var initiateTxRes initiatortypes.MsgInitiateTxResponse
 		suite.Require().NoError(proto.Unmarshal(res0.Data, &txMsgData))
 		suite.Require().NoError(proto.Unmarshal(txMsgData.Data[0].Data, &initiateTxRes))
-		suite.Require().Equal(crosstypes.INITIATE_TX_STATUS_PENDING, initiateTxRes.Status)
+		suite.Require().Equal(initiatortypes.INITIATE_TX_STATUS_PENDING, initiateTxRes.Status)
 		txID = initiateTxRes.TxID
 	}
 
 	// Send a MsgIBCSignTx to chainB & receive the MsgIBCSignTx to run the transaction on chainA
 	var packetCall *channeltypes.Packet
 	{
-		msg1 := crosstypes.MsgIBCSignTx{
+		msg1 := initiatortypes.MsgIBCSignTx{
 			CrossChainChannel: xccA,
 			TxID:              txID,
-			Signers:           []crosstypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+			Signers:           []accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
 			TimeoutHeight:     clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
 			TimeoutTimestamp:  0,
 		}

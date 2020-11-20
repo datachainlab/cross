@@ -2,7 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/datachainlab/cross/x/core/types"
+	"github.com/datachainlab/cross/x/contract/types"
 )
 
 type LockStore interface {

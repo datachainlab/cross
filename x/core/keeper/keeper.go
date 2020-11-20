@@ -1,76 +1,72 @@
 package keeper
 
 import (
-	"fmt"
-
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	atomickeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
-	simplekeeper "github.com/datachainlab/cross/x/atomic/simple/keeper"
-	tpckeeper "github.com/datachainlab/cross/x/atomic/tpc/keeper"
+
+	crosshost "github.com/datachainlab/cross/x/core/host"
 	"github.com/datachainlab/cross/x/core/types"
+	initiatorkeeper "github.com/datachainlab/cross/x/initiator/keeper"
+	initiatortypes "github.com/datachainlab/cross/x/initiator/types"
 	"github.com/datachainlab/cross/x/packets"
+	"github.com/datachainlab/cross/x/router"
+	txtypes "github.com/datachainlab/cross/x/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 
 type Keeper struct {
-	m                codec.Marshaler
-	storeKey         sdk.StoreKey
-	portKeeper       types.PortKeeper
-	scopedKeeper     capabilitykeeper.ScopedKeeper
-	packetMiddleware packets.PacketMiddleware
+	m             codec.Marshaler
+	storeKey      sdk.StoreKey
+	portKeeper    types.PortKeeper
+	channelKeeper types.ChannelKeeper
+	scopedKeeper  capabilitykeeper.ScopedKeeper
+	router        router.Router
 
-	simpleKeeper simplekeeper.Keeper
-	tpcKeeper    tpckeeper.Keeper
-	atomickeeper.Keeper
+	initiatorKeeper initiatorkeeper.Keeper
 }
 
-// NewKeeper creates a new instance of Cross Keeper
 func NewKeeper(
-	m codec.Marshaler,
-	storeKey sdk.StoreKey,
-	channelKeeper types.ChannelKeeper,
-	portKeeper types.PortKeeper,
-	scopedKeeper capabilitykeeper.ScopedKeeper,
-	packetMiddleware packets.PacketMiddleware,
-	atomickeeper atomickeeper.Keeper,
+	cdc codec.Marshaler, key sdk.StoreKey,
+	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
+	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txProcessor txtypes.TxProcessor,
+	router router.Router,
 ) Keeper {
-	return Keeper{
-		m:                m,
-		storeKey:         storeKey,
-		portKeeper:       portKeeper,
-		scopedKeeper:     scopedKeeper,
-		packetMiddleware: packetMiddleware,
+	initiatorKeeper := initiatorkeeper.NewKeeper(
+		cdc, key, channelKeeper, portKeeper, scopedKeeper,
+		packetMiddleware,
+		xccResolver,
+		txProcessor,
+	)
+	router.AddRoute(initiatortypes.PacketType, initiatorKeeper)
 
-		simpleKeeper: simplekeeper.NewKeeper(m, atomickeeper),
-		tpcKeeper:    tpckeeper.NewKeeper(),
-		Keeper:       atomickeeper,
+	return Keeper{
+		m:             cdc,
+		storeKey:      key,
+		portKeeper:    portKeeper,
+		channelKeeper: channelKeeper,
+		scopedKeeper:  scopedKeeper,
+		router:        router,
+
+		initiatorKeeper: initiatorKeeper,
 	}
 }
 
-// SimpleKeeper returns the simple commit keeper
-func (k Keeper) SimpleKeeper() simplekeeper.Keeper {
-	return k.simpleKeeper
+func (k Keeper) InitiatorKeeper() initiatorkeeper.Keeper {
+	return k.initiatorKeeper
 }
 
-// TPCKeeper returns the two-phase commit keeper
-func (k Keeper) TPCKeeper() tpckeeper.Keeper {
-	return k.tpcKeeper
-}
-
-// Logger returns a logger instance
-func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s-%s", host.ModuleName, types.ModuleName))
+// IsBound checks if the transfer module is already bound to the desired port
+func (k Keeper) IsBound(ctx sdk.Context, portID string) bool {
+	_, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(portID))
+	return ok
 }
 
 // GetPort returns portID
 func (k Keeper) GetPort(ctx sdk.Context) string {
-	return types.PortID
+	return crosshost.PortID
 }
 
 // BindPort defines a wrapper function for the ort Keeper's function in
@@ -89,14 +85,4 @@ func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability
 // AuthenticateCapability wraps the scopedKeeper's AuthenticateCapability function
 func (k Keeper) AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) bool {
 	return k.scopedKeeper.AuthenticateCapability(ctx, cap, name)
-}
-
-// IsBound checks if the transfer module is already bound to the desired port
-func (k Keeper) IsBound(ctx sdk.Context, portID string) bool {
-	_, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(portID))
-	return ok
-}
-
-func (k Keeper) store(ctx sdk.Context) sdk.KVStore {
-	return prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyCoreKeeperPrefixBytes())
 }

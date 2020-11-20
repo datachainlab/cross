@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	accounttypes "github.com/datachainlab/cross/x/account/types"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ func GetCounter() *cobra.Command {
 			res, err := q.Counter(
 				context.Background(),
 				&types.QueryCounterRequest{
-					Account: crosstypes.AccountIDFromAccAddress(keyInfo.GetAddress()),
+					Account: accounttypes.AccountIDFromAccAddress(keyInfo.GetAddress()),
 				},
 			)
 			if err != nil {

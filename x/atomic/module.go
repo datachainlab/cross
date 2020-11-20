@@ -13,10 +13,15 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/datachainlab/cross/x/atomic/common/client/cli"
-	"github.com/datachainlab/cross/x/atomic/common/keeper"
-	"github.com/datachainlab/cross/x/atomic/common/types"
-	simpletypes "github.com/datachainlab/cross/x/atomic/simple/types"
+	"github.com/datachainlab/cross/x/atomic/client/cli"
+	"github.com/datachainlab/cross/x/atomic/keeper"
+	"github.com/datachainlab/cross/x/atomic/protocol/simple"
+	simpletypes "github.com/datachainlab/cross/x/atomic/protocol/simple/types"
+	"github.com/datachainlab/cross/x/atomic/protocol/tpc"
+	tpctypes "github.com/datachainlab/cross/x/atomic/protocol/tpc/types"
+	"github.com/datachainlab/cross/x/atomic/types"
+	"github.com/datachainlab/cross/x/packets"
+	"github.com/datachainlab/cross/x/router"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -82,11 +87,12 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
+	cdc    codec.Marshaler
 	keeper keeper.Keeper
 }
 
-func NewAppModule(k keeper.Keeper) AppModule {
-	return AppModule{keeper: k}
+func NewAppModule(cdc codec.Marshaler, k keeper.Keeper) AppModule {
+	return AppModule{cdc: cdc, keeper: k}
 }
 
 // Name returns the capability module's name.
@@ -134,4 +140,13 @@ func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 // returns no validator updates.
 func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
+}
+
+// RegisterPacketRoutes ...
+func (am AppModule) RegisterPacketRoutes(rtr router.Router) {
+	simpleHandler := simple.NewPacketHandler(am.cdc, am.keeper.SimpleKeeper(), packets.NewNOPPacketMiddleware())
+	rtr.AddRoute(simpletypes.PacketType, simpleHandler)
+
+	tpcHandler := tpc.NewPacketHandler(am.keeper.TPCKeeper())
+	rtr.AddRoute(tpctypes.PacketType, tpcHandler)
 }

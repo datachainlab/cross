@@ -1,84 +1,11 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/datachainlab/cross/x/packets"
+	initiatortypes "github.com/datachainlab/cross/x/initiator/types"
 )
 
-// RegisterInterfaces register the ibc transfer module interfaces to protobuf
-// Any.
+// RegisterInterfaces registers x/ibc interfaces into protobuf Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	registry.RegisterImplementations(
-		(*sdk.Msg)(nil),
-		&MsgInitiateTx{},
-		&MsgSignTx{},
-		&MsgIBCSignTx{},
-	)
-	registry.RegisterImplementations(
-		(*CrossChainChannel)(nil),
-		&ChannelInfo{},
-	)
-	registry.RegisterImplementations(
-		(*packets.PacketDataPayload)(nil),
-		&PacketDataIBCSignTx{},
-	)
-	registry.RegisterImplementations(
-		(*packets.PacketAcknowledgementPayload)(nil),
-		&PacketAcknowledgementIBCSignTx{},
-	)
-	registry.RegisterImplementations(
-		(*Object)(nil),
-		&ConstantValueObject{},
-	)
-}
-
-var (
-	// ModuleCdc references the global x/ibc-transfer module codec. Note, the codec
-	// should ONLY be used in certain instances of tests and for JSON encoding.
-	//
-	// The actual codec used for serialization should be provided to x/ibc-transfer and
-	// defined at the application level.
-	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
-)
-
-func PackObjects(objs []Object) ([]codectypes.Any, error) {
-	var anys []codectypes.Any
-	for _, obj := range objs {
-		var any codectypes.Any
-		if err := any.Pack(obj); err != nil {
-			return nil, err
-		}
-		anys = append(anys, any)
-	}
-	return anys, nil
-}
-
-func UnpackObjects(m codec.Marshaler, objects []codectypes.Any) ([]Object, error) {
-	var objs []Object
-	for _, v := range objects {
-		var obj Object
-		if err := m.UnpackAny(&v, &obj); err != nil {
-			return nil, err
-		}
-		objs = append(objs, obj)
-	}
-	return objs, nil
-}
-
-func PackCrossChainChannel(xcc CrossChainChannel) (*codectypes.Any, error) {
-	var any codectypes.Any
-	if err := any.Pack(xcc); err != nil {
-		return nil, err
-	}
-	return &any, nil
-}
-
-func UnpackCrossChainChannel(m codec.Marshaler, anyXCC codectypes.Any) (CrossChainChannel, error) {
-	var xcc CrossChainChannel
-	if err := m.UnpackAny(&anyXCC, &xcc); err != nil {
-		return nil, err
-	}
-	return xcc, nil
+	initiatortypes.RegisterInterfaces(registry)
 }

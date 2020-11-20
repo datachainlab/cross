@@ -1,0 +1,15 @@
+syntax = "proto3";
+package cross.contract;
+
+import "gogoproto/gogo.proto";
+import "tendermint/abci/types.proto";
+
+option go_package = "github.com/datachainlab/cross/x/contract/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message ContractCallResult {
+  bytes data = 1;
+  repeated tendermint.abci.Event events = 2 [
+    (gogoproto.nullable) = false
+  ];
+}

@@ -1,0 +1,41 @@
+syntax = "proto3";
+package cross.initiator;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+import "tendermint/abci/types.proto";
+import "cross/tx/types.proto";
+import "cross/account/types.proto";
+
+option go_package = "github.com/datachainlab/cross/x/initiator/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message ContractTransaction {
+  option (gogoproto.equal) = false;
+
+  google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
+  repeated bytes signers = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/account/types.AccountID"];
+  bytes call_info = 3 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/tx/types.ContractCallInfo"];
+  cross.tx.ReturnValue return_value = 4;
+  repeated Link links = 5 [(gogoproto.nullable) = false];
+}
+
+message Link {
+  uint32 src_index = 1;
+}
+
+message InitiateTxState {
+  option (gogoproto.equal) = false;
+  InitiateTxStatus status = 1;
+  repeated cross.account.Account remaining_signers = 2 [(gogoproto.nullable) = false];
+}
+
+enum InitiateTxStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  INITIATE_TX_STATUS_UNKNOWN   = 0;
+  INITIATE_TX_STATUS_PENDING   = 1;
+  INITIATE_TX_STATUS_VERIFIED  = 2;
+}
+
+message GenesisState {}

@@ -3,20 +3,21 @@ package types
 import (
 	"context"
 
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	contracttypes "github.com/datachainlab/cross/x/contract/types"
+	txtypes "github.com/datachainlab/cross/x/tx/types"
 )
 
-func DefaultContractHandleDecorators() crosstypes.ContractHandleDecorator {
-	return crosstypes.ContractHandleDecorators{
+func DefaultContractHandleDecorators() contracttypes.ContractHandleDecorator {
+	return contracttypes.ContractHandleDecorators{
 		SetUpContractHandleDecorator{},
 	}
 }
 
 type SetUpContractHandleDecorator struct{}
 
-var _ crosstypes.ContractHandleDecorator = (*SetUpContractHandleDecorator)(nil)
+var _ contracttypes.ContractHandleDecorator = (*SetUpContractHandleDecorator)(nil)
 
-func (cd SetUpContractHandleDecorator) Handle(ctx context.Context, callInfo crosstypes.ContractCallInfo) (newCtx context.Context, err error) {
+func (cd SetUpContractHandleDecorator) Handle(ctx context.Context, callInfo txtypes.ContractCallInfo) (newCtx context.Context, err error) {
 	lkmgr := NewLockManager()
 	return ContextWithLockManager(ctx, lkmgr), nil
 }

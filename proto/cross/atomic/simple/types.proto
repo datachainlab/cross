@@ -2,16 +2,16 @@ syntax = "proto3";
 package cross.atomic.simple;
 
 import "gogoproto/gogo.proto";
-import "cross/core/types.proto";
+import "cross/tx/types.proto";
 
-option go_package = "github.com/datachainlab/cross/x/atomic/simple/types";
+option go_package = "github.com/datachainlab/cross/x/atomic/protocol/simple/types";
 option (gogoproto.goproto_getters_all)  = false;
 
 message PacketDataCall {
   option (gogoproto.equal)           = false;
 
-  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
-  cross.core.ContractTransactionInfo tx_info = 2 [(gogoproto.nullable) = false];
+  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/tx/types.TxID"];
+  cross.tx.ResolvedContractTransaction tx = 2 [(gogoproto.nullable) = false];
 }
 
 message PacketAcknowledgementCall {
