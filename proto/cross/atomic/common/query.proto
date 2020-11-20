@@ -1,0 +1,24 @@
+syntax = "proto3";
+package cross.atomic.common;
+
+import "gogoproto/gogo.proto";
+import "cross/core/types.proto";
+import "cross/atomic/common/types.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/datachainlab/cross/x/atomic/common/types";
+option (gogoproto.goproto_getters_all)  = false;
+
+service Query {
+  rpc CoordinatorState(QueryCoordinatorStateRequest) returns (QueryCoordinatorStateResponse) {
+    option (google.api.http).get = "/cross/atomic/common/coordinator-state";
+  }
+}
+
+message QueryCoordinatorStateRequest {
+  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
+}
+
+message QueryCoordinatorStateResponse {
+  cross.atomic.common.CoordinatorState coodinator_state = 1 [(gogoproto.nullable) = false];
+}

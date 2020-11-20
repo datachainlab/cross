@@ -19,6 +19,10 @@ type TxIndexSlice = []TxIndex
 
 type AccountID []byte
 
+func AccountIDFromAccAddress(acc sdk.AccAddress) AccountID {
+	return AccountID(acc)
+}
+
 func (id AccountID) AccAddress() sdk.AccAddress {
 	return sdk.AccAddress(id)
 }

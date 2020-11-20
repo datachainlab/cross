@@ -32,8 +32,10 @@ syntax = "proto3";
 
 package google.protobuf;
 
+import "gogoproto/gogo.proto";
+
 option csharp_namespace = "Google.Protobuf.WellKnownTypes";
-option go_package = "google.golang.org/protobuf/types/known/anypb";
+option go_package = "types";
 option java_package = "com.google.protobuf";
 option java_outer_classname = "AnyProto";
 option java_multiple_files = true;
@@ -77,13 +79,10 @@ option objc_class_prefix = "GPB";
 //  Example 4: Pack and unpack a message in Go
 //
 //      foo := &pb.Foo{...}
-//      any, err := anypb.New(foo)
-//      if err != nil {
-//        ...
-//      }
+//      any, err := ptypes.MarshalAny(foo)
 //      ...
 //      foo := &pb.Foo{}
-//      if err := any.UnmarshalTo(foo); err != nil {
+//      if err := ptypes.UnmarshalAny(any, foo); err != nil {
 //        ...
 //      }
 //
@@ -155,4 +154,8 @@ message Any {
 
   // Must be a valid serialized protocol buffer of the above specified type.
   bytes value = 2;
+
+  option (gogoproto.typedecl) = false;
 }
+
+option (gogoproto.goproto_registration) = false;

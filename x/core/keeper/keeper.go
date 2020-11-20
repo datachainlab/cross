@@ -11,7 +11,7 @@ import (
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	commonkeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
+	atomickeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
 	simplekeeper "github.com/datachainlab/cross/x/atomic/simple/keeper"
 	tpckeeper "github.com/datachainlab/cross/x/atomic/tpc/keeper"
 	"github.com/datachainlab/cross/x/core/types"
@@ -27,7 +27,7 @@ type Keeper struct {
 
 	simpleKeeper simplekeeper.Keeper
 	tpcKeeper    tpckeeper.Keeper
-	commonkeeper.Keeper
+	atomickeeper.Keeper
 }
 
 // NewKeeper creates a new instance of Cross Keeper
@@ -38,16 +38,8 @@ func NewKeeper(
 	portKeeper types.PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 	packetMiddleware packets.PacketMiddleware,
-	contractModule types.ContractModule,
-	contractHandleDecorator types.ContractHandleDecorator,
-	xccResolver types.CrossChainChannelResolver,
-	commitStore types.CommitStore,
+	atomickeeper atomickeeper.Keeper,
 ) Keeper {
-	ck := commonkeeper.NewKeeper(
-		m, storeKey, types.KeyAtomicKeeperPrefixBytes(),
-		channelKeeper, portKeeper, scopedKeeper,
-		contractModule, contractHandleDecorator, xccResolver, commitStore,
-	)
 	return Keeper{
 		m:                m,
 		storeKey:         storeKey,
@@ -55,9 +47,9 @@ func NewKeeper(
 		scopedKeeper:     scopedKeeper,
 		packetMiddleware: packetMiddleware,
 
-		simpleKeeper: simplekeeper.NewKeeper(m, ck),
+		simpleKeeper: simplekeeper.NewKeeper(m, atomickeeper),
 		tpcKeeper:    tpckeeper.NewKeeper(),
-		Keeper:       ck,
+		Keeper:       atomickeeper,
 	}
 }
 
@@ -97,6 +89,12 @@ func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability
 // AuthenticateCapability wraps the scopedKeeper's AuthenticateCapability function
 func (k Keeper) AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) bool {
 	return k.scopedKeeper.AuthenticateCapability(ctx, cap, name)
+}
+
+// IsBound checks if the transfer module is already bound to the desired port
+func (k Keeper) IsBound(ctx sdk.Context, portID string) bool {
+	_, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(portID))
+	return ok
 }
 
 func (k Keeper) store(ctx sdk.Context) sdk.KVStore {

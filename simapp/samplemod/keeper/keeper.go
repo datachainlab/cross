@@ -54,18 +54,27 @@ var counterKey = []byte("counter")
 
 func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, error) {
 	// use the account ID as namespace
-	store := k.xstore.Prefix(crosstypes.ContractSignersFromContext(ctx.Context())[0])
+	account := crosstypes.ContractSignersFromContext(ctx.Context())[0]
+	v := k.getCounter(ctx, account)
+	bz := k.setCounter(ctx, account, v+1)
+	return &crosstypes.ContractCallResult{Data: bz}, nil
+}
 
+func (k Keeper) getCounter(ctx sdk.Context, account crosstypes.AccountID) uint64 {
 	var count uint64
-	v := store.Get(ctx, counterKey)
+	v := k.xstore.Prefix(account).Get(ctx, counterKey)
 	if v == nil {
 		count = 0
 	} else {
 		count = sdk.BigEndianToUint64(v)
 	}
-	bz := sdk.Uint64ToBigEndian(count + 1)
-	store.Set(ctx, counterKey, bz)
-	return &crosstypes.ContractCallResult{Data: bz}, nil
+	return count
+}
+
+func (k Keeper) setCounter(ctx sdk.Context, account crosstypes.AccountID, value uint64) []byte {
+	bz := sdk.Uint64ToBigEndian(value)
+	k.xstore.Prefix(account).Set(ctx, counterKey, bz)
+	return bz
 }
 
 func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallRequest) (*crosstypes.ContractCallResult, error) {

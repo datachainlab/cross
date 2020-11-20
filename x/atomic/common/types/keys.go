@@ -9,6 +9,9 @@ import (
 const (
 	// ModuleName defines the module name
 	ModuleName = "cross-atomic"
+
+	// StoreKey defines the primary module store key
+	StoreKey = ModuleName
 )
 
 const (
