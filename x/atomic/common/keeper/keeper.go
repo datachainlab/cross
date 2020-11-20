@@ -10,6 +10,7 @@ import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	"github.com/datachainlab/cross/x/atomic/common/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 	"github.com/datachainlab/cross/x/utils"
@@ -116,8 +117,18 @@ func (k Keeper) setupContext(
 func (k Keeper) processTransaction(
 	ctx sdk.Context,
 	tx crosstypes.ContractTransaction,
-) (*crosstypes.ContractCallResult, error) {
-	res, err := k.contractModule.OnContractCall(
+) (res *crosstypes.ContractCallResult, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = types.NewErrContractCall(e)
+			} else {
+				err = types.NewErrContractCall(fmt.Errorf("type=%T value=%#v", e, e))
+			}
+		}
+	}()
+
+	res, err = k.contractModule.OnContractCall(
 		sdk.WrapSDKContext(ctx),
 		tx.CallInfo,
 	)
