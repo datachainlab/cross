@@ -1,0 +1,61 @@
+syntax = "proto3";
+package cross.core.atomic;
+
+import "gogoproto/gogo.proto";
+import "cross/core/tx/types.proto";
+import "cross/core/xcc/types.proto";
+
+option go_package = "github.com/datachainlab/cross/x/core/atomic/types";
+option (gogoproto.goproto_getters_all)  = false;
+
+message CoordinatorState {
+  option (gogoproto.equal)           = false;
+
+  cross.core.tx.CommitProtocol type = 1;
+  repeated cross.core.xcc.ChannelInfo channels = 2 [(gogoproto.nullable) = false];
+  CoordinatorPhase phase = 3;
+  CoordinatorDecision decision = 4;
+  bytes confirmed_txs = 5 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndexSlice"];
+  bytes acks = 6 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndexSlice"];
+}
+
+enum CoordinatorPhase {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  COORDINATOR_PHASE_UNKNOWN = 0;
+  COORDINATOR_PHASE_PREPARE = 1;
+  COORDINATOR_PHASE_COMMIT  = 2;
+}
+
+enum CoordinatorDecision {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  COORDINATOR_DECISION_UNKNOWN = 0;
+  COORDINATOR_DECISION_COMMIT  = 1;
+  COORDINATOR_DECISION_ABORT   = 2;
+}
+
+message ContractTransactionState {
+  option (gogoproto.equal)           = false;
+
+  ContractTransactionStatus status = 1;
+  PrepareResult prepare_result = 2;
+  cross.core.xcc.ChannelInfo coordinator_channel = 3 [(gogoproto.nullable) = false];
+}
+
+enum ContractTransactionStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  CONTRACT_TRANSACTION_STATUS_UNKNOWN = 0;
+  CONTRACT_TRANSACTION_STATUS_PREPARE = 1;
+  CONTRACT_TRANSACTION_STATUS_COMMIT  = 2;
+  CONTRACT_TRANSACTION_STATUS_ABORT   = 3;
+}
+
+enum PrepareResult {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  PREPARE_RESULT_UNKNOWN = 0;
+  PREPARE_RESULT_OK      = 1;
+  PREPARE_RESULT_FAILED  = 2;
+}

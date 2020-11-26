@@ -29,7 +29,7 @@ fi
 ${RLY_CMD} start ${PATH_NAME} &
 
 # Create a contract transaction of chain1 (no broadcast)
-${CHAIN_1_CMD} query cross create-contract-tx \
+${CHAIN_1_CMD} query cross initiator create-contract-tx \
     --call-info="{\"method\":\"counter\"}" \
     --signers=user \
     --initiator-chain-channel=${initiator_cc} \
@@ -38,7 +38,7 @@ ${CHAIN_1_CMD} query cross create-contract-tx \
     ${KEY_OPT}
 
 # Create a contract transaction of chain0 (no broadcast)
-${CHAIN_0_CMD} query cross create-contract-tx \
+${CHAIN_0_CMD} query cross initiator create-contract-tx \
     --call-info="{\"method\":\"counter\"}" \
     --signers=user \
     --initiator-chain=true \
@@ -47,7 +47,7 @@ ${CHAIN_0_CMD} query cross create-contract-tx \
     ${KEY_OPT}
 
 # Initiate a cross-chain transaction on chain0
-res0=$(${CHAIN_0_CMD} tx cross initiate-tx \
+res0=$(${CHAIN_0_CMD} tx cross initiator initiate-tx \
     --from=user \
     --yes \
     --chain-id=ibc0 \
@@ -59,7 +59,7 @@ tx_id=$(echo $res0 | jq -r '.logs[0].events[1].attributes[0].value')
 sleep 3
 
 # Sign a cross-chain transaction on chain0 from chain1
-${CHAIN_1_CMD} tx cross ibc-signtx \
+${CHAIN_1_CMD} tx cross initiator ibc-signtx \
     --from=user \
     --yes \
     --chain-id=ibc1 \

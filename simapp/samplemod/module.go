@@ -8,7 +8,8 @@ import (
 	"github.com/datachainlab/cross/simapp/samplemod/client/cli"
 	"github.com/datachainlab/cross/simapp/samplemod/keeper"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
-	crosstypes "github.com/datachainlab/cross/x/core/types"
+	contracttypes "github.com/datachainlab/cross/x/core/contract/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -24,9 +25,9 @@ import (
 )
 
 var (
-	_ module.AppModule          = AppModule{}
-	_ module.AppModuleBasic     = AppModuleBasic{}
-	_ crosstypes.ContractModule = AppModule{}
+	_ module.AppModule             = AppModule{}
+	_ module.AppModuleBasic        = AppModuleBasic{}
+	_ contracttypes.ContractModule = AppModule{}
 )
 
 // ----------------------------------------------------------------------------
@@ -91,7 +92,7 @@ type AppModule struct {
 	AppModuleBasic
 
 	keeper          keeper.Keeper
-	contractHandler crosstypes.ContractHandler
+	contractHandler contracttypes.ContractHandler
 }
 
 func NewAppModule(keeper keeper.Keeper) AppModule {
@@ -154,6 +155,6 @@ func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.Valid
 }
 
 // OnContractCall implements crosstypes.CrossModule
-func (am AppModule) OnContractCall(ctx context.Context, callInfo crosstypes.ContractCallInfo) (*crosstypes.ContractCallResult, error) {
+func (am AppModule) OnContractCall(ctx context.Context, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error) {
 	return am.contractHandler(ctx, callInfo)
 }

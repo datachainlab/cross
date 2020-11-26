@@ -90,16 +90,18 @@ import (
 	"github.com/datachainlab/cross/simapp/samplemod"
 	samplemodkeeper "github.com/datachainlab/cross/simapp/samplemod/keeper"
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	crossatomic "github.com/datachainlab/cross/x/atomic"
-	atomickeeper "github.com/datachainlab/cross/x/atomic/common/keeper"
-	atomictypes "github.com/datachainlab/cross/x/atomic/common/types"
 	cross "github.com/datachainlab/cross/x/core"
+	crossatomic "github.com/datachainlab/cross/x/core/atomic"
+	atomickeeper "github.com/datachainlab/cross/x/core/atomic/keeper"
+	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
+	contractkeeper "github.com/datachainlab/cross/x/core/contract/keeper"
 	crosskeeper "github.com/datachainlab/cross/x/core/keeper"
+	"github.com/datachainlab/cross/x/core/router"
+	crossstorekeeper "github.com/datachainlab/cross/x/core/store/keeper"
+	crossstoretypes "github.com/datachainlab/cross/x/core/store/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
-	crossstore "github.com/datachainlab/cross/x/store"
-	crossstorekeeper "github.com/datachainlab/cross/x/store/keeper"
-	crossstoretypes "github.com/datachainlab/cross/x/store/types"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
@@ -134,7 +136,6 @@ var (
 		transfer.AppModuleBasic{},
 		cross.AppModuleBasic{},
 		crossatomic.AppModuleBasic{},
-		crossstore.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		samplemod.AppModuleBasic{},
 	)
@@ -193,6 +194,7 @@ type SimApp struct {
 	EvidenceKeeper   evidencekeeper.Keeper
 	TransferKeeper   ibctransferkeeper.Keeper
 	CrossKeeper      crosskeeper.Keeper
+	AtomicKeeper     atomickeeper.Keeper
 	SamplemodKeeper  samplemodkeeper.Keeper
 
 	// make scoped keepers public for test purposes
@@ -206,6 +208,9 @@ type SimApp struct {
 
 	// simulation manager
 	sm *module.SimulationManager
+
+	// other modules
+	XCCResolver xcctypes.XCCResolver
 }
 
 func init() {
@@ -238,7 +243,8 @@ func NewSimApp(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
-		evidencetypes.StoreKey, ibctransfertypes.StoreKey, crosstypes.StoreKey, atomictypes.StoreKey, samplemodtypes.StoreKey, capabilitytypes.StoreKey,
+		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
+		crosstypes.StoreKey, samplemodtypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -325,24 +331,39 @@ func NewSimApp(
 	)
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
 
-	xstore := crossstorekeeper.NewStore(appCodec, keys[crosstypes.StoreKey])
-
+	// Create a sample module
+	xstore := crossstorekeeper.NewStore(appCodec, crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.ContractStoreKeyPrefix))
 	app.SamplemodKeeper = samplemodkeeper.NewKeeper(appCodec, keys[samplemodtypes.StoreKey], xstore)
 	samplemodModule := samplemod.NewAppModule(app.SamplemodKeeper)
 
-	atomicKeeper := atomickeeper.NewKeeper(
-		appCodec, keys[atomictypes.StoreKey],
-		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper, scopedCrossKeeper,
-		samplemodModule, crossstoretypes.DefaultContractHandleDecorators(), crosstypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper), xstore,
+	// Setup a cross module
+	app.XCCResolver = xcctypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper)
+	cmgr := contractkeeper.NewContractManager(
+		appCodec,
+		crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.ContractManagerPrefix),
+		samplemodModule,
+		xstore,
+		crossstoretypes.DefaultContractHandleDecorators(),
 	)
-	crossAtomicModule := crossatomic.NewAppModule(atomicKeeper)
+	app.AtomicKeeper = atomickeeper.NewKeeper(
+		appCodec, crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.AtomicKeyPrefix),
+		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper, scopedCrossKeeper,
+		cmgr, app.XCCResolver, packets.NewNOPPacketMiddleware(),
+	)
+	crossAtomicModule := crossatomic.NewAppModule(appCodec, app.AtomicKeeper)
+
+	router := router.NewRouter()
+	crossAtomicModule.RegisterPacketRoutes(router)
 
 	// Create Cross Keepers
 	app.CrossKeeper = crosskeeper.NewKeeper(
-		appCodec, keys[crosstypes.StoreKey],
+		appCodec, crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.InitiatorKeyPrefix),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
-		scopedCrossKeeper, packets.NewNOPPacketMiddleware(),
-		atomicKeeper,
+		scopedCrossKeeper,
+		packets.NewNOPPacketMiddleware(),
+		app.XCCResolver,
+		app.AtomicKeeper,
+		router,
 	)
 	crossModule := cross.NewAppModule(appCodec, app.CrossKeeper)
 

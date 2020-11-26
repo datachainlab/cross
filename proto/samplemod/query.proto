@@ -14,7 +14,7 @@ service Query {
 }
 
 message QueryCounterRequest {
-  bytes account = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.AccountID"];
+  bytes account = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
 }
 
 message QueryCounterResponse {

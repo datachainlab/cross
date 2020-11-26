@@ -1,0 +1,14 @@
+syntax = "proto3";
+package cross.core.account;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/datachainlab/cross/x/core/account/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message Account {
+  option (gogoproto.equal) = true;
+  google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
+  bytes id = 2 [(gogoproto.casttype) = "AccountID"];
+}

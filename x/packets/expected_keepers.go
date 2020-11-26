@@ -14,3 +14,8 @@ type ChannelKeeper interface {
 	SendPacket(ctx sdk.Context, channelCap *capabilitytypes.Capability, packet ibcexported.PacketI) error
 	ChanCloseInit(ctx sdk.Context, portID, channelID string, chanCap *capabilitytypes.Capability) error
 }
+
+// PortKeeper defines the expected IBC port keeper
+type PortKeeper interface {
+	BindPort(ctx sdk.Context, portID string) *capabilitytypes.Capability
+}

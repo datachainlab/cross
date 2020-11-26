@@ -1,6 +1,10 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
 
 const (
 	// ModuleName defines the module name
@@ -20,36 +24,37 @@ const (
 	QuerierRoute = ModuleName
 
 	// MemStoreKey defines the in-memory store key
-	MemStoreKey = "mem_capability"
+	// MemStoreKey = "mem_capability"
 
 	// PortID defines the portID of this module
 	PortID = "cross"
 )
 
-const (
-	KeyInitiateTxPrefix uint8 = iota
-	KeyInitiateTxStatePrefix
-	KeyCoreKeeperPrefix
-	KeyAtomicKeeperPrefix
+var (
+	InitiatorKeyPrefix     = []byte("initiator")
+	AtomicKeyPrefix        = []byte("atomic")
+	ContractManagerPrefix  = []byte("cmanager")
+	ContractStoreKeyPrefix = []byte("cstore")
 )
 
-// KeyPrefixBytes return the key prefix bytes from a URL string format
-func KeyPrefixBytes(prefix uint8) []byte {
-	return []byte(fmt.Sprintf("%d/", prefix))
+type PrefixStoreKey struct {
+	StoreKey sdk.StoreKey
+	Prefix   []byte
 }
 
-func KeyInitiateTx() []byte {
-	return KeyPrefixBytes(KeyInitiateTxPrefix)
+var _ sdk.StoreKey = (*PrefixStoreKey)(nil)
+
+func NewPrefixStoreKey(storeKey sdk.StoreKey, prefix []byte) *PrefixStoreKey {
+	return &PrefixStoreKey{
+		StoreKey: storeKey,
+		Prefix:   prefix,
+	}
 }
 
-func KeyInitiateTxState() []byte {
-	return KeyPrefixBytes(KeyInitiateTxStatePrefix)
+func (sk *PrefixStoreKey) Name() string {
+	return sk.StoreKey.Name()
 }
 
-func KeyCoreKeeperPrefixBytes() []byte {
-	return KeyPrefixBytes(KeyCoreKeeperPrefix)
-}
-
-func KeyAtomicKeeperPrefixBytes() []byte {
-	return KeyPrefixBytes(KeyAtomicKeeperPrefix)
+func (sk *PrefixStoreKey) String() string {
+	return fmt.Sprintf("PrefixStoreKey{%p, %s, %v}", sk, sk.Name(), sk.Prefix)
 }

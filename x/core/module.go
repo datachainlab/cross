@@ -22,8 +22,11 @@ import (
 	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/05-port/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/datachainlab/cross/x/core/client/cli"
+	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/datachainlab/cross/x/core/keeper"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/core/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
@@ -51,7 +54,9 @@ func (AppModuleBasic) RegisterLegacyAminoCodec(*codec.LegacyAmino) {}
 
 // RegisterInterfaces registers module concrete types into protobuf Any.
 func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	types.RegisterInterfaces(registry)
+	xcctypes.RegisterInterfaces(registry)
+	initiatortypes.RegisterInterfaces(registry)
+	txtypes.RegisterInterfaces(registry)
 }
 
 // DefaultGenesis returns the capability module's default genesis state.
@@ -73,12 +78,12 @@ func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Rout
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
-	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
+	initiatortypes.RegisterQueryHandlerClient(context.Background(), mux, initiatortypes.NewQueryClient(clientCtx))
 }
 
 // GetTxCmd returns the capability module's root tx command.
 func (a AppModuleBasic) GetTxCmd() *cobra.Command {
-	return cli.NewTxCmd()
+	return cli.GetTxCmd()
 }
 
 // GetQueryCmd returns the capability module's root query command.
@@ -94,19 +99,14 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
-	cdc                           codec.Marshaler
-	keeper                        keeper.Keeper
-	packetReceiver                PacketReceiver
-	packetAcknowledgementReceiver PacketAcknowledgementReceiver
+	cdc    codec.Marshaler
+	keeper keeper.Keeper
 }
 
 func NewAppModule(cdc codec.Marshaler, keeper keeper.Keeper) AppModule {
-	pm := packets.NewNOPPacketMiddleware()
 	return AppModule{
-		cdc:                           cdc,
-		keeper:                        keeper,
-		packetReceiver:                NewPacketReceiver(cdc, keeper, pm),
-		packetAcknowledgementReceiver: NewPacketAcknowledgementReceiver(cdc, keeper, pm),
+		cdc:    cdc,
+		keeper: keeper,
 	}
 }
 
@@ -134,7 +134,7 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // RegisterServices registers a GRPC query service to respond to the
 // module-specific GRPC queries.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
+	initiatortypes.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 }
 
 // InitGenesis performs the capability module's genesis initialization It returns
@@ -287,7 +287,7 @@ func (am AppModule) OnRecvPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 ) (*sdk.Result, []byte, error) {
-	res, ack, err := am.packetReceiver(ctx, packet)
+	res, ack, err := am.keeper.ReceivePacket(ctx, packet)
 	if err != nil {
 		return res, channeltypes.NewErrorAcknowledgement(err.Error()).GetBytes(), nil
 	}
@@ -316,7 +316,7 @@ func (am AppModule) OnAcknowledgementPacket(
 		if err != nil {
 			return nil, err
 		}
-		return am.packetAcknowledgementReceiver(ctx, packet, parsedAck)
+		return am.keeper.ReceivePacketAcknowledgementfunc(ctx, packet, parsedAck)
 	case *channeltypes.Acknowledgement_Error:
 		// TODO add an error case
 		panic(res.Error)

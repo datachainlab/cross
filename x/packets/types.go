@@ -27,12 +27,14 @@ func NewPacketData(h *Header, payloadJSON []byte) PacketData {
 // PacketDataPayload defines the interface of packet data's payload
 type PacketDataPayload interface {
 	proto.Message
+	Type() string
 	ValidateBasic() error
 }
 
 // PacketAcknowledgementPayload defines the interface of packet ack's payload
 type PacketAcknowledgementPayload interface {
 	proto.Message
+	Type() string
 	ValidateBasic() error
 }
 
