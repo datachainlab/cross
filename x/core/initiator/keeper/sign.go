@@ -6,9 +6,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	accounttypes "github.com/datachainlab/cross/x/account/types"
-	"github.com/datachainlab/cross/x/initiator/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/packets"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 

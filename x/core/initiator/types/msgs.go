@@ -9,7 +9,7 @@ import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	accounttypes "github.com/datachainlab/cross/x/account/types"
 	"github.com/datachainlab/cross/x/core/host"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 	"github.com/gogo/protobuf/proto"
 )

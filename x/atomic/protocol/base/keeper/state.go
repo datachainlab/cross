@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/atomic/types"
 	"github.com/datachainlab/cross/x/core/host"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
 // SetCoordinatorState sets the store to a CoordinatorState

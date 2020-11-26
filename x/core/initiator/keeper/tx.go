@@ -6,9 +6,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	accounttypes "github.com/datachainlab/cross/x/account/types"
-	"github.com/datachainlab/cross/x/initiator/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/packets"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
 	"github.com/gogo/protobuf/proto"
 )
 

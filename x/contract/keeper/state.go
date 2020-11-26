@@ -7,7 +7,7 @@ import (
 	"github.com/datachainlab/cross/x/atomic/types"
 	contracttypes "github.com/datachainlab/cross/x/contract/types"
 	"github.com/datachainlab/cross/x/core/host"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
 // TODO use channelInfo to create a key

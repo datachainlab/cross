@@ -12,9 +12,9 @@ import (
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	crosshost "github.com/datachainlab/cross/x/core/host"
-	"github.com/datachainlab/cross/x/initiator/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/packets"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 

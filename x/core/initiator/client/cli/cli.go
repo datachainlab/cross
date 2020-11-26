@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/datachainlab/cross/x/initiator/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/spf13/cobra"
 )
 

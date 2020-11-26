@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
 // NewContractCallRequest creates a new instance of ContractCallRequest

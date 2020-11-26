@@ -4,13 +4,13 @@ package cross.initiator;
 import "gogoproto/gogo.proto";
 import "ibc/core/client/v1/client.proto";
 
-option go_package = "github.com/datachainlab/cross/x/initiator/types";
+option go_package = "github.com/datachainlab/cross/x/core/initiator/types";
 option (gogoproto.goproto_getters_all) = false;
 
 message PacketDataIBCSignTx {
   option (gogoproto.equal)           = false;
 
-  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/tx/types.TxID"];
+  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
   repeated bytes signers       = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/account/types.AccountID"];
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.

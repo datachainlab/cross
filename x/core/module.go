@@ -23,9 +23,9 @@ import (
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/datachainlab/cross/x/core/client/cli"
 	crosshost "github.com/datachainlab/cross/x/core/host"
+	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/datachainlab/cross/x/core/keeper"
 	"github.com/datachainlab/cross/x/core/types"
-	initiatortypes "github.com/datachainlab/cross/x/initiator/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 

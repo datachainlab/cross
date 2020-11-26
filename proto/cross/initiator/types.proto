@@ -7,7 +7,7 @@ import "tendermint/abci/types.proto";
 import "cross/tx/types.proto";
 import "cross/account/types.proto";
 
-option go_package = "github.com/datachainlab/cross/x/initiator/types";
+option go_package = "github.com/datachainlab/cross/x/core/initiator/types";
 option (gogoproto.goproto_getters_all) = false;
 
 message ContractTransaction {
@@ -15,7 +15,7 @@ message ContractTransaction {
 
   google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
   repeated bytes signers = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/account/types.AccountID"];
-  bytes call_info = 3 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/tx/types.ContractCallInfo"];
+  bytes call_info = 3 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.ContractCallInfo"];
   cross.tx.ReturnValue return_value = 4;
   repeated Link links = 5 [(gogoproto.nullable) = false];
 }

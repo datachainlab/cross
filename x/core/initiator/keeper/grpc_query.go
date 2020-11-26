@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/datachainlab/cross/x/initiator/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 

@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/contract/types"
 	contracttypes "github.com/datachainlab/cross/x/contract/types"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
 type contractManager struct {

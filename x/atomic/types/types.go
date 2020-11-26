@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 

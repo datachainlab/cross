@@ -3,7 +3,7 @@ package keeper
 import (
 	"context"
 
-	"github.com/datachainlab/cross/x/initiator/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
 )
 
 var _ types.QueryServer = (*Keeper)(nil)

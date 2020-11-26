@@ -1,8 +1,8 @@
 package types
 
 import (
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/packets"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
 )
 
 const (

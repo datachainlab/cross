@@ -1,7 +1,7 @@
 package initiator
 
 import (
-	"github.com/datachainlab/cross/x/initiator/client/cli"
+	"github.com/datachainlab/cross/x/core/initiator/client/cli"
 	"github.com/spf13/cobra"
 )
 

@@ -102,7 +102,6 @@ import (
 	crossstore "github.com/datachainlab/cross/x/store"
 	crossstorekeeper "github.com/datachainlab/cross/x/store/keeper"
 	crossstoretypes "github.com/datachainlab/cross/x/store/types"
-	crosstx "github.com/datachainlab/cross/x/tx"
 	"github.com/datachainlab/cross/x/xcc"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 
@@ -139,7 +138,6 @@ var (
 		transfer.AppModuleBasic{},
 		xcc.AppModuleBasic{},
 		cross.AppModuleBasic{},
-		crosstx.AppModuleBasic{},
 		crossatomic.AppModuleBasic{},
 		crossstore.AppModuleBasic{},
 		vesting.AppModuleBasic{},
@@ -337,13 +335,13 @@ func NewSimApp(
 	)
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
 
-	// Setup the cross module
-	router := router.NewRouter()
+	// Create a sample module
 	xstore := crossstorekeeper.NewStore(appCodec, crosshost.NewPrefixStoreKey(keys[crosshost.StoreKey], crosshost.ContractStoreKeyPrefix))
-	app.XCCResolver = xcctypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper)
-
 	app.SamplemodKeeper = samplemodkeeper.NewKeeper(appCodec, keys[samplemodtypes.StoreKey], xstore)
 	samplemodModule := samplemod.NewAppModule(app.SamplemodKeeper)
+
+	// Setup a cross module
+	app.XCCResolver = xcctypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper)
 	cmgr := contractkeeper.NewContractManager(
 		appCodec,
 		crosshost.NewPrefixStoreKey(keys[crosshost.StoreKey], crosshost.ContractManagerPrefix),
@@ -357,6 +355,8 @@ func NewSimApp(
 		cmgr, app.XCCResolver, packets.NewNOPPacketMiddleware(),
 	)
 	crossAtomicModule := crossatomic.NewAppModule(appCodec, app.AtomicKeeper)
+
+	router := router.NewRouter()
 	crossAtomicModule.RegisterPacketRoutes(router)
 
 	// Create Cross Keepers

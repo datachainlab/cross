@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/datachainlab/cross/x/core/host"
-	"github.com/datachainlab/cross/x/initiator"
+	"github.com/datachainlab/cross/x/core/initiator"
 )
 
 // GetTxCmd returns the transaction commands for this module

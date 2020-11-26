@@ -9,7 +9,7 @@ import (
 	"github.com/datachainlab/cross/simapp/samplemod/keeper"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
 	contracttypes "github.com/datachainlab/cross/x/contract/types"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"

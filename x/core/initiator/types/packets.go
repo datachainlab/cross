@@ -5,8 +5,8 @@ import (
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	accounttypes "github.com/datachainlab/cross/x/account/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/packets"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
 )
 
 const (

@@ -3,7 +3,7 @@ package keeper
 import (
 	"context"
 
-	initiatortypes "github.com/datachainlab/cross/x/initiator/types"
+	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 )
 
 var _ initiatortypes.MsgServer = (*Keeper)(nil)

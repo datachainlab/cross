@@ -4,7 +4,7 @@ import (
 	"context"
 
 	contracttypes "github.com/datachainlab/cross/x/contract/types"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
 func DefaultContractHandleDecorators() contracttypes.ContractHandleDecorator {

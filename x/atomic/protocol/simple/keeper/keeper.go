@@ -15,8 +15,8 @@ import (
 	"github.com/datachainlab/cross/x/atomic/protocol/simple/types"
 	commontypes "github.com/datachainlab/cross/x/atomic/types"
 	contracttypes "github.com/datachainlab/cross/x/contract/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/packets"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 

@@ -19,8 +19,8 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	accounttypes "github.com/datachainlab/cross/x/account/types"
-	"github.com/datachainlab/cross/x/initiator/types"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 

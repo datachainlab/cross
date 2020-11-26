@@ -18,9 +18,9 @@ import (
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	accounttypes "github.com/datachainlab/cross/x/account/types"
 	crosshost "github.com/datachainlab/cross/x/core/host"
+	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
-	initiatortypes "github.com/datachainlab/cross/x/initiator/types"
-	txtypes "github.com/datachainlab/cross/x/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 

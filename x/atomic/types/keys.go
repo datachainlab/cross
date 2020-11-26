@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	txtypes "github.com/datachainlab/cross/x/tx/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
 const (
