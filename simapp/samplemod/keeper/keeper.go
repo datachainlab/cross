@@ -13,7 +13,7 @@ import (
 	contracttype "github.com/datachainlab/cross/x/contract/types"
 	"github.com/datachainlab/cross/x/core/host"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
 type Keeper struct {

@@ -16,8 +16,8 @@ import (
 	commontypes "github.com/datachainlab/cross/x/atomic/types"
 	contracttypes "github.com/datachainlab/cross/x/contract/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	contracttypes "github.com/datachainlab/cross/x/contract/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
 // Linker resolves links that each ContractTransaction has.

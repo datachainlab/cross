@@ -7,7 +7,7 @@ import (
 	fmt "fmt"
 	github_com_datachainlab_cross_x_core_tx_types "github.com/datachainlab/cross/x/core/tx/types"
 	types "github.com/datachainlab/cross/x/core/tx/types"
-	types1 "github.com/datachainlab/cross/x/xcc/types"
+	types1 "github.com/datachainlab/cross/x/core/xcc/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"

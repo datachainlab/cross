@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	accounttypes "github.com/datachainlab/cross/x/account/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
 func (tx ContractTransaction) GetCrossChainChannel(m codec.Marshaler) (xcctypes.XCC, error) {

@@ -3,7 +3,7 @@ package cross.xcc;
 
 import "gogoproto/gogo.proto";
 
-option go_package = "github.com/datachainlab/cross/x/xcc/types";
+option go_package = "github.com/datachainlab/cross/x/core/xcc/types";
 option (gogoproto.goproto_getters_all) = false;
 
 message ChannelInfo {

@@ -14,10 +14,10 @@ import (
 	crosshost "github.com/datachainlab/cross/x/core/host"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
 	"github.com/datachainlab/cross/x/utils"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 	"github.com/stretchr/testify/suite"
 )
 

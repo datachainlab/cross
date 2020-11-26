@@ -8,8 +8,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	accounttypes "github.com/datachainlab/cross/x/account/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 
 var _ types.MsgServer = (*Keeper)(nil)

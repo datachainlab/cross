@@ -21,7 +21,7 @@ import (
 	accounttypes "github.com/datachainlab/cross/x/account/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
 // NewInitiateTxCmd returns the command to create a NewMsgInitiateTx transaction

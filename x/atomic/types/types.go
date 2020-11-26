@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
 // NewCoordinatorState creates a new instance of CoordinatorState

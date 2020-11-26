@@ -8,8 +8,8 @@ import (
 	accounttypes "github.com/datachainlab/cross/x/account/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 
 // SendIBCSign sends PacketDataIBCSignTx

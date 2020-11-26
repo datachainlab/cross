@@ -97,13 +97,12 @@ import (
 	cross "github.com/datachainlab/cross/x/core"
 	crosshost "github.com/datachainlab/cross/x/core/host"
 	crosskeeper "github.com/datachainlab/cross/x/core/keeper"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 	"github.com/datachainlab/cross/x/router"
 	crossstore "github.com/datachainlab/cross/x/store"
 	crossstorekeeper "github.com/datachainlab/cross/x/store/keeper"
 	crossstoretypes "github.com/datachainlab/cross/x/store/types"
-	"github.com/datachainlab/cross/x/xcc"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
@@ -136,7 +135,6 @@ var (
 		upgrade.AppModuleBasic{},
 		evidence.AppModuleBasic{},
 		transfer.AppModuleBasic{},
-		xcc.AppModuleBasic{},
 		cross.AppModuleBasic{},
 		crossatomic.AppModuleBasic{},
 		crossstore.AppModuleBasic{},

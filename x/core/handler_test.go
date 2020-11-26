@@ -20,8 +20,8 @@ import (
 	crosshost "github.com/datachainlab/cross/x/core/host"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
 )
 
 type CrossTestSuite struct {

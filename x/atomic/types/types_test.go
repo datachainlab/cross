@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
-	xcctypes "github.com/datachainlab/cross/x/xcc/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/stretchr/testify/require"
 )
 
