@@ -10,11 +10,11 @@ import (
 	crosshost "github.com/datachainlab/cross/x/core/host"
 	initiatorkeeper "github.com/datachainlab/cross/x/core/initiator/keeper"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
+	"github.com/datachainlab/cross/x/core/router"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/router"
 )
 
 type Keeper struct {

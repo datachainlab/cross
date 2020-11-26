@@ -20,8 +20,8 @@ import (
 	"github.com/datachainlab/cross/x/atomic/protocol/tpc"
 	tpctypes "github.com/datachainlab/cross/x/atomic/protocol/tpc/types"
 	"github.com/datachainlab/cross/x/atomic/types"
+	"github.com/datachainlab/cross/x/core/router"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/router"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 

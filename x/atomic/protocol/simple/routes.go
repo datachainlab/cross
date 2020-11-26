@@ -7,8 +7,8 @@ import (
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/datachainlab/cross/x/atomic/protocol/simple/keeper"
 	"github.com/datachainlab/cross/x/atomic/protocol/simple/types"
+	"github.com/datachainlab/cross/x/core/router"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/router"
 )
 
 type PacketHandler struct {
