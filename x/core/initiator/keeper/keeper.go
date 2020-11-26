@@ -11,9 +11,9 @@ import (
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	crosshost "github.com/datachainlab/cross/x/core/host"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -70,7 +70,7 @@ func (k Keeper) CrossChainChannelResolver() xcctypes.XCCResolver {
 
 // Logger returns a logger instance
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s-%s", host.ModuleName, types.SubModuleName))
+	return ctx.Logger().With("module", fmt.Sprintf("x/%s-%s", crosstypes.ModuleName, types.SubModuleName))
 }
 
 // BindPort defines a wrapper function for the ort Keeper's function in
@@ -94,7 +94,7 @@ func (k Keeper) IsBound(ctx sdk.Context, portID string) bool {
 
 func (k Keeper) store(ctx sdk.Context) sdk.KVStore {
 	switch storeKey := k.storeKey.(type) {
-	case *crosshost.PrefixStoreKey:
+	case *crosstypes.PrefixStoreKey:
 		return prefix.NewStore(ctx.KVStore(storeKey.StoreKey), storeKey.Prefix)
 	default:
 		return ctx.KVStore(k.storeKey)

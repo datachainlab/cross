@@ -9,10 +9,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
-	accounttypes "github.com/datachainlab/cross/x/account/types"
-	contracttype "github.com/datachainlab/cross/x/contract/types"
-	"github.com/datachainlab/cross/x/core/host"
+	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	contracttype "github.com/datachainlab/cross/x/core/contract/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
@@ -34,7 +34,7 @@ func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey, xstore contracttype.Sto
 }
 
 // HandleContractCall is called by ContractModule
-func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.ContractCallInfo) (*contracttype.ContractCallResult, error) {
+func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error) {
 	var req types.ContractCallRequest
 	if err := k.m.UnmarshalJSON(callInfo, &req); err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.Contr
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	switch req.Method {
 	case "nop":
-		return &contracttype.ContractCallResult{}, nil
+		return &txtypes.ContractCallResult{}, nil
 	case "counter":
 		return k.HandleCounter(ctx, req)
 	case "external-call":
@@ -56,12 +56,12 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.Contr
 
 var counterKey = []byte("counter")
 
-func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*contracttype.ContractCallResult, error) {
+func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*txtypes.ContractCallResult, error) {
 	// use the account ID as namespace
 	account := contracttype.ContractSignersFromContext(ctx.Context())[0]
 	v := k.getCounter(ctx, account)
 	bz := k.setCounter(ctx, account, v+1)
-	return &contracttype.ContractCallResult{Data: bz}, nil
+	return &txtypes.ContractCallResult{Data: bz}, nil
 }
 
 func (k Keeper) getCounter(ctx sdk.Context, account accounttypes.AccountID) uint64 {
@@ -81,7 +81,7 @@ func (k Keeper) setCounter(ctx sdk.Context, account accounttypes.AccountID, valu
 	return bz
 }
 
-func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallRequest) (*contracttype.ContractCallResult, error) {
+func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallRequest) (*txtypes.ContractCallResult, error) {
 	if len(req.Args) != 2 {
 		return nil, fmt.Errorf("the number of arguments must be 2")
 	}
@@ -98,11 +98,11 @@ func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallReques
 	ret := k.exContractCaller.Call(
 		ctx,
 		&xcctypes.ChannelInfo{
-			Port:    host.PortID,
+			Port:    crosstypes.PortID,
 			Channel: channelID,
 		},
 		callInfo,
 		[]accounttypes.AccountID{accID},
 	)
-	return &contracttype.ContractCallResult{Data: ret}, nil
+	return &txtypes.ContractCallResult{Data: ret}, nil
 }

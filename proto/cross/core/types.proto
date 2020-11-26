@@ -1,9 +1,0 @@
-syntax = "proto3";
-package cross.core;
-
-import "gogoproto/gogo.proto";
-
-option go_package = "github.com/datachainlab/cross/x/core/types";
-option (gogoproto.goproto_getters_all) = false;
-
-message GenesisState {}

@@ -7,9 +7,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	contracttypes "github.com/datachainlab/cross/x/contract/types"
+	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
 // Linker resolves links that each ContractTransaction has.
@@ -33,7 +34,7 @@ func MakeLinker(cdc codec.Marshaler, xccResolver xcctypes.XCCResolver, txs []Con
 			if err != nil {
 				return returnObject{err: err}
 			}
-			obj := txtypes.MakeConstantValueObject(xcc, contracttypes.MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
+			obj := txtypes.MakeConstantValueObject(xcc, MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
 			return returnObject{obj: &obj}
 		})
 	}
@@ -81,4 +82,14 @@ func makeLazyObject(f func() returnObject) lazyObject {
 		})
 		return v
 	}
+}
+
+// MakeObjectKey returns a key that can be used to identify a contract call
+func MakeObjectKey(callInfo txtypes.ContractCallInfo, signers []accounttypes.AccountID) []byte {
+	h := tmhash.New()
+	h.Write(callInfo)
+	for _, signer := range signers {
+		h.Write(signer)
+	}
+	return h.Sum(nil)
 }

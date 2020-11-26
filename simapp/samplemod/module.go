@@ -8,7 +8,7 @@ import (
 	"github.com/datachainlab/cross/simapp/samplemod/client/cli"
 	"github.com/datachainlab/cross/simapp/samplemod/keeper"
 	"github.com/datachainlab/cross/simapp/samplemod/types"
-	contracttypes "github.com/datachainlab/cross/x/contract/types"
+	contracttypes "github.com/datachainlab/cross/x/core/contract/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 
 	"github.com/gorilla/mux"
@@ -155,6 +155,6 @@ func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.Valid
 }
 
 // OnContractCall implements crosstypes.CrossModule
-func (am AppModule) OnContractCall(ctx context.Context, callInfo txtypes.ContractCallInfo) (*contracttypes.ContractCallResult, error) {
+func (am AppModule) OnContractCall(ctx context.Context, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error) {
 	return am.contractHandler(ctx, callInfo)
 }

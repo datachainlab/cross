@@ -10,7 +10,7 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	accounttypes "github.com/datachainlab/cross/x/account/types"
+	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )

@@ -22,10 +22,11 @@ import (
 	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/05-port/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 	"github.com/datachainlab/cross/x/core/client/cli"
-	crosshost "github.com/datachainlab/cross/x/core/host"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/datachainlab/cross/x/core/keeper"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/core/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
@@ -45,7 +46,7 @@ type AppModuleBasic struct {
 
 // Name returns the capability module's name.
 func (AppModuleBasic) Name() string {
-	return crosshost.ModuleName
+	return types.ModuleName
 }
 
 // RegisterLegacyAminoCodec implements AppModuleBasic interface
@@ -53,7 +54,9 @@ func (AppModuleBasic) RegisterLegacyAminoCodec(*codec.LegacyAmino) {}
 
 // RegisterInterfaces registers module concrete types into protobuf Any.
 func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	types.RegisterInterfaces(registry)
+	xcctypes.RegisterInterfaces(registry)
+	initiatortypes.RegisterInterfaces(registry)
+	txtypes.RegisterInterfaces(registry)
 }
 
 // DefaultGenesis returns the capability module's default genesis state.
@@ -65,7 +68,7 @@ func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
 func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, config client.TxEncodingConfig, bz json.RawMessage) error {
 	var genState types.GenesisState
 	if err := cdc.UnmarshalJSON(bz, &genState); err != nil {
-		return fmt.Errorf("failed to unmarshal %s genesis state: %w", crosshost.ModuleName, err)
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
 	}
 	return genState.Validate()
 }
@@ -75,7 +78,7 @@ func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Rout
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
-	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
+	initiatortypes.RegisterQueryHandlerClient(context.Background(), mux, initiatortypes.NewQueryClient(clientCtx))
 }
 
 // GetTxCmd returns the capability module's root tx command.
@@ -114,7 +117,7 @@ func (am AppModule) Name() string {
 
 // Route returns the capability module's message routing key.
 func (am AppModule) Route() sdk.Route {
-	return sdk.NewRoute(crosshost.RouterKey, NewHandler(am.keeper))
+	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
 }
 
 // QuerierRoute returns the capability module's query routing key.
@@ -182,8 +185,8 @@ func (am AppModule) OnChanOpenInit(
 		return sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
 	}
 
-	if version != crosshost.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, crosshost.Version)
+	if version != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
 	}
 
 	// Claim channel capability passed back by IBC module
@@ -216,12 +219,12 @@ func (am AppModule) OnChanOpenTry(
 		return sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
 	}
 
-	if version != crosshost.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got: %s, expected %s", version, crosshost.Version)
+	if version != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got: %s, expected %s", version, types.Version)
 	}
 
-	if counterpartyVersion != crosshost.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, crosshost.Version)
+	if counterpartyVersion != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
 	}
 
 	// Module may have already claimed capability in OnChanOpenInit in the case of crossing hellos
@@ -245,8 +248,8 @@ func (am AppModule) OnChanOpenAck(
 	channelID string,
 	counterpartyVersion string,
 ) error {
-	if counterpartyVersion != crosshost.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: %s, expected %s", counterpartyVersion, crosshost.Version)
+	if counterpartyVersion != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: %s, expected %s", counterpartyVersion, types.Version)
 	}
 	return nil
 }

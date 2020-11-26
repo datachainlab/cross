@@ -7,9 +7,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	accounttypes "github.com/datachainlab/cross/x/account/types"
-	"github.com/datachainlab/cross/x/core/host"
+	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/gogo/protobuf/proto"
 )
@@ -42,7 +42,7 @@ func NewMsgInitiateTx(
 
 // Route implements sdk.Msg
 func (MsgInitiateTx) Route() string {
-	return host.RouterKey
+	return crosstypes.RouterKey
 }
 
 // Type implements sdk.Msg
@@ -107,7 +107,7 @@ var _ sdk.Msg = (*MsgSignTx)(nil)
 
 // Route implements sdk.Msg
 func (MsgSignTx) Route() string {
-	return host.RouterKey
+	return crosstypes.RouterKey
 }
 
 // Type implements sdk.Msg
@@ -167,7 +167,7 @@ func NewMsgIBCSignTx(
 
 // Route implements sdk.Msg
 func (MsgIBCSignTx) Route() string {
-	return host.RouterKey
+	return crosstypes.RouterKey
 }
 
 // Type implements sdk.Msg

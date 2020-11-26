@@ -10,10 +10,10 @@ import (
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	accounttypes "github.com/datachainlab/cross/x/account/types"
-	crosshost "github.com/datachainlab/cross/x/core/host"
+	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
@@ -47,9 +47,9 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	// setup
 
 	_, _, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(crosshost.PortID)
+	suite.chainB.CreatePortCapability(crosstypes.PortID)
 
-	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosshost.PortID, crosshost.PortID, channeltypes.UNORDERED)
+	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
 	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 	xccB, err := xcctypes.PackCrossChainChannel(&chAB)

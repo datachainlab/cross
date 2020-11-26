@@ -4,14 +4,14 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/datachainlab/cross/x/core/host"
 	"github.com/datachainlab/cross/x/core/initiator"
+	"github.com/datachainlab/cross/x/core/types"
 )
 
 // GetTxCmd returns the transaction commands for this module
 func GetTxCmd() *cobra.Command {
 	ibcTxCmd := &cobra.Command{
-		Use:                        host.ModuleName,
+		Use:                        types.ModuleName,
 		Short:                      "IBC transaction subcommands",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
@@ -29,7 +29,7 @@ func GetTxCmd() *cobra.Command {
 func GetQueryCmd() *cobra.Command {
 	// Group ibc queries under a subcommand
 	ibcQueryCmd := &cobra.Command{
-		Use:                        host.ModuleName,
+		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the IBC module",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,

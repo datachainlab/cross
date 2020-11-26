@@ -7,7 +7,6 @@ import (
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 
-	crosshost "github.com/datachainlab/cross/x/core/host"
 	initiatorkeeper "github.com/datachainlab/cross/x/core/initiator/keeper"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/datachainlab/cross/x/core/router"
@@ -23,16 +22,15 @@ type Keeper struct {
 	portKeeper    types.PortKeeper
 	channelKeeper types.ChannelKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
-	router        router.Router
 
+	router          router.Router
 	initiatorKeeper initiatorkeeper.Keeper
 }
 
 func NewKeeper(
 	cdc codec.Marshaler, key sdk.StoreKey,
 	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
-	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txProcessor txtypes.TxProcessor,
-	router router.Router,
+	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txProcessor txtypes.TxProcessor, router router.Router,
 ) Keeper {
 	initiatorKeeper := initiatorkeeper.NewKeeper(
 		cdc, key, channelKeeper, portKeeper, scopedKeeper,
@@ -66,7 +64,7 @@ func (k Keeper) IsBound(ctx sdk.Context, portID string) bool {
 
 // GetPort returns portID
 func (k Keeper) GetPort(ctx sdk.Context) string {
-	return crosshost.PortID
+	return types.PortID
 }
 
 // BindPort defines a wrapper function for the ort Keeper's function in

@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	accounttypes "github.com/datachainlab/cross/x/account/types"
+	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"

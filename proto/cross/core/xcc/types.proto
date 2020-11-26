@@ -1,0 +1,12 @@
+syntax = "proto3";
+package cross.core.xcc;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/datachainlab/cross/x/core/xcc/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message ChannelInfo {
+  string port = 1;
+  string channel = 2;
+}

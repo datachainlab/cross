@@ -90,19 +90,18 @@ import (
 	"github.com/datachainlab/cross/simapp/samplemod"
 	samplemodkeeper "github.com/datachainlab/cross/simapp/samplemod/keeper"
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	crossatomic "github.com/datachainlab/cross/x/atomic"
-	atomickeeper "github.com/datachainlab/cross/x/atomic/keeper"
-	atomictypes "github.com/datachainlab/cross/x/atomic/types"
-	contractkeeper "github.com/datachainlab/cross/x/contract/keeper"
 	cross "github.com/datachainlab/cross/x/core"
-	crosshost "github.com/datachainlab/cross/x/core/host"
+	crossatomic "github.com/datachainlab/cross/x/core/atomic"
+	atomickeeper "github.com/datachainlab/cross/x/core/atomic/keeper"
+	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
+	contractkeeper "github.com/datachainlab/cross/x/core/contract/keeper"
 	crosskeeper "github.com/datachainlab/cross/x/core/keeper"
 	"github.com/datachainlab/cross/x/core/router"
+	crossstorekeeper "github.com/datachainlab/cross/x/core/store/keeper"
+	crossstoretypes "github.com/datachainlab/cross/x/core/store/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
-	crossstore "github.com/datachainlab/cross/x/store"
-	crossstorekeeper "github.com/datachainlab/cross/x/store/keeper"
-	crossstoretypes "github.com/datachainlab/cross/x/store/types"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
@@ -137,7 +136,6 @@ var (
 		transfer.AppModuleBasic{},
 		cross.AppModuleBasic{},
 		crossatomic.AppModuleBasic{},
-		crossstore.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		samplemod.AppModuleBasic{},
 	)
@@ -246,7 +244,7 @@ func NewSimApp(
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
-		crosshost.StoreKey, samplemodtypes.StoreKey,
+		crosstypes.StoreKey, samplemodtypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -271,7 +269,7 @@ func NewSimApp(
 	app.CapabilityKeeper = capabilitykeeper.NewKeeper(appCodec, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
 	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibchost.ModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
-	scopedCrossKeeper := app.CapabilityKeeper.ScopeToModule(crosshost.ModuleName)
+	scopedCrossKeeper := app.CapabilityKeeper.ScopeToModule(crosstypes.ModuleName)
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule(ibcmock.ModuleName)
@@ -334,7 +332,7 @@ func NewSimApp(
 	transferModule := transfer.NewAppModule(app.TransferKeeper)
 
 	// Create a sample module
-	xstore := crossstorekeeper.NewStore(appCodec, crosshost.NewPrefixStoreKey(keys[crosshost.StoreKey], crosshost.ContractStoreKeyPrefix))
+	xstore := crossstorekeeper.NewStore(appCodec, crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.ContractStoreKeyPrefix))
 	app.SamplemodKeeper = samplemodkeeper.NewKeeper(appCodec, keys[samplemodtypes.StoreKey], xstore)
 	samplemodModule := samplemod.NewAppModule(app.SamplemodKeeper)
 
@@ -342,13 +340,13 @@ func NewSimApp(
 	app.XCCResolver = xcctypes.NewChannelInfoResolver(app.IBCKeeper.ChannelKeeper)
 	cmgr := contractkeeper.NewContractManager(
 		appCodec,
-		crosshost.NewPrefixStoreKey(keys[crosshost.StoreKey], crosshost.ContractManagerPrefix),
+		crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.ContractManagerPrefix),
 		samplemodModule,
 		xstore,
 		crossstoretypes.DefaultContractHandleDecorators(),
 	)
 	app.AtomicKeeper = atomickeeper.NewKeeper(
-		appCodec, crosshost.NewPrefixStoreKey(keys[crosshost.StoreKey], crosshost.AtomicKeyPrefix),
+		appCodec, crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.AtomicKeyPrefix),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper, scopedCrossKeeper,
 		cmgr, app.XCCResolver, packets.NewNOPPacketMiddleware(),
 	)
@@ -359,7 +357,7 @@ func NewSimApp(
 
 	// Create Cross Keepers
 	app.CrossKeeper = crosskeeper.NewKeeper(
-		appCodec, crosshost.NewPrefixStoreKey(keys[crosshost.StoreKey], crosshost.InitiatorKeyPrefix),
+		appCodec, crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.InitiatorKeyPrefix),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper,
 		packets.NewNOPPacketMiddleware(),
@@ -376,7 +374,7 @@ func NewSimApp(
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
-	ibcRouter.AddRoute(crosshost.ModuleName, crossModule)
+	ibcRouter.AddRoute(crosstypes.ModuleName, crossModule)
 	ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
 
@@ -438,7 +436,7 @@ func NewSimApp(
 	app.mm.SetOrderInitGenesis(
 		capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName, distrtypes.ModuleName, stakingtypes.ModuleName,
 		slashingtypes.ModuleName, govtypes.ModuleName, minttypes.ModuleName, crisistypes.ModuleName,
-		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName, samplemodtypes.ModuleName, crosshost.ModuleName, atomictypes.ModuleName,
+		ibchost.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, ibctransfertypes.ModuleName, samplemodtypes.ModuleName, crosstypes.ModuleName, atomictypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

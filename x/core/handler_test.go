@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	accounttypes "github.com/datachainlab/cross/x/account/types"
-	crosshost "github.com/datachainlab/cross/x/core/host"
+	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	"github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 )
@@ -50,8 +50,8 @@ func (suite *CrossTestSuite) TestHandleMsgInitiate() {
 	// setup
 
 	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(crosshost.PortID)
-	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosshost.PortID, crosshost.PortID, channeltypes.UNORDERED)
+	suite.chainB.CreatePortCapability(types.PortID)
+	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, types.PortID, types.PortID, channeltypes.UNORDERED)
 
 	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
