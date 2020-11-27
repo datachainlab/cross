@@ -8,9 +8,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/datachainlab/cross/simapp/samplemod/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
-	contracttype "github.com/datachainlab/cross/x/core/contract/types"
+	contracttypes "github.com/datachainlab/cross/x/core/contract/types"
+	storetypes "github.com/datachainlab/cross/x/core/store/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
@@ -19,17 +21,17 @@ import (
 type Keeper struct {
 	m        codec.Marshaler
 	storeKey sdk.StoreKey
-	xstore   contracttype.Store
+	xstore   storetypes.KVStoreI
 
-	exContractCaller contracttype.ExternalContractCaller
+	exContractCaller contracttypes.ExternalContractCaller
 }
 
-func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey, xstore contracttype.Store) Keeper {
+func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey, xstore storetypes.KVStoreI) Keeper {
 	return Keeper{
 		m:                m,
 		storeKey:         storeKey,
 		xstore:           xstore,
-		exContractCaller: contracttype.NewExternalContractCaller(),
+		exContractCaller: contracttypes.NewExternalContractCaller(),
 	}
 }
 
@@ -58,7 +60,7 @@ var counterKey = []byte("counter")
 
 func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*txtypes.ContractCallResult, error) {
 	// use the account ID as namespace
-	account := contracttype.ContractSignersFromContext(ctx.Context())[0]
+	account := contracttypes.ContractSignersFromContext(ctx.Context())[0]
 	v := k.getCounter(ctx, account)
 	bz := k.setCounter(ctx, account, v+1)
 	return &txtypes.ContractCallResult{Data: bz}, nil

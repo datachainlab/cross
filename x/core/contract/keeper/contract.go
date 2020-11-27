@@ -6,7 +6,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/core/contract/types"
-	contracttypes "github.com/datachainlab/cross/x/core/contract/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
@@ -15,7 +14,7 @@ type contractManager struct {
 	storeKey sdk.StoreKey
 
 	mod                     types.ContractModule
-	commitStore             contracttypes.CommitStore
+	commitStore             types.CommitStoreI
 	resolverProvider        txtypes.ObjectResolverProvider
 	contractHandleDecorator types.ContractHandleDecorator
 }
@@ -26,7 +25,7 @@ func NewContractManager(
 	cdc codec.Marshaler,
 	storeKey sdk.StoreKey,
 	mod types.ContractModule,
-	commitStore contracttypes.CommitStore,
+	commitStore types.CommitStoreI,
 	contractHandleDecorator types.ContractHandleDecorator,
 ) txtypes.ContractManager {
 
@@ -46,7 +45,7 @@ func (k contractManager) PrepareCommit(
 	txIndex txtypes.TxIndex,
 	tx txtypes.ResolvedContractTransaction,
 ) error {
-	ctx, err := k.setupContext(ctx, tx, contracttypes.AtomicMode)
+	ctx, err := k.setupContext(ctx, tx, types.AtomicMode)
 	if err != nil {
 		return err
 	}
@@ -61,7 +60,7 @@ func (k contractManager) PrepareCommit(
 func (k contractManager) setupContext(
 	ctx sdk.Context,
 	tx txtypes.ResolvedContractTransaction,
-	commitMode contracttypes.CommitMode,
+	commitMode types.CommitMode,
 ) (sdk.Context, error) {
 	rs, err := k.resolverProvider(k.cdc, tx.UnpackObjects(k.cdc))
 	if err != nil {
@@ -69,7 +68,7 @@ func (k contractManager) setupContext(
 	}
 
 	// Setup a context
-	ctx = contracttypes.SetupContractContext(
+	ctx = types.SetupContractContext(
 		ctx,
 		tx.Signers,
 		types.ContractRuntimeInfo{
@@ -119,7 +118,7 @@ func (k contractManager) CommitImmediately(
 	txIndex txtypes.TxIndex,
 	tx txtypes.ResolvedContractTransaction,
 ) (*txtypes.ContractCallResult, error) {
-	ctx, err := k.setupContext(ctx, tx, contracttypes.BasicMode)
+	ctx, err := k.setupContext(ctx, tx, types.BasicMode)
 	if err != nil {
 		return nil, err
 	}

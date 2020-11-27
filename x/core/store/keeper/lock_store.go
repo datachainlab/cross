@@ -2,7 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/datachainlab/cross/x/core/contract/types"
+	"github.com/datachainlab/cross/x/core/store/types"
 )
 
 type LockStore interface {
@@ -14,12 +14,12 @@ type LockStore interface {
 }
 
 type lockStore struct {
-	store types.Store
+	store types.KVStoreI
 }
 
 var _ LockStore = (*lockStore)(nil)
 
-func newLockStore(store types.Store) lockStore {
+func newLockStore(store types.KVStoreI) lockStore {
 	return lockStore{store: store}
 }
 

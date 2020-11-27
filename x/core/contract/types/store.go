@@ -4,25 +4,25 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// CommitMode indicates the type of the commit.
+// It is used to tell the underlying store that manages the state.
+// It is also expected to be set correctly by the transaction processor.
 type CommitMode = uint8
 
 const (
+	// UnspecifiedMode indicates that nothing is specified.
 	UnspecifiedMode CommitMode = iota + 1
+
+	// BaseMode expects store operations to be committed in a single local transaction.
+	// However, depending on the implementation of the store may need to prevent conflicts with concurrent transactions.
 	BasicMode
+
+	// AtomicMode expects store operations to be committed in cross-chain transaction.
 	AtomicMode
 )
 
-type Store interface {
-	Prefix(prefix []byte) Store
-	KVStore(ctx sdk.Context) sdk.KVStore
-
-	Set(ctx sdk.Context, key, value []byte)
-	Get(ctx sdk.Context, key []byte) []byte
-	Has(ctx sdk.Context, key []byte) bool
-	Delete(ctx sdk.Context, key []byte)
-}
-
-type CommitStore interface {
+// CommitStoreI defines the expected commit store in ContractManager
+type CommitStoreI interface {
 	Precommit(ctx sdk.Context, id []byte) error
 	Abort(ctx sdk.Context, id []byte) error
 	Commit(ctx sdk.Context, id []byte) error
