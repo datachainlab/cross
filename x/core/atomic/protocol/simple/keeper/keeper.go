@@ -101,7 +101,9 @@ func (k Keeper) SendCall(
 	if !found {
 		return sdkerrors.Wrap(channeltypes.ErrChannelNotFound, ch1.Channel)
 	}
-	if err := k.cm.PrepareCommit(ctx, txID, TxIndexCoordinator, tx0); err != nil {
+	// TODO returns a result of contract call
+	_, err = k.cm.PrepareCommit(ctx, txID, TxIndexCoordinator, tx0)
+	if err != nil {
 		return err
 	}
 

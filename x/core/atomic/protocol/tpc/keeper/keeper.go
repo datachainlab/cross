@@ -102,6 +102,45 @@ func (k Keeper) SendPrepare(
 	return nil
 }
 
+func (k Keeper) ReceivePreparePacket(
+	ctx sdk.Context,
+	destPort,
+	destChannel string,
+	data types.PacketDataPrepare,
+) (*txtypes.ContractCallResult, *types.PacketAcknowledgementPrepare, error) {
+	// validate packet data upon receiving
+	if err := data.ValidateBasic(); err != nil {
+		return nil, nil, err
+	}
+
+	_, found := k.ChannelKeeper().GetChannel(ctx, destPort, destChannel)
+	if !found {
+		return nil, nil, fmt.Errorf("channel(port=%v channel=%v) not found", destPort, destChannel)
+	}
+
+	if _, ok := k.GetContractTransactionState(ctx, data.TxId, data.TxIndex); ok {
+		return nil, nil, fmt.Errorf("txID '%x' already exists", data.TxId)
+	}
+
+	var prepareResult atomictypes.PrepareResult
+	res, err := k.cm.PrepareCommit(ctx, data.TxId, data.TxIndex, data.Tx)
+	if err != nil {
+		k.Logger(ctx).Info("failed to prepare a commit", "error", err.Error())
+		prepareResult = atomictypes.PREPARE_RESULT_FAILED
+	} else {
+		prepareResult = atomictypes.PREPARE_RESULT_OK
+	}
+
+	txState := atomictypes.NewContractTransactionState(
+		atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE,
+		prepareResult,
+		xcctypes.ChannelInfo{Channel: destChannel, Port: destPort},
+	)
+	k.SetContractTransactionState(ctx, data.TxId, data.TxIndex, txState)
+
+	return res, types.NewPacketAcknowledgementPayload(prepareResult), nil
+}
+
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("cross/core/atomic/%s", TypeName))

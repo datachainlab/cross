@@ -44,17 +44,20 @@ func (k contractManager) PrepareCommit(
 	txID txtypes.TxID,
 	txIndex txtypes.TxIndex,
 	tx txtypes.ResolvedContractTransaction,
-) error {
+) (*txtypes.ContractCallResult, error) {
 	ctx, err := k.setupContext(ctx, tx, types.AtomicMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	res, err := k.processTransaction(ctx, tx)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if err := k.commitStore.Precommit(ctx, makeContractTransactionID(txID, txIndex)); err != nil {
+		return nil, err
 	}
 	k.setContractCallResult(ctx, txID, txIndex, *res)
-	return k.commitStore.Precommit(ctx, makeContractTransactionID(txID, txIndex))
+	return res, nil
 }
 
 func (k contractManager) setupContext(

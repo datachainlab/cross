@@ -1,6 +1,7 @@
 package types
 
 import (
+	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -34,9 +35,11 @@ func (PacketDataPrepare) Type() string {
 var _ packets.PacketAcknowledgementPayload = (*PacketAcknowledgementPrepare)(nil)
 
 func NewPacketAcknowledgementPayload(
-	status PrepareStatus,
-) PacketAcknowledgementPrepare {
-	return PacketAcknowledgementPrepare{}
+	result atomictypes.PrepareResult,
+) *PacketAcknowledgementPrepare {
+	return &PacketAcknowledgementPrepare{
+		Result: result,
+	}
 }
 
 func (a PacketAcknowledgementPrepare) ValidateBasic() error {

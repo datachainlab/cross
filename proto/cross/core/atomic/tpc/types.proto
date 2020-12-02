@@ -3,6 +3,7 @@ package cross.core.atomic.tpc;
 
 import "gogoproto/gogo.proto";
 import "cross/core/tx/types.proto";
+import "cross/core/atomic/types.proto";
 
 option go_package = "github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types";
 option (gogoproto.goproto_getters_all)  = false;
@@ -18,13 +19,5 @@ message PacketDataPrepare {
 message PacketAcknowledgementPrepare {
   option (gogoproto.equal) = false;
 
-  PrepareStatus status = 1;
-}
-
-enum PrepareStatus {
-  option (gogoproto.goproto_enum_prefix) = false;
-
-  PREPARE_STATUS_UNKNOWN = 0;
-  PREPARE_STATUS_OK      = 1;
-  PREPARE_STATUS_FAILED  = 2;
+  cross.core.atomic.PrepareResult result = 1;
 }
