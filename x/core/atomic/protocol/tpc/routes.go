@@ -67,6 +67,8 @@ func (h PacketHandler) HandlePacket(
 		} else {
 			data = nil
 		}
+	default:
+		return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized packet type: %T", payload)
 	}
 	if err = as.SendACK(ctx, ack); err != nil {
 		return nil, nil, err
@@ -86,29 +88,18 @@ func (h PacketHandler) HandleACK(
 		return nil, err
 	}
 
-	pd := ip.Payload().(*types.PacketDataPrepare)
-	state, err := h.keeper.ReceivePrepareAcknowledgement(
-		ctx,
-		packet.SourcePort, packet.SourceChannel,
-		*ipa.Payload().(*types.PacketAcknowledgementPrepare),
-		pd.TxId, pd.TxIndex,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if state.AlreadyCommitted {
-		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
-	} else if state.GoCommit || state.GoAbort {
-		if err := h.keeper.SendCommit(
+	switch payload := ipa.Payload().(type) {
+	case *types.PacketAcknowledgementPrepare:
+		pd := ip.Payload().(*types.PacketDataPrepare)
+		return h.keeper.HandlePacketAcknowledgementPrepare(
 			ctx,
-			ps,
-			pd.TxId,
-			state.GoCommit,
-		); err != nil {
-			return nil, err
-		}
-		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
-	} else {
-		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
+			packet.SourcePort, packet.SourceChannel,
+			*payload, pd.TxId, pd.TxIndex, ps,
+		)
+	case *types.PacketAcknowledgementCommit:
+		bz := h.cdc.MustMarshalJSON(payload)
+		return &sdk.Result{Data: bz, Events: ctx.EventManager().ABCIEvents()}, nil
+	default:
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ack type: %T", payload)
 	}
 }

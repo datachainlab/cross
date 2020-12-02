@@ -111,7 +111,45 @@ func (k Keeper) ReceivePacketPrepare(
 	return res, types.NewPacketAcknowledgementPayload(prepareResult), nil
 }
 
-func (k Keeper) ReceivePrepareAcknowledgement(
+func (k Keeper) HandlePacketAcknowledgementPrepare(
+	ctx sdk.Context,
+	sourcePort string,
+	sourceChannel string,
+	ack types.PacketAcknowledgementPrepare,
+	txID txtypes.TxID,
+	txIndex txtypes.TxIndex,
+	ps packets.PacketSender,
+) (*sdk.Result, error) {
+	state, err := k.receivePrepareAcknowledgement(
+		ctx,
+		sourcePort, sourceChannel,
+		ack,
+		txID, txIndex,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if state.GoCommit && state.GoAbort {
+		panic("fatal error")
+	} else if state.GoCommit || state.GoAbort {
+		if err := k.SendCommit(
+			ctx,
+			ps,
+			txID,
+			state.GoCommit,
+		); err != nil {
+			return nil, err
+		}
+	} else if state.AlreadyCommitted {
+		// nop
+	} else { // wait for more acks
+		// nop
+	}
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
+}
+
+func (k Keeper) receivePrepareAcknowledgement(
 	ctx sdk.Context,
 	sourcePort string,
 	sourceChannel string,

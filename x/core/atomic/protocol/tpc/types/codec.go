@@ -12,10 +12,12 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*packets.PacketDataPayload)(nil),
 		&PacketDataPrepare{},
+		&PacketDataCommit{},
 	)
 	registry.RegisterImplementations(
 		(*packets.PacketAcknowledgementPayload)(nil),
 		&PacketAcknowledgementPrepare{},
+		&PacketAcknowledgementCommit{},
 	)
 }
 

@@ -55,11 +55,7 @@ func (k Keeper) SendCommit(
 			return err
 		}
 	}
-	if isCommittable {
-		cs.Decision = atomictypes.COORDINATOR_DECISION_COMMIT
-	} else {
-		cs.Decision = atomictypes.COORDINATOR_DECISION_ABORT
-	}
+	cs.Phase = atomictypes.COORDINATOR_PHASE_COMMIT
 	k.SetCoordinatorState(ctx, txID, *cs)
 	return nil
 }
@@ -107,4 +103,26 @@ func (k Keeper) ReceivePacketCommit(
 		}
 		return nil, types.NewPacketAcknowledgementCommit(types.COMMIT_STATUS_OK), nil
 	}
+}
+
+func (k Keeper) ReceiveCommitAcknowledgement(
+	ctx sdk.Context,
+	txID txtypes.TxID,
+	txIndex txtypes.TxIndex,
+) error {
+	cs, found := k.GetCoordinatorState(ctx, txID)
+	if !found {
+		return fmt.Errorf("txID '%x' not found", txID)
+	} else if cs.Phase != atomictypes.COORDINATOR_PHASE_COMMIT {
+		return fmt.Errorf("coordinator status must be '%v'", atomictypes.COORDINATOR_PHASE_COMMIT.String())
+	} else if cs.Decision != atomictypes.COORDINATOR_DECISION_UNKNOWN {
+		return fmt.Errorf("coordinator must decide any status")
+	}
+
+	if !cs.AddAck(txIndex) {
+		return fmt.Errorf("tx '%v' already exists", txIndex)
+	}
+
+	k.SetCoordinatorState(ctx, txID, *cs)
+	return nil
 }
