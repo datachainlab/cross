@@ -143,14 +143,12 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 		switch ack.Result {
 		case atomictypes.PREPARE_RESULT_OK:
 			if cs.IsCompleted() {
-				cs.Phase = atomictypes.COORDINATOR_PHASE_COMMIT
 				cs.Decision = atomictypes.COORDINATOR_DECISION_COMMIT
 				state.GoCommit = true
 			} else {
 				panic("unreachable")
 			}
 		case atomictypes.PREPARE_RESULT_FAILED:
-			cs.Phase = atomictypes.COORDINATOR_PHASE_COMMIT
 			cs.Decision = atomictypes.COORDINATOR_DECISION_ABORT
 			state.GoAbort = true
 		default:
@@ -161,6 +159,7 @@ func (k Keeper) ReceivePrepareAcknowledgement(
 	default:
 		panic(fmt.Sprintf("unexpected phase %v", cs.Phase))
 	}
+	k.SetCoordinatorState(ctx, txID, *cs)
 	return &state, nil
 }
 

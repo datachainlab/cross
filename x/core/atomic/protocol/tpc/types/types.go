@@ -49,3 +49,21 @@ func (a PacketAcknowledgementPrepare) ValidateBasic() error {
 func (PacketAcknowledgementPrepare) Type() string {
 	return PacketType
 }
+
+var _ packets.PacketDataPayload = (*PacketDataCommit)(nil)
+
+func NewPacketDataCommit(txID txtypes.TxID, txIndex txtypes.TxIndex, isCommittable bool) *PacketDataCommit {
+	return &PacketDataCommit{
+		TxId:          txID,
+		TxIndex:       txIndex,
+		IsCommittable: isCommittable,
+	}
+}
+
+func (p PacketDataCommit) ValidateBasic() error {
+	return nil
+}
+
+func (PacketDataCommit) Type() string {
+	return PacketType
+}
