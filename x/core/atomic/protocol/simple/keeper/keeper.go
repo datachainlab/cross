@@ -13,7 +13,7 @@ import (
 
 	basekeeper "github.com/datachainlab/cross/x/core/atomic/protocol/base/keeper"
 	"github.com/datachainlab/cross/x/core/atomic/protocol/simple/types"
-	commontypes "github.com/datachainlab/cross/x/core/atomic/types"
+	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
@@ -118,9 +118,9 @@ func (k Keeper) SendCall(
 		return err
 	}
 
-	cs := commontypes.NewCoordinatorState(
+	cs := atomictypes.NewCoordinatorState(
 		txtypes.COMMIT_PROTOCOL_SIMPLE,
-		commontypes.COORDINATOR_PHASE_PREPARE,
+		atomictypes.COORDINATOR_PHASE_PREPARE,
 		[]xcctypes.ChannelInfo{*ch0, *ch1},
 	)
 	if err := cs.Confirm(TxIndexCoordinator, *ch0); err != nil {
@@ -128,9 +128,9 @@ func (k Keeper) SendCall(
 	}
 	k.SetCoordinatorState(ctx, txID, cs)
 
-	cTxState := commontypes.NewContractTransactionState(
-		commontypes.CONTRACT_TRANSACTION_STATUS_PREPARE,
-		commontypes.PREPARE_RESULT_OK,
+	cTxState := atomictypes.NewContractTransactionState(
+		atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE,
+		atomictypes.PREPARE_RESULT_OK,
 		*ch0,
 	)
 	k.SetContractTransactionState(ctx, txID, TxIndexCoordinator, cTxState)
@@ -164,23 +164,23 @@ func (k Keeper) ReceiveCallPacket(
 	// }
 
 	var (
-		prepareStatus commontypes.PrepareResult
+		prepareStatus atomictypes.PrepareResult
 		commitStatus  types.CommitStatus
-		ctxStatus     commontypes.ContractTransactionStatus
+		ctxStatus     atomictypes.ContractTransactionStatus
 	)
 	res, err := k.cm.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.Tx)
 	if err != nil {
-		prepareStatus = commontypes.PREPARE_RESULT_FAILED
+		prepareStatus = atomictypes.PREPARE_RESULT_FAILED
 		commitStatus = types.COMMIT_STATUS_FAILED
-		ctxStatus = commontypes.CONTRACT_TRANSACTION_STATUS_ABORT
+		ctxStatus = atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT
 		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
 	} else {
-		prepareStatus = commontypes.PREPARE_RESULT_OK
+		prepareStatus = atomictypes.PREPARE_RESULT_OK
 		commitStatus = types.COMMIT_STATUS_OK
-		ctxStatus = commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT
+		ctxStatus = atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT
 	}
 
-	txinfo := commontypes.NewContractTransactionState(
+	txinfo := atomictypes.NewContractTransactionState(
 		ctxStatus,
 		prepareStatus,
 		xcctypes.ChannelInfo{Port: destPort, Channel: destChannel},
@@ -201,8 +201,8 @@ func (k Keeper) ReceiveCallAcknowledgement(
 	cs, found := k.GetCoordinatorState(ctx, txID)
 	if !found {
 		return false, fmt.Errorf("txID '%x' not found", txID)
-	} else if cs.Phase != commontypes.COORDINATOR_PHASE_PREPARE {
-		return false, fmt.Errorf("coordinator status must be '%v'", commontypes.COORDINATOR_PHASE_PREPARE.String())
+	} else if cs.Phase != atomictypes.COORDINATOR_PHASE_PREPARE {
+		return false, fmt.Errorf("coordinator status must be '%v'", atomictypes.COORDINATOR_PHASE_PREPARE.String())
 	} else if cs.IsCompleted() {
 		return false, errors.New("all transactions are already confirmed")
 	}
@@ -216,15 +216,15 @@ func (k Keeper) ReceiveCallAcknowledgement(
 	}
 	switch ack.Status {
 	case types.COMMIT_STATUS_OK:
-		cs.Decision = commontypes.COORDINATOR_DECISION_COMMIT
+		cs.Decision = atomictypes.COORDINATOR_DECISION_COMMIT
 		isCommittable = true
 	case types.COMMIT_STATUS_FAILED:
-		cs.Decision = commontypes.COORDINATOR_DECISION_ABORT
+		cs.Decision = atomictypes.COORDINATOR_DECISION_ABORT
 		isCommittable = false
 	default:
 		panic("unreachable")
 	}
-	cs.Phase = commontypes.COORDINATOR_PHASE_COMMIT
+	cs.Phase = atomictypes.COORDINATOR_PHASE_COMMIT
 	cs.AddAck(TxIndexCoordinator)
 	cs.AddAck(TxIndexParticipant)
 	if !cs.IsCompleted() || !cs.IsReceivedALLAcks() {
@@ -239,26 +239,26 @@ func (k Keeper) TryCommit(
 	txID txtypes.TxID,
 	isCommittable bool,
 ) (*txtypes.ContractCallResult, error) {
-	_, err := k.EnsureContractTransactionStatus(ctx, txID, TxIndexCoordinator, commontypes.CONTRACT_TRANSACTION_STATUS_PREPARE)
+	_, err := k.EnsureContractTransactionStatus(ctx, txID, TxIndexCoordinator, atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE)
 	if err != nil {
 		return nil, err
 	}
 	var (
 		res    *txtypes.ContractCallResult
-		status commontypes.ContractTransactionStatus
+		status atomictypes.ContractTransactionStatus
 	)
 	if isCommittable {
 		res, err = k.cm.Commit(ctx, txID, TxIndexCoordinator)
 		if err != nil {
 			return nil, err
 		}
-		status = commontypes.CONTRACT_TRANSACTION_STATUS_COMMIT
+		status = atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT
 	} else {
 		err = k.cm.Abort(ctx, txID, TxIndexCoordinator)
 		if err != nil {
 			return nil, err
 		}
-		status = commontypes.CONTRACT_TRANSACTION_STATUS_ABORT
+		status = atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT
 	}
 	k.UpdateContractTransactionStatus(ctx, txID, TxIndexCoordinator, status)
 	return res, nil

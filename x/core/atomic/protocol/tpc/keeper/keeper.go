@@ -6,11 +6,14 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	basekeeper "github.com/datachainlab/cross/x/core/atomic/protocol/base/keeper"
 	"github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types"
+	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
@@ -59,16 +62,43 @@ func (k Keeper) SendPrepare(
 		return fmt.Errorf("txID '%X' already exists", txID)
 	}
 
+	var channels []xcctypes.ChannelInfo
 	for i, tx := range transactions {
-		pd := types.NewPacketDataPrepare(
+		data := types.NewPacketDataPrepare(
 			txID,
 			tx,
 			txtypes.TxIndex(i),
 		)
-		// TODO send a packet to participants
-		_ = pd
+		xcc, err := tx.GetCrossChainChannel(k.cdc)
+		if err != nil {
+			return err
+		}
+		ci, err := k.xccResolver.ResolveCrossChainChannel(ctx, xcc)
+		if err != nil {
+			return err
+		}
+		ch, found := k.ChannelKeeper().GetChannel(ctx, ci.Port, ci.Channel)
+		if !found {
+			return sdkerrors.Wrap(channeltypes.ErrChannelNotFound, ci.String())
+		}
+		if err := k.SendPacket(
+			ctx,
+			packetSender,
+			&data,
+			ci.Port, ci.Channel, ch.Counterparty.PortId, ch.Counterparty.ChannelId,
+			timeoutHeight, timeoutTimestamp,
+		); err != nil {
+			return err
+		}
+		channels = append(channels, *ci)
 	}
 
+	cs := atomictypes.NewCoordinatorState(
+		txtypes.COMMIT_PROTOCOL_TPC,
+		atomictypes.COORDINATOR_PHASE_PREPARE,
+		channels,
+	)
+	k.SetCoordinatorState(ctx, txID, cs)
 	return nil
 }
 
