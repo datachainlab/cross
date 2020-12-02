@@ -17,9 +17,8 @@ import (
 
 type (
 	// TxID represents a ID of transaction. This value must be unique in a chain
-	TxID         = []byte
-	TxIndex      = uint32
-	TxIndexSlice = []TxIndex
+	TxID    = []byte
+	TxIndex = uint32
 )
 
 func NewTx(id TxID, commitProtocol CommitProtocol, ctxs []ResolvedContractTransaction, timeoutHeight clienttypes.Height, timeoutTimestamp uint64) Tx {
