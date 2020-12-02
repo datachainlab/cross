@@ -21,3 +21,26 @@ message PacketAcknowledgementPrepare {
 
   cross.core.atomic.PrepareResult result = 1;
 }
+
+message PacketDataCommit {
+  option (gogoproto.equal) = false;
+
+  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
+  uint32 tx_index = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndex"];
+  bool is_committable = 3;
+}
+
+message PacketAcknowledgementCommit {
+  option (gogoproto.equal) = false;
+
+  CommitStatus status = 1;
+  bytes error_message = 2;
+}
+
+enum CommitStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  COMMIT_STATUS_UNKNOWN = 0;
+  COMMIT_STATUS_OK      = 1;
+  COMMIT_STATUS_FAILED  = 2;
+}

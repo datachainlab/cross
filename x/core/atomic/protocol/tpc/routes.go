@@ -63,5 +63,34 @@ func (h PacketHandler) HandleACK(
 	ip packets.IncomingPacket,
 	ipa packets.IncomingPacketAcknowledgement,
 ) (*sdk.Result, error) {
-	panic("not implemented error")
+	ctx, ps, err := h.packetMiddleware.HandleACK(ctx, ip, ipa, packets.NewBasicPacketSender(h.keeper.ChannelKeeper()))
+	if err != nil {
+		return nil, err
+	}
+
+	pd := ip.Payload().(*types.PacketDataPrepare)
+	state, err := h.keeper.ReceivePrepareAcknowledgement(
+		ctx,
+		packet.SourcePort, packet.SourceChannel,
+		*ipa.Payload().(*types.PacketAcknowledgementPrepare),
+		pd.TxId, pd.TxIndex,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if state.AlreadyCommitted {
+		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
+	} else if state.GoCommit || state.GoAbort {
+		if err := h.keeper.SendCommit(
+			ctx,
+			ps,
+			pd.TxId,
+			state.GoCommit,
+		); err != nil {
+			return nil, err
+		}
+		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
+	} else {
+		return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
+	}
 }
