@@ -156,7 +156,10 @@ func (k Keeper) receivePrepareAcknowledgement(
 	ack types.PacketAcknowledgementPrepare,
 	txID txtypes.TxID,
 	txIndex txtypes.TxIndex,
-) (*ReceivePrepareState, error) {
+) (*receivePrepareState, error) {
+	if err := ack.ValidateBasic(); err != nil {
+		return nil, err
+	}
 	cs, found := k.GetCoordinatorState(ctx, txID)
 	if !found {
 		return nil, fmt.Errorf("txID '%x' not found", txID)
@@ -175,7 +178,7 @@ func (k Keeper) receivePrepareAcknowledgement(
 		return nil, err
 	}
 
-	var state ReceivePrepareState
+	var state receivePrepareState
 	switch cs.Phase {
 	case atomictypes.COORDINATOR_PHASE_PREPARE:
 		switch ack.Result {
@@ -201,9 +204,9 @@ func (k Keeper) receivePrepareAcknowledgement(
 	return &state, nil
 }
 
-// ReceivePrepareState keeps a packet receiving state
-type ReceivePrepareState struct {
+// receivePrepareState keeps a packet receiving state
+type receivePrepareState struct {
 	AlreadyCommitted bool // AlreadyCommitted indicates a boolean whether the tx had already reach the commit phase
 	GoCommit         bool // GoCommit indicates a boolean whether the tx should be committed at next step
-	GoAbort          bool // GoCommit indicates a boolean whether the tx should be aborted at next step
+	GoAbort          bool // GoAbort indicates a boolean whether the tx should be aborted at next step
 }
