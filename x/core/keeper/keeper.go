@@ -30,13 +30,13 @@ type Keeper struct {
 func NewKeeper(
 	cdc codec.Marshaler, key sdk.StoreKey,
 	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
-	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txProcessor txtypes.TxProcessor, router router.Router,
+	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txRunner txtypes.TxRunner, router router.Router,
 ) Keeper {
 	initiatorKeeper := initiatorkeeper.NewKeeper(
 		cdc, key, channelKeeper, portKeeper, scopedKeeper,
 		packetMiddleware,
 		xccResolver,
-		txProcessor,
+		txRunner,
 	)
 	router.AddRoute(initiatortypes.PacketType, initiatorKeeper)
 

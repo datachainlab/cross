@@ -17,7 +17,8 @@ import (
 
 type (
 	// TxID represents a ID of transaction. This value must be unique in a chain
-	TxID    = []byte
+	TxID = []byte
+	// TxIndex represents an index of an array of contract transactions
 	TxIndex = uint32
 )
 
@@ -31,12 +32,14 @@ func NewTx(id TxID, commitProtocol CommitProtocol, ctxs []ResolvedContractTransa
 	}
 }
 
-type TxProcessor interface {
-	RunTx(ctx sdk.Context, tx Tx, ps packets.PacketSender) error
-}
-
 func (tx Tx) ValidateBasic() error {
 	return nil
+}
+
+// TxRunner defines the expected transaction runner
+type TxRunner interface {
+	// RunTx executes a given transaction
+	RunTx(ctx sdk.Context, tx Tx, ps packets.PacketSender) error
 }
 
 // ObjectType is a type of Object

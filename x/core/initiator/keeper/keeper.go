@@ -26,7 +26,7 @@ type Keeper struct {
 	scopedKeeper     capabilitykeeper.ScopedKeeper
 	packetMiddleware packets.PacketMiddleware
 	xccResolver      xcctypes.XCCResolver
-	txProcessor      txtypes.TxProcessor
+	txRunner         txtypes.TxRunner
 	packets.PacketSendKeeper
 }
 
@@ -39,7 +39,7 @@ func NewKeeper(
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 	packetMiddleware packets.PacketMiddleware,
 	xccResolver xcctypes.XCCResolver,
-	txProcessor txtypes.TxProcessor,
+	txRunner txtypes.TxRunner,
 ) Keeper {
 	psk := packets.NewPacketSendKeeper(
 		m,
@@ -55,7 +55,7 @@ func NewKeeper(
 		scopedKeeper:     scopedKeeper,
 		packetMiddleware: packetMiddleware,
 		xccResolver:      xccResolver,
-		txProcessor:      txProcessor,
+		txRunner:         txRunner,
 		PacketSendKeeper: psk,
 	}
 }

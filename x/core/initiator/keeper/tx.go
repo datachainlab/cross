@@ -127,7 +127,7 @@ func (k Keeper) runTx(ctx sdk.Context, txID txtypes.TxID, msg *types.MsgInitiate
 	}
 
 	tx := txtypes.NewTx(txID, msg.CommitProtocol, rtxs, msg.TimeoutHeight, msg.TimeoutTimestamp)
-	return k.txProcessor.RunTx(ctx, tx, ps)
+	return k.txRunner.RunTx(ctx, tx, ps)
 }
 
 func (k Keeper) ResolveTransactions(ctx sdk.Context, ctxs []types.ContractTransaction) ([]txtypes.ResolvedContractTransaction, error) {

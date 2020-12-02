@@ -17,7 +17,7 @@ import (
 	"github.com/datachainlab/cross/x/packets"
 )
 
-var _ txtypes.TxProcessor = (*Keeper)(nil)
+var _ txtypes.TxRunner = (*Keeper)(nil)
 
 type Keeper struct {
 	baseKeeper   basekeeper.Keeper
