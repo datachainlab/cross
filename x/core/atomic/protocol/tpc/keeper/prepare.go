@@ -72,7 +72,7 @@ func (k Keeper) SendPrepare(
 	return nil
 }
 
-func (k Keeper) ReceivePreparePacket(
+func (k Keeper) ReceivePacketPrepare(
 	ctx sdk.Context,
 	destPort,
 	destChannel string,

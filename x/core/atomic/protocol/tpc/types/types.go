@@ -60,10 +60,24 @@ func NewPacketDataCommit(txID txtypes.TxID, txIndex txtypes.TxIndex, isCommittab
 	}
 }
 
-func (p PacketDataCommit) ValidateBasic() error {
+func (PacketDataCommit) ValidateBasic() error {
 	return nil
 }
 
 func (PacketDataCommit) Type() string {
+	return PacketType
+}
+
+var _ packets.PacketAcknowledgementPayload = (*PacketAcknowledgementCommit)(nil)
+
+func NewPacketAcknowledgementCommit(status CommitStatus) *PacketAcknowledgementCommit {
+	return &PacketAcknowledgementCommit{Status: status}
+}
+
+func (PacketAcknowledgementCommit) ValidateBasic() error {
+	return nil
+}
+
+func (PacketAcknowledgementCommit) Type() string {
 	return PacketType
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types"
 	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
@@ -61,4 +62,49 @@ func (k Keeper) SendCommit(
 	}
 	k.SetCoordinatorState(ctx, txID, *cs)
 	return nil
+}
+
+func (k Keeper) ReceivePacketCommit(
+	ctx sdk.Context,
+	destPort,
+	destChannel string,
+	data types.PacketDataCommit,
+) (*txtypes.ContractCallResult, *types.PacketAcknowledgementCommit, error) {
+	// Validations
+
+	txState, err := k.EnsureContractTransactionStatus(
+		ctx,
+		data.TxId, data.TxIndex,
+		atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	_, found := k.ChannelKeeper().GetChannel(ctx, destPort, destChannel)
+	if !found {
+		return nil, nil, fmt.Errorf("channel not found: port=%v channel=%v", destPort, destChannel)
+	}
+
+	ci := &xcctypes.ChannelInfo{Channel: destPort, Port: destPort}
+	if !txState.CoordinatorChannel.Equal(ci) {
+		return nil, nil, fmt.Errorf("expected CoordinatorChannel is %v, but got %v", txState.CoordinatorChannel, ci)
+	}
+
+	// Try to Commit or Abort
+
+	if data.IsCommittable {
+		res, err := k.cm.Commit(ctx, data.TxId, data.TxIndex)
+		if err != nil {
+			ack := types.NewPacketAcknowledgementCommit(types.COMMIT_STATUS_FAILED)
+			ack.ErrorMessage = err.Error()
+			return nil, ack, nil
+		}
+		return res, types.NewPacketAcknowledgementCommit(types.COMMIT_STATUS_OK), nil
+	} else {
+		err := k.cm.Abort(ctx, data.TxId, data.TxIndex)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, types.NewPacketAcknowledgementCommit(types.COMMIT_STATUS_OK), nil
+	}
 }

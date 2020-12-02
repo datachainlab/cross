@@ -34,7 +34,7 @@ message PacketAcknowledgementCommit {
   option (gogoproto.equal) = false;
 
   CommitStatus status = 1;
-  bytes error_message = 2;
+  string error_message = 2;
 }
 
 enum CommitStatus {

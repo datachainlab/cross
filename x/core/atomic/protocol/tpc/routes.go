@@ -35,26 +35,44 @@ func (h PacketHandler) HandlePacket(
 		return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 	}
 
-	// TODO add multiple packet type support
-	res, ap, err := h.keeper.ReceivePreparePacket(
-		ctx,
-		packet.DestinationPort, packet.DestinationChannel,
-		*ip.Payload().(*types.PacketDataPrepare),
+	var (
+		data []byte
+		ack  packets.OutgoingPacketAcknowledgement
 	)
-	if err != nil {
-		return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to ReceivePreparePacket: %v", err)
+	switch payload := ip.Payload().(type) {
+	case *types.PacketDataPrepare:
+		res, ap, err := h.keeper.ReceivePacketPrepare(
+			ctx,
+			packet.DestinationPort, packet.DestinationChannel,
+			*payload,
+		)
+		if err != nil {
+			return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to ReceivePreparePacket: %v", err)
+		}
+		ack = packets.NewOutgoingPacketAcknowledgement(h.cdc, nil, ap)
+		data = res.Data
+	case *types.PacketDataCommit:
+		res, ap, err := h.keeper.ReceivePacketCommit(
+			ctx,
+			packet.DestinationPort, packet.DestinationChannel,
+			*payload,
+		)
+		if err != nil {
+			return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to ReceivePacketCommit: %v", err)
+		}
+		ack = packets.NewOutgoingPacketAcknowledgement(h.cdc, nil, ap)
+		if res != nil {
+			data = res.Data
+			ctx.EventManager().EmitEvents(res.GetEvents())
+		} else {
+			data = nil
+		}
 	}
-
-	ack := packets.NewOutgoingPacketAcknowledgement(
-		h.cdc,
-		nil,
-		ap,
-	)
 	if err = as.SendACK(ctx, ack); err != nil {
 		return nil, nil, err
 	}
 	ackData := ack.Data()
-	return &sdk.Result{Data: res.Data, Events: ctx.EventManager().ABCIEvents()}, &ackData, nil
+	return &sdk.Result{Data: data, Events: ctx.EventManager().ABCIEvents()}, &ackData, nil
 }
 
 func (h PacketHandler) HandleACK(
