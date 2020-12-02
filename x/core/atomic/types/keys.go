@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	"github.com/datachainlab/cross/x/utils"
 )
 
 const (
@@ -35,6 +36,6 @@ func KeyContractTransactionState(txID txtypes.TxID, txIndex txtypes.TxIndex) []b
 			KeyPrefixBytes(KeyContractTransactionStatePrefix),
 			txID[:]...,
 		),
-		txIndex,
+		utils.Uint32ToBigEndian(txIndex)...,
 	)
 }

@@ -1,11 +1,14 @@
 package keeper
 
-import txtypes "github.com/datachainlab/cross/x/core/tx/types"
+import (
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	"github.com/datachainlab/cross/x/utils"
+)
 
 func makeContractTransactionID(txID txtypes.TxID, txIndex txtypes.TxIndex) []byte {
 	size := len(txID)
-	bz := make([]byte, size+1)
+	bz := make([]byte, size+4)
 	copy(bz[:size], txID[:])
-	bz[size] = txIndex
+	copy(bz[size:], utils.Uint32ToBigEndian(txIndex))
 	return bz
 }

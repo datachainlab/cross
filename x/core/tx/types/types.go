@@ -18,7 +18,7 @@ import (
 type (
 	// TxID represents a ID of transaction. This value must be unique in a chain
 	TxID         = []byte
-	TxIndex      = uint8
+	TxIndex      = uint32
 	TxIndexSlice = []TxIndex
 )
 

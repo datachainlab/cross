@@ -1,0 +1,30 @@
+syntax = "proto3";
+package cross.core.atomic.tpc;
+
+import "gogoproto/gogo.proto";
+import "cross/core/tx/types.proto";
+
+option go_package = "github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types";
+option (gogoproto.goproto_getters_all)  = false;
+
+message PacketDataPrepare {
+  option (gogoproto.equal) = false;
+
+  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
+  uint32 tx_index = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndex"];
+  cross.core.tx.ResolvedContractTransaction tx = 3 [(gogoproto.nullable) = false];
+}
+
+message PacketAcknowledgementPrepare {
+  option (gogoproto.equal) = false;
+
+  PrepareStatus status = 1;
+}
+
+enum PrepareStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  PREPARE_STATUS_UNKNOWN = 0;
+  PREPARE_STATUS_OK      = 1;
+  PREPARE_STATUS_FAILED  = 2;
+}
