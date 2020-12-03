@@ -59,6 +59,11 @@ func (k Keeper) RunTx(ctx sdk.Context, tx txtypes.Tx, ps packets.PacketSender) e
 		if err != nil {
 			return sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 		}
+	case txtypes.COMMIT_PROTOCOL_TPC:
+		err := k.tpcKeeper.SendPrepare(ctx, ps, tx.Id, tx.ContractTransactions, tx.TimeoutHeight, tx.TimeoutTimestamp)
+		if err != nil {
+			return sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
+		}
 	default:
 		return fmt.Errorf("unknown commit protocol '%v'", tx.CommitProtocol)
 	}

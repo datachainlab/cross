@@ -51,7 +51,7 @@ func (k Keeper) ReceiveIBCSignTx(
 	destPort,
 	destChannel string,
 	data types.PacketDataIBCSignTx,
-) (bool, error) {
+) (completed bool, err error) {
 	// Validations
 
 	if err := data.ValidateBasic(); err != nil {
@@ -68,7 +68,7 @@ func (k Keeper) ReceiveIBCSignTx(
 
 	// Verify the signers of transaction
 
-	completed, err := k.verifyTx(ctx, data.TxID, makeExternalAccounts(xcc, data.Signers))
+	completed, err = k.verifyTx(ctx, data.TxID, makeExternalAccounts(xcc, data.Signers))
 	if err != nil {
 		return false, err
 	} else if !completed {
@@ -76,16 +76,22 @@ func (k Keeper) ReceiveIBCSignTx(
 		return false, nil
 	}
 
-	// Run the transaction
-
-	msg, found := k.getTxMsg(ctx, data.TxID)
-	if !found {
-		return false, fmt.Errorf("txMsg '%x' not found", data.TxID)
-	}
-	if err := k.runTx(ctx, data.TxID, msg); err != nil {
-		return false, err
-	}
 	return true, nil
+}
+
+// TryRunTx try to run the transaction
+func (k Keeper) TryRunTx(
+	ctx sdk.Context,
+	txID txtypes.TxID,
+) error {
+	msg, found := k.getTxMsg(ctx, txID)
+	if !found {
+		return fmt.Errorf("txMsg '%x' not found", txID)
+	}
+	if err := k.runTx(ctx, txID, msg); err != nil {
+		return err
+	}
+	return nil
 }
 
 func makeExternalAccounts(xcc xcctypes.XCC, signers []accounttypes.AccountID) []accounttypes.Account {
