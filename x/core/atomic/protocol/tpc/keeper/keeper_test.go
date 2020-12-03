@@ -114,6 +114,48 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]atomictypes.PrepareResult{atomictypes.PREPARE_RESULT_OK, atomictypes.PREPARE_RESULT_FAILED},
 			[2]atomictypes.CoordinatorDecision{atomictypes.COORDINATOR_DECISION_UNKNOWN, atomictypes.COORDINATOR_DECISION_ABORT},
 		},
+		{
+			"case2",
+			[2]initiatortypes.ContractTransaction{
+				{
+					CrossChainChannel: xccB,
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccC,
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
+				},
+			},
+			[2]atomictypes.PrepareResult{atomictypes.PREPARE_RESULT_FAILED, atomictypes.PREPARE_RESULT_OK},
+			[2]atomictypes.CoordinatorDecision{atomictypes.COORDINATOR_DECISION_ABORT, atomictypes.COORDINATOR_DECISION_ABORT},
+		},
+		{
+			"case3",
+			[2]initiatortypes.ContractTransaction{
+				{
+					CrossChainChannel: xccB,
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccC,
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainC.App.AppCodec()),
+				},
+			},
+			[2]atomictypes.PrepareResult{atomictypes.PREPARE_RESULT_FAILED, atomictypes.PREPARE_RESULT_FAILED},
+			[2]atomictypes.CoordinatorDecision{atomictypes.COORDINATOR_DECISION_ABORT, atomictypes.COORDINATOR_DECISION_ABORT},
+		},
 	}
 
 	for i, c := range cases {
@@ -186,30 +228,50 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			}
 
 			// check if ReceiveCallAcknowledgement call is expected
-			ps.Clear()
+			var commitPackets []packets.OutgoingPacket
+
+			ps0 := ibctesting.NewCapturePacketSender(
+				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
+			)
 			_, err = kA.HandlePacketAcknowledgementPrepare(
 				suite.chainA.GetContext(),
 				p0.GetSourcePort(), p0.GetSourceChannel(),
-				*prepareAckB, txID, 0, ps,
+				*prepareAckB, txID, 0, ps0,
 			)
 			suite.Require().NoError(err)
-			suite.Require().Equal(0, len(ps.Packets()))
 			suite.chainA.NextBlock()
 			{
 				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
 				suite.Require().True(found)
-				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+
+				if prepareAckB.Result == atomictypes.PREPARE_RESULT_OK {
+					suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+					suite.Require().Equal(0, len(ps0.Packets()))
+				} else {
+					suite.Require().Equal(atomictypes.COORDINATOR_PHASE_COMMIT, cs.Phase)
+					suite.Require().Equal(2, len(ps0.Packets()))
+					commitPackets = ps0.Packets()
+				}
 				suite.Require().Equal(c.coordinatorDecisionTransition[0], cs.Decision)
 			}
 
-			ps.Clear()
+			ps1 := ibctesting.NewCapturePacketSender(
+				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
+			)
 			_, err = kA.HandlePacketAcknowledgementPrepare(
 				suite.chainA.GetContext(),
 				p1.GetSourcePort(), p1.GetSourceChannel(),
-				*prepareAckC, txID, 1, ps,
+				*prepareAckC, txID, 1, ps1,
 			)
 			suite.Require().NoError(err)
-			suite.Require().Equal(2, len(ps.Packets()))
+			if prepareAckB.Result == atomictypes.PREPARE_RESULT_FAILED {
+				suite.Require().Equal(0, len(ps1.Packets()))
+			} else {
+				suite.Require().Equal(2, len(ps1.Packets()))
+				suite.Require().Empty(commitPackets)
+				commitPackets = ps1.Packets()
+			}
+
 			suite.chainA.NextBlock()
 			{
 				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
@@ -221,7 +283,7 @@ func (suite *KeeperTestSuite) TestTransaction() {
 
 			// check if each ReceivePacketCommit calls are expected
 
-			p0, p1 = ps.Packets()[0], ps.Packets()[1]
+			p0, p1 = commitPackets[0], commitPackets[1]
 			commitB := *suite.parsePacketToPacketDataPrepare(suite.chainB.App.AppCodec(), p0).(*types.PacketDataCommit)
 			commitC := *suite.parsePacketToPacketDataPrepare(suite.chainC.App.AppCodec(), p1).(*types.PacketDataCommit)
 

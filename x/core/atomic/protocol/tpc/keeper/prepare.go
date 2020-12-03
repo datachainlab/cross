@@ -163,8 +163,8 @@ func (k Keeper) receivePrepareAcknowledgement(
 	cs, found := k.GetCoordinatorState(ctx, txID)
 	if !found {
 		return nil, fmt.Errorf("txID '%x' not found", txID)
-	} else if cs.Phase != atomictypes.COORDINATOR_PHASE_PREPARE {
-		return nil, fmt.Errorf("coordinator status must be '%v'", atomictypes.COORDINATOR_PHASE_PREPARE.String())
+	} else if cs.Phase == atomictypes.COORDINATOR_PHASE_UNKNOWN {
+		return nil, fmt.Errorf("coordinator status should not be '%v'", atomictypes.COORDINATOR_PHASE_UNKNOWN.String())
 	} else if cs.IsConfirmedALLPrepares() {
 		return nil, errors.New("all transactions are already confirmed")
 	}
