@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
@@ -12,11 +13,14 @@ import (
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	"github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types"
+	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
+	"github.com/datachainlab/cross/x/utils"
 )
 
 type KeeperTestSuite struct {
@@ -104,21 +108,94 @@ func (suite *KeeperTestSuite) TestTransaction() {
 
 			txID := []byte(fmt.Sprintf("txid-%v", i))
 			kA := suite.chainA.App.AtomicKeeper.TPCKeeper()
+			kB := suite.chainB.App.AtomicKeeper.TPCKeeper()
+			kC := suite.chainC.App.AtomicKeeper.TPCKeeper()
 
 			ps := ibctesting.NewCapturePacketSender(
 				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
 			)
-			err = kA.SendPrepare(
-				suite.chainA.GetContext(),
-				ps,
-				txID,
-				txs,
-				clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
-				0,
+			suite.Require().NoError(
+				kA.SendPrepare(
+					suite.chainA.GetContext(),
+					ps,
+					txID,
+					txs,
+					clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
+					0,
+				),
+			)
+			suite.chainA.NextBlock()
+
+			// check if coordinator state is expected
+
+			cs, found := suite.chainA.App.AtomicKeeper.TPCKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
+			suite.Require().True(found)
+			suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+			suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
+
+			// check if ReceiveCallPacket call is expected
+
+			suite.Require().Equal(2, len(ps.Packets()))
+			p0, p1 := ps.Packets()[0], ps.Packets()[1]
+			prepareB := suite.parsePacketToPacketDataPrepare(suite.chainB.App.AppCodec(), p0)
+			prepareC := suite.parsePacketToPacketDataPrepare(suite.chainC.App.AppCodec(), p1)
+
+			_, prepareAckB, err := kB.ReceivePacketPrepare(
+				suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *prepareB,
 			)
 			suite.Require().NoError(err)
+			suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, prepareAckB.Result)
+			suite.chainB.NextBlock()
+			{
+				ctxs, found := kB.GetContractTransactionState(suite.chainB.GetContext(), txID, 0)
+				suite.Require().True(found)
+				suite.Require().Equal(atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE, ctxs.Status)
+				suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, ctxs.PrepareResult)
+			}
+
+			_, prepareAckC, err := kC.ReceivePacketPrepare(
+				suite.chainC.GetContext(), p1.GetDestPort(), p1.GetDestChannel(), *prepareC,
+			)
+			suite.Require().NoError(err)
+			suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, prepareAckC.Result)
+			suite.chainC.NextBlock()
+			{
+				ctxs, found := kC.GetContractTransactionState(suite.chainC.GetContext(), txID, 1)
+				suite.Require().True(found)
+				suite.Require().Equal(atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE, ctxs.Status)
+				suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, ctxs.PrepareResult)
+			}
+
+			// check if ReceiveCallAcknowledgement call is expected
+			ps.Clear()
+			_, err = kA.HandlePacketAcknowledgementPrepare(
+				suite.chainA.GetContext(),
+				p0.GetSourcePort(), p0.GetSourceChannel(),
+				*prepareAckB, txID, 0, ps,
+			)
+			suite.Require().NoError(err)
+			suite.Require().Equal(0, len(ps.Packets()))
+			suite.chainA.NextBlock()
+
+			ps.Clear()
+			_, err = kA.HandlePacketAcknowledgementPrepare(
+				suite.chainA.GetContext(),
+				p1.GetSourcePort(), p1.GetSourceChannel(),
+				*prepareAckC, txID, 1, ps,
+			)
+			suite.Require().NoError(err)
+			suite.Require().Equal(2, len(ps.Packets()))
+			suite.chainA.NextBlock()
 		})
 	}
+}
+
+func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Marshaler, p packets.OutgoingPacket) *types.PacketDataPrepare {
+	var pd packets.PacketData
+	suite.Require().NoError(packets.UnmarshalJSONPacketData(p.GetData(), &pd))
+	var payload packets.PacketDataPayload
+	utils.MustUnmarshalJSONAny(cdc, &payload, pd.GetPayload())
+	return payload.(*types.PacketDataPrepare)
 }
 
 func TestKeeperTestSuite(t *testing.T) {

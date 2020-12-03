@@ -187,7 +187,7 @@ func (k Keeper) receivePrepareAcknowledgement(
 				cs.Decision = atomictypes.COORDINATOR_DECISION_COMMIT
 				state.GoCommit = true
 			} else {
-				panic("unreachable")
+				// nop
 			}
 		case atomictypes.PREPARE_RESULT_FAILED:
 			cs.Decision = atomictypes.COORDINATOR_DECISION_ABORT

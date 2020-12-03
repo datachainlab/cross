@@ -27,7 +27,7 @@ func (k Keeper) SendCommit(
 		return fmt.Errorf("txID '%x' not found", txID)
 	} else if cs.Phase != atomictypes.COORDINATOR_PHASE_PREPARE {
 		return fmt.Errorf("coordinator status must be '%v'", atomictypes.COORDINATOR_PHASE_PREPARE.String())
-	} else if cs.Decision != atomictypes.COORDINATOR_DECISION_UNKNOWN {
+	} else if cs.Decision == atomictypes.COORDINATOR_DECISION_UNKNOWN {
 		return fmt.Errorf("coordinator must decide any status")
 	}
 
@@ -115,7 +115,7 @@ func (k Keeper) ReceiveCommitAcknowledgement(
 		return fmt.Errorf("txID '%x' not found", txID)
 	} else if cs.Phase != atomictypes.COORDINATOR_PHASE_COMMIT {
 		return fmt.Errorf("coordinator status must be '%v'", atomictypes.COORDINATOR_PHASE_COMMIT.String())
-	} else if cs.Decision != atomictypes.COORDINATOR_DECISION_UNKNOWN {
+	} else if cs.Decision == atomictypes.COORDINATOR_DECISION_UNKNOWN {
 		return fmt.Errorf("coordinator must decide any status")
 	}
 
