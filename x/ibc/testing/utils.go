@@ -32,3 +32,7 @@ func (ps *capturePacketSender) SendPacket(
 func (ps *capturePacketSender) Packets() []packets.OutgoingPacket {
 	return ps.packets
 }
+
+func (ps *capturePacketSender) Clear() {
+	ps.packets = nil
+}

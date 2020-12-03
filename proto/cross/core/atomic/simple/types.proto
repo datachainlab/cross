@@ -22,6 +22,7 @@ message PacketAcknowledgementCall {
 
 enum CommitStatus {
   option (gogoproto.goproto_enum_prefix) = false;
+
   COMMIT_STATUS_UNKNOWN = 0;
   COMMIT_STATUS_OK      = 1;
   COMMIT_STATUS_FAILED  = 2;

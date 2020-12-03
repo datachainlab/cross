@@ -49,6 +49,7 @@ func (AppModuleBasic) RegisterLegacyAminoCodec(*codec.LegacyAmino) {}
 // RegisterInterfaces registers module concrete types into protobuf Any.
 func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	simpletypes.RegisterInterfaces(registry)
+	tpctypes.RegisterInterfaces(registry)
 }
 
 // DefaultGenesis returns the capability module's default genesis state.
@@ -147,6 +148,6 @@ func (am AppModule) RegisterPacketRoutes(rtr router.Router) {
 	simpleHandler := simple.NewPacketHandler(am.cdc, am.keeper.SimpleKeeper(), packets.NewNOPPacketMiddleware())
 	rtr.AddRoute(simpletypes.PacketType, simpleHandler)
 
-	tpcHandler := tpc.NewPacketHandler(am.keeper.TPCKeeper())
+	tpcHandler := tpc.NewPacketHandler(am.cdc, am.keeper.TPCKeeper())
 	rtr.AddRoute(tpctypes.PacketType, tpcHandler)
 }

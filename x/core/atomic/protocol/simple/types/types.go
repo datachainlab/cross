@@ -30,7 +30,7 @@ func (PacketDataCall) Type() string {
 	return PacketType
 }
 
-var _ packets.PacketDataPayload = (*PacketAcknowledgementCall)(nil)
+var _ packets.PacketAcknowledgementPayload = (*PacketAcknowledgementCall)(nil)
 
 // NewPacketAcknowledgementCall creates a new instance of PacketAcknowledgementCall
 func NewPacketAcknowledgementCall(status CommitStatus) *PacketAcknowledgementCall {

@@ -38,8 +38,8 @@ func (cs *CoordinatorState) Confirm(txIndex txtypes.TxIndex, channel xcctypes.Ch
 	return nil
 }
 
-// IsCompleted returns a boolean value whether all txs are confirmed
-func (cs CoordinatorState) IsCompleted() bool {
+// IsConfirmedALLPrepares returns a boolean value whether all txs are confirmed
+func (cs CoordinatorState) IsConfirmedALLPrepares() bool {
 	return len(cs.Channels) == len(cs.ConfirmedTxs)
 }
 
@@ -54,8 +54,8 @@ func (cs *CoordinatorState) AddAck(txIndex txtypes.TxIndex) bool {
 	return true
 }
 
-// IsReceivedALLAcks returns a boolean whether all acks are received
-func (cs *CoordinatorState) IsReceivedALLAcks() bool {
+// IsConfirmedALLCommits returns a boolean whether all acks are received
+func (cs *CoordinatorState) IsConfirmedALLCommits() bool {
 	return len(cs.Channels) == len(cs.Acks)
 }
 

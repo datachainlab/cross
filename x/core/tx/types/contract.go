@@ -8,7 +8,7 @@ type ContractManager interface {
 		txID TxID,
 		txIndex TxIndex,
 		tx ResolvedContractTransaction,
-	) error
+	) (*ContractCallResult, error)
 	CommitImmediately(
 		ctx sdk.Context,
 		txID TxID,

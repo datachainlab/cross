@@ -21,13 +21,21 @@ func (p Keeper) HandlePacket(
 		return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 	}
 
-	_, err = p.ReceiveIBCSignTx(
+	data := *ip.Payload().(*types.PacketDataIBCSignTx)
+	completed, err := p.ReceiveIBCSignTx(
 		ctx,
 		packet.DestinationPort, packet.DestinationChannel,
-		*ip.Payload().(*types.PacketDataIBCSignTx),
+		data,
 	)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if completed {
+		// TODO emit an event
+		if err := p.TryRunTx(ctx, data.TxID); err != nil {
+		} else {
+		}
 	}
 
 	// TODO fix status code
@@ -42,7 +50,7 @@ func (p Keeper) HandlePacket(
 	}
 
 	ackData := ack.Data()
-	return &sdk.Result{Data: nil, Events: ctx.EventManager().ABCIEvents()}, &ackData, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, &ackData, nil
 }
 
 func (p Keeper) HandleACK(

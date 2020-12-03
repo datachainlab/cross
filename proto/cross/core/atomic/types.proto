@@ -15,8 +15,8 @@ message CoordinatorState {
   repeated cross.core.xcc.ChannelInfo channels = 2 [(gogoproto.nullable) = false];
   CoordinatorPhase phase = 3;
   CoordinatorDecision decision = 4;
-  bytes confirmed_txs = 5 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndexSlice"];
-  bytes acks = 6 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndexSlice"];
+  repeated uint32 confirmed_txs = 5 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndex"];
+  repeated uint32 acks = 6 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndex"];
 }
 
 enum CoordinatorPhase {

@@ -17,7 +17,7 @@ import (
 	"github.com/datachainlab/cross/x/packets"
 )
 
-var _ txtypes.TxProcessor = (*Keeper)(nil)
+var _ txtypes.TxRunner = (*Keeper)(nil)
 
 type Keeper struct {
 	baseKeeper   basekeeper.Keeper
@@ -40,9 +40,11 @@ func NewKeeper(
 ) Keeper {
 	baseKeeper := basekeeper.NewKeeper(cdc, storeKey, channelKeeper, portKeeper, scopedKeeper)
 	simpleKeeper := simplekeeper.NewKeeper(cdc, cm, xccResolver, baseKeeper)
+	tpcKeeper := tpckeeper.NewKeeper(cdc, cm, xccResolver, baseKeeper)
 	return Keeper{
 		baseKeeper:       baseKeeper,
 		simpleKeeper:     simpleKeeper,
+		tpcKeeper:        tpcKeeper,
 		packetSender:     packets.NewBasicPacketSender(channelKeeper),
 		packetMiddleware: packetMiddleware,
 	}
@@ -54,6 +56,11 @@ func (k Keeper) RunTx(ctx sdk.Context, tx txtypes.Tx, ps packets.PacketSender) e
 	switch tx.CommitProtocol {
 	case txtypes.COMMIT_PROTOCOL_SIMPLE:
 		err := k.simpleKeeper.SendCall(ctx, ps, tx.Id, tx.ContractTransactions, tx.TimeoutHeight, tx.TimeoutTimestamp)
+		if err != nil {
+			return sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
+		}
+	case txtypes.COMMIT_PROTOCOL_TPC:
+		err := k.tpcKeeper.SendPrepare(ctx, ps, tx.Id, tx.ContractTransactions, tx.TimeoutHeight, tx.TimeoutTimestamp)
 		if err != nil {
 			return sdkerrors.Wrap(types.ErrFailedInitiateTx, err.Error())
 		}
