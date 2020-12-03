@@ -67,8 +67,10 @@ func (suite *KeeperTestSuite) TestTransaction() {
 	suite.Require().NoError(err)
 
 	var cases = []struct {
-		name string
-		txs  [2]initiatortypes.ContractTransaction
+		name                          string
+		txs                           [2]initiatortypes.ContractTransaction
+		participantPrepareResults     [2]atomictypes.PrepareResult
+		coordinatorDecisionTransition [2]atomictypes.CoordinatorDecision
 	}{
 		{
 			"case0",
@@ -88,6 +90,29 @@ func (suite *KeeperTestSuite) TestTransaction() {
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
 			},
+			[2]atomictypes.PrepareResult{atomictypes.PREPARE_RESULT_OK, atomictypes.PREPARE_RESULT_OK},
+			[2]atomictypes.CoordinatorDecision{atomictypes.COORDINATOR_DECISION_UNKNOWN, atomictypes.COORDINATOR_DECISION_COMMIT},
+		},
+		{
+			"case1",
+			[2]initiatortypes.ContractTransaction{
+				{
+					CrossChainChannel: xccB,
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccC,
+					Signers: []accounttypes.AccountID{
+						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainC.App.AppCodec()),
+				},
+			},
+			[2]atomictypes.PrepareResult{atomictypes.PREPARE_RESULT_OK, atomictypes.PREPARE_RESULT_FAILED},
+			[2]atomictypes.CoordinatorDecision{atomictypes.COORDINATOR_DECISION_UNKNOWN, atomictypes.COORDINATOR_DECISION_ABORT},
 		},
 	}
 
@@ -138,26 +163,26 @@ func (suite *KeeperTestSuite) TestTransaction() {
 				suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), prepareB,
 			)
 			suite.Require().NoError(err)
-			suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, prepareAckB.Result)
+			suite.Require().Equal(c.participantPrepareResults[0], prepareAckB.Result)
 			suite.chainB.NextBlock()
 			{
 				ctxs, found := kB.GetContractTransactionState(suite.chainB.GetContext(), txID, 0)
 				suite.Require().True(found)
 				suite.Require().Equal(atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE, ctxs.Status)
-				suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, ctxs.PrepareResult)
+				suite.Require().Equal(c.participantPrepareResults[0], ctxs.PrepareResult)
 			}
 
 			_, prepareAckC, err := kC.ReceivePacketPrepare(
 				suite.chainC.GetContext(), p1.GetDestPort(), p1.GetDestChannel(), prepareC,
 			)
 			suite.Require().NoError(err)
-			suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, prepareAckC.Result)
+			suite.Require().Equal(c.participantPrepareResults[1], prepareAckC.Result)
 			suite.chainC.NextBlock()
 			{
 				ctxs, found := kC.GetContractTransactionState(suite.chainC.GetContext(), txID, 1)
 				suite.Require().True(found)
 				suite.Require().Equal(atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE, ctxs.Status)
-				suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, ctxs.PrepareResult)
+				suite.Require().Equal(c.participantPrepareResults[1], ctxs.PrepareResult)
 			}
 
 			// check if ReceiveCallAcknowledgement call is expected
@@ -174,7 +199,7 @@ func (suite *KeeperTestSuite) TestTransaction() {
 				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
 				suite.Require().True(found)
 				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
-				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
+				suite.Require().Equal(c.coordinatorDecisionTransition[0], cs.Decision)
 			}
 
 			ps.Clear()
@@ -190,7 +215,7 @@ func (suite *KeeperTestSuite) TestTransaction() {
 				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
 				suite.Require().True(found)
 				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_COMMIT, cs.Phase)
-				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_COMMIT, cs.Decision)
+				suite.Require().Equal(c.coordinatorDecisionTransition[1], cs.Decision)
 				suite.Require().True(cs.IsConfirmedALLPrepares())
 			}
 
@@ -238,7 +263,7 @@ func (suite *KeeperTestSuite) TestTransaction() {
 				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
 				suite.Require().True(found)
 				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_COMMIT, cs.Phase)
-				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_COMMIT, cs.Decision)
+				suite.Require().Equal(c.coordinatorDecisionTransition[1], cs.Decision)
 				suite.Require().True(cs.IsConfirmedALLCommits())
 			}
 		})

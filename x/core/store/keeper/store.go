@@ -190,7 +190,8 @@ func (s CommitKVStore) Precommit(ctx sdk.Context, id []byte) error {
 func (s CommitKVStore) Abort(ctx sdk.Context, id []byte) error {
 	bz := s.txStore.Get(ctx, id)
 	if bz == nil {
-		return fmt.Errorf("id '%x' not found", id)
+		// NOTE: unknown id may be indicates the aborted transaction
+		return nil
 	}
 	var lks types.LockOPs
 	if err := proto.Unmarshal(bz, &lks); err != nil {
