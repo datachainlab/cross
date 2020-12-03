@@ -137,11 +137,11 @@ func (suite *KeeperTestSuite) TestTransaction() {
 
 			suite.Require().Equal(2, len(ps.Packets()))
 			p0, p1 := ps.Packets()[0], ps.Packets()[1]
-			prepareB := suite.parsePacketToPacketDataPrepare(suite.chainB.App.AppCodec(), p0)
-			prepareC := suite.parsePacketToPacketDataPrepare(suite.chainC.App.AppCodec(), p1)
+			prepareB := *suite.parsePacketToPacketDataPrepare(suite.chainB.App.AppCodec(), p0).(*types.PacketDataPrepare)
+			prepareC := *suite.parsePacketToPacketDataPrepare(suite.chainC.App.AppCodec(), p1).(*types.PacketDataPrepare)
 
 			_, prepareAckB, err := kB.ReceivePacketPrepare(
-				suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), *prepareB,
+				suite.chainB.GetContext(), p0.GetDestPort(), p0.GetDestChannel(), prepareB,
 			)
 			suite.Require().NoError(err)
 			suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, prepareAckB.Result)
@@ -154,7 +154,7 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			}
 
 			_, prepareAckC, err := kC.ReceivePacketPrepare(
-				suite.chainC.GetContext(), p1.GetDestPort(), p1.GetDestChannel(), *prepareC,
+				suite.chainC.GetContext(), p1.GetDestPort(), p1.GetDestChannel(), prepareC,
 			)
 			suite.Require().NoError(err)
 			suite.Require().Equal(atomictypes.PREPARE_RESULT_OK, prepareAckC.Result)
@@ -186,16 +186,40 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(2, len(ps.Packets()))
 			suite.chainA.NextBlock()
+
+			// check if each ReceivePacketCommit calls are expected
+
+			p0, p1 = ps.Packets()[0], ps.Packets()[1]
+			commitB := *suite.parsePacketToPacketDataPrepare(suite.chainB.App.AppCodec(), p0).(*types.PacketDataCommit)
+			commitC := *suite.parsePacketToPacketDataPrepare(suite.chainC.App.AppCodec(), p1).(*types.PacketDataCommit)
+
+			_, commitAckB, err := kB.ReceivePacketCommit(
+				suite.chainB.GetContext(),
+				p0.GetDestPort(), p0.GetDestChannel(),
+				commitB,
+			)
+			suite.Require().NoError(err)
+			suite.Require().Equal(types.COMMIT_STATUS_OK, commitAckB.Status)
+			suite.chainB.NextBlock()
+
+			_, commitAckC, err := kC.ReceivePacketCommit(
+				suite.chainC.GetContext(),
+				p1.GetDestPort(), p1.GetDestChannel(),
+				commitC,
+			)
+			suite.Require().NoError(err)
+			suite.Require().Equal(types.COMMIT_STATUS_OK, commitAckC.Status)
+			suite.chainC.NextBlock()
 		})
 	}
 }
 
-func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Marshaler, p packets.OutgoingPacket) *types.PacketDataPrepare {
+func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Marshaler, p packets.OutgoingPacket) packets.PacketDataPayload {
 	var pd packets.PacketData
 	suite.Require().NoError(packets.UnmarshalJSONPacketData(p.GetData(), &pd))
 	var payload packets.PacketDataPayload
 	utils.MustUnmarshalJSONAny(cdc, &payload, pd.GetPayload())
-	return payload.(*types.PacketDataPrepare)
+	return payload
 }
 
 func TestKeeperTestSuite(t *testing.T) {

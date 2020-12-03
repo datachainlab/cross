@@ -81,7 +81,7 @@ func (k Keeper) ReceivePacketCommit(
 		return nil, nil, fmt.Errorf("channel not found: port=%v channel=%v", destPort, destChannel)
 	}
 
-	ci := &xcctypes.ChannelInfo{Channel: destPort, Port: destPort}
+	ci := &xcctypes.ChannelInfo{Channel: destChannel, Port: destPort}
 	if !txState.CoordinatorChannel.Equal(ci) {
 		return nil, nil, fmt.Errorf("expected CoordinatorChannel is %v, but got %v", txState.CoordinatorChannel, ci)
 	}
