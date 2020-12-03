@@ -165,7 +165,7 @@ func (k Keeper) receivePrepareAcknowledgement(
 		return nil, fmt.Errorf("txID '%x' not found", txID)
 	} else if cs.Phase != atomictypes.COORDINATOR_PHASE_PREPARE {
 		return nil, fmt.Errorf("coordinator status must be '%v'", atomictypes.COORDINATOR_PHASE_PREPARE.String())
-	} else if cs.IsCompleted() {
+	} else if cs.IsConfirmedALLPrepares() {
 		return nil, errors.New("all transactions are already confirmed")
 	}
 
@@ -183,7 +183,7 @@ func (k Keeper) receivePrepareAcknowledgement(
 	case atomictypes.COORDINATOR_PHASE_PREPARE:
 		switch ack.Result {
 		case atomictypes.PREPARE_RESULT_OK:
-			if cs.IsCompleted() {
+			if cs.IsConfirmedALLPrepares() {
 				cs.Decision = atomictypes.COORDINATOR_DECISION_COMMIT
 				state.GoCommit = true
 			} else {

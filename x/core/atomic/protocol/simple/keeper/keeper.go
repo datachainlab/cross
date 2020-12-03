@@ -205,7 +205,7 @@ func (k Keeper) ReceiveCallAcknowledgement(
 		return false, fmt.Errorf("txID '%x' not found", txID)
 	} else if cs.Phase != atomictypes.COORDINATOR_PHASE_PREPARE {
 		return false, fmt.Errorf("coordinator status must be '%v'", atomictypes.COORDINATOR_PHASE_PREPARE.String())
-	} else if cs.IsCompleted() {
+	} else if cs.IsConfirmedALLPrepares() {
 		return false, errors.New("all transactions are already confirmed")
 	}
 
@@ -229,7 +229,7 @@ func (k Keeper) ReceiveCallAcknowledgement(
 	cs.Phase = atomictypes.COORDINATOR_PHASE_COMMIT
 	cs.AddAck(TxIndexCoordinator)
 	cs.AddAck(TxIndexParticipant)
-	if !cs.IsCompleted() || !cs.IsReceivedALLAcks() {
+	if !cs.IsConfirmedALLPrepares() || !cs.IsConfirmedALLCommits() {
 		panic("fatal error")
 	}
 	k.SetCoordinatorState(ctx, txID, *cs)

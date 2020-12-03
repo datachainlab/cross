@@ -54,24 +54,17 @@ func (suite *KeeperTestSuite) TestTransaction() {
 
 	_, _, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
 	suite.chainB.CreatePortCapability(crosstypes.PortID)
-	channelAB, channelBA := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connAB, connBA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
+	channelAB, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connAB, connBA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAB := xcctypes.ChannelInfo{Port: channelAB.PortID, Channel: channelAB.ID}
 	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
 	suite.Require().NoError(err)
 
 	_, _, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, ibctesting.Tendermint)
 	suite.chainC.CreatePortCapability(crosstypes.PortID)
-	channelAC, channelCA := suite.coordinator.CreateChannel(suite.chainA, suite.chainC, connAC, connCA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
+	channelAC, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainC, connAC, connCA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAC := xcctypes.ChannelInfo{Port: channelAC.PortID, Channel: channelAC.ID}
 	xccC, err := xcctypes.PackCrossChainChannel(&chAC)
 	suite.Require().NoError(err)
-
-	xccSelf, err := xcctypes.PackCrossChainChannel(
-		suite.chainA.App.XCCResolver.GetSelfCrossChainChannel(suite.chainA.GetContext()),
-	)
-	suite.Require().NoError(err)
-
-	_, _, _, _, _ = channelBA, channelCA, xccB, xccC, xccSelf
 
 	var cases = []struct {
 		name string
@@ -127,11 +120,12 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			suite.chainA.NextBlock()
 
 			// check if coordinator state is expected
-
-			cs, found := suite.chainA.App.AtomicKeeper.TPCKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
-			suite.Require().True(found)
-			suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
-			suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
+			{
+				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
+				suite.Require().True(found)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
+			}
 
 			// check if ReceiveCallPacket call is expected
 
@@ -176,6 +170,12 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(0, len(ps.Packets()))
 			suite.chainA.NextBlock()
+			{
+				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
+				suite.Require().True(found)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
+			}
 
 			ps.Clear()
 			_, err = kA.HandlePacketAcknowledgementPrepare(
@@ -186,6 +186,13 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(2, len(ps.Packets()))
 			suite.chainA.NextBlock()
+			{
+				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
+				suite.Require().True(found)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_COMMIT, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_COMMIT, cs.Decision)
+				suite.Require().True(cs.IsConfirmedALLPrepares())
+			}
 
 			// check if each ReceivePacketCommit calls are expected
 
@@ -210,6 +217,30 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			suite.Require().NoError(err)
 			suite.Require().Equal(types.COMMIT_STATUS_OK, commitAckC.Status)
 			suite.chainC.NextBlock()
+
+			// check if each ReceiveCommitAcknowledgement calls are expected
+			suite.Require().NoError(
+				kA.ReceiveCommitAcknowledgement(
+					suite.chainA.GetContext(),
+					txID,
+					0,
+				),
+			)
+			suite.Require().NoError(
+				kA.ReceiveCommitAcknowledgement(
+					suite.chainA.GetContext(),
+					txID,
+					1,
+				),
+			)
+			// check if coordinator state is expected
+			{
+				cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
+				suite.Require().True(found)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_COMMIT, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_COMMIT, cs.Decision)
+				suite.Require().True(cs.IsConfirmedALLCommits())
+			}
 		})
 	}
 }

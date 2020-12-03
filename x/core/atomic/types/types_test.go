@@ -17,20 +17,20 @@ func TestCoordinatorState(t *testing.T) {
 	for _, tp := range []txtypes.CommitProtocol{txtypes.COMMIT_PROTOCOL_SIMPLE, txtypes.COMMIT_PROTOCOL_TPC} {
 		t.Run(tp.String(), func(t *testing.T) {
 			cs := NewCoordinatorState(tp, COORDINATOR_PHASE_PREPARE, channels)
-			require.False(t, cs.IsCompleted())
-			require.False(t, cs.IsReceivedALLAcks())
+			require.False(t, cs.IsConfirmedALLPrepares())
+			require.False(t, cs.IsConfirmedALLCommits())
 
 			require.NoError(t, cs.Confirm(0, channels[0]))
 			require.Error(t, cs.Confirm(0, channels[0]))
-			require.False(t, cs.IsCompleted())
+			require.False(t, cs.IsConfirmedALLPrepares())
 
 			require.NoError(t, cs.Confirm(1, channels[1]))
-			require.True(t, cs.IsCompleted())
+			require.True(t, cs.IsConfirmedALLPrepares())
 
 			cs.AddAck(0)
-			require.False(t, cs.IsReceivedALLAcks())
+			require.False(t, cs.IsConfirmedALLCommits())
 			cs.AddAck(1)
-			require.True(t, cs.IsReceivedALLAcks())
+			require.True(t, cs.IsConfirmedALLCommits())
 		})
 	}
 
