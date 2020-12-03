@@ -40,9 +40,11 @@ func NewKeeper(
 ) Keeper {
 	baseKeeper := basekeeper.NewKeeper(cdc, storeKey, channelKeeper, portKeeper, scopedKeeper)
 	simpleKeeper := simplekeeper.NewKeeper(cdc, cm, xccResolver, baseKeeper)
+	tpcKeeper := tpckeeper.NewKeeper(cdc, cm, xccResolver, baseKeeper)
 	return Keeper{
 		baseKeeper:       baseKeeper,
 		simpleKeeper:     simpleKeeper,
+		tpcKeeper:        tpcKeeper,
 		packetSender:     packets.NewBasicPacketSender(channelKeeper),
 		packetMiddleware: packetMiddleware,
 	}

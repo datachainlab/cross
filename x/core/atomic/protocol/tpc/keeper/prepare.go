@@ -24,7 +24,7 @@ func (k Keeper) SendPrepare(
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
-	if len(transactions) > 0 {
+	if len(transactions) == 0 {
 		return errors.New("the number of contract transactions must be greater than 1")
 	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetVersionHeight() {
 		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetVersionHeight())
