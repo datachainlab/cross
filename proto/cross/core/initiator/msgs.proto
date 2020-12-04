@@ -97,3 +97,11 @@ message MsgIBCSignTxResponse {
 
   uint32 status = 1;
 }
+
+enum InitiateTxStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  INITIATE_TX_STATUS_UNKNOWN   = 0;
+  INITIATE_TX_STATUS_PENDING   = 1;
+  INITIATE_TX_STATUS_VERIFIED  = 2;
+}

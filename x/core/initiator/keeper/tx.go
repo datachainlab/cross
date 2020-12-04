@@ -19,54 +19,23 @@ func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (txtypes.TxID,
 		return nil, false, fmt.Errorf("txID '%X' already exists", txID)
 	}
 
-	signers := msg.GetAccounts(k.xccResolver.GetSelfCrossChainChannel(ctx))
-	required := msg.GetRequiredAccounts()
-	remaining := getRemainingAccounts(signers, required)
+	state := types.NewInitiateTxState(*msg)
 
-	state, err := k.initTxState(ctx, txID, msg, remaining)
+	if err := k.authenticator.InitTxAuthState(ctx, txID, msg.GetRequiredAccounts()); err != nil {
+		return nil, false, err
+	}
+
+	completed, err := k.authenticator.SignTx(ctx, txID, msg.GetAccounts(k.xccResolver.GetSelfCrossChainChannel(ctx)))
 	if err != nil {
 		return nil, false, err
 	}
 
-	return txID, state.Status == types.INITIATE_TX_STATUS_VERIFIED, nil
-}
+	if completed {
+		state.Status = types.INITIATE_TX_STATUS_VERIFIED
+	}
 
-func (k Keeper) initTxState(ctx sdk.Context, txID txtypes.TxID, msg *types.MsgInitiateTx, remainingSigners []accounttypes.Account) (*types.InitiateTxState, error) {
-	k.setTxMsg(ctx, txID, msg)
-	state := types.NewInitiateTxState(remainingSigners)
 	k.setTxState(ctx, txID, state)
-	return &state, nil
-}
-
-func (k Keeper) verifyTx(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) (bool, error) {
-	txState, found := k.getTxState(ctx, txID)
-	if !found {
-		return false, fmt.Errorf("txState '%x' not found", txID)
-	}
-	if txState.Status != types.INITIATE_TX_STATUS_PENDING {
-		return false, fmt.Errorf("the status of txState '%x' must be %v", txID, types.INITIATE_TX_STATUS_PENDING)
-	}
-	return k.updateTxState(ctx, txID, *txState, getRemainingAccounts(signers, txState.RemainingSigners)), nil
-}
-
-func (k Keeper) setTxMsg(ctx sdk.Context, txID txtypes.TxID, msg *types.MsgInitiateTx) {
-	bz, err := proto.Marshal(msg)
-	if err != nil {
-		panic(err)
-	}
-	prefix.NewStore(k.store(ctx), types.KeyInitiateTx()).Set(txID, bz)
-}
-
-func (k Keeper) getTxMsg(ctx sdk.Context, txID txtypes.TxID) (*types.MsgInitiateTx, bool) {
-	bz := prefix.NewStore(k.store(ctx), types.KeyInitiateTx()).Get(txID)
-	if bz == nil {
-		return nil, false
-	}
-	var msg types.MsgInitiateTx
-	if err := proto.Unmarshal(bz, &msg); err != nil {
-		panic(err)
-	}
-	return &msg, true
+	return txID, completed, nil
 }
 
 func (k Keeper) setTxState(ctx sdk.Context, txID txtypes.TxID, state types.InitiateTxState) {
@@ -75,15 +44,6 @@ func (k Keeper) setTxState(ctx sdk.Context, txID txtypes.TxID, state types.Initi
 		panic(err)
 	}
 	prefix.NewStore(k.store(ctx), types.KeyInitiateTxState()).Set(txID, bz)
-}
-
-func (k Keeper) updateTxState(ctx sdk.Context, txID txtypes.TxID, state types.InitiateTxState, remainingSigners []accounttypes.Account) bool {
-	state.RemainingSigners = remainingSigners
-	if len(remainingSigners) == 0 {
-		state.Status = types.INITIATE_TX_STATUS_VERIFIED
-	}
-	k.setTxState(ctx, txID, state)
-	return state.Status == types.INITIATE_TX_STATUS_VERIFIED
 }
 
 func (k Keeper) getTxState(ctx sdk.Context, txID txtypes.TxID) (*types.InitiateTxState, bool) {
@@ -105,14 +65,27 @@ func (k Keeper) signTx(ctx sdk.Context, txID txtypes.TxID, signers []accounttype
 	} else if state.Status != types.INITIATE_TX_STATUS_PENDING {
 		return 0, fmt.Errorf("status must be %v", types.INITIATE_TX_STATUS_PENDING)
 	}
-	remaining := getRemainingAccounts(signers, state.RemainingSigners)
-	if len(remaining) == 0 {
-		state.Status = types.INITIATE_TX_STATUS_VERIFIED
-	} else {
-		state.Status = types.INITIATE_TX_STATUS_PENDING
+
+	completed, err := k.authenticator.SignTx(ctx, txID, signers)
+	if err != nil {
+		return 0, err
 	}
-	k.setTxState(ctx, txID, *state)
+	if completed {
+		state.Status = types.INITIATE_TX_STATUS_VERIFIED
+		k.setTxState(ctx, txID, *state)
+	}
 	return state.Status, nil
+}
+
+func (k Keeper) verifyTx(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) (completed bool, err error) {
+	txState, found := k.getTxState(ctx, txID)
+	if !found {
+		return false, fmt.Errorf("txState '%x' not found", txID)
+	}
+	if txState.Status != types.INITIATE_TX_STATUS_PENDING {
+		return false, fmt.Errorf("the status of txState '%x' must be %v", txID, types.INITIATE_TX_STATUS_PENDING)
+	}
+	return k.authenticator.SignTx(ctx, txID, signers)
 }
 
 func (k Keeper) runTx(ctx sdk.Context, txID txtypes.TxID, msg *types.MsgInitiateTx) error {
@@ -162,22 +135,4 @@ func (k Keeper) ResolveTransactions(ctx sdk.Context, ctxs []types.ContractTransa
 	}
 
 	return rtxs, nil
-}
-
-func getRemainingAccounts(signers, required []accounttypes.Account) []accounttypes.Account {
-	var state = make([]bool, len(required))
-	for i, acc := range required {
-		for _, s := range signers {
-			if acc.Equal(s) {
-				state[i] = true
-			}
-		}
-	}
-	var remaining []accounttypes.Account
-	for i, acc := range required {
-		if !state[i] {
-			remaining = append(remaining, acc)
-		}
-	}
-	return remaining
 }

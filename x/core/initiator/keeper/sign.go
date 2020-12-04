@@ -84,14 +84,14 @@ func (k Keeper) TryRunTx(
 	ctx sdk.Context,
 	txID txtypes.TxID,
 ) error {
-	msg, found := k.getTxMsg(ctx, txID)
+	txState, found := k.getTxState(ctx, txID)
 	if !found {
-		return fmt.Errorf("txMsg '%x' not found", txID)
+		return fmt.Errorf("txState '%x' not found", txID)
 	}
-	if err := k.runTx(ctx, txID, msg); err != nil {
-		return err
+	if !txState.IsVerified() {
+		return fmt.Errorf("txState '%x' must be verified", txID)
 	}
-	return nil
+	return k.runTx(ctx, txID, &txState.Msg)
 }
 
 func makeExternalAccounts(xcc xcctypes.XCC, signers []accounttypes.AccountID) []accounttypes.Account {

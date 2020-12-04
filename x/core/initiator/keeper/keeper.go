@@ -11,6 +11,7 @@ import (
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
@@ -26,6 +27,7 @@ type Keeper struct {
 	scopedKeeper     capabilitykeeper.ScopedKeeper
 	packetMiddleware packets.PacketMiddleware
 	xccResolver      xcctypes.XCCResolver
+	authenticator    authtypes.TxAuthenticator
 	txRunner         txtypes.TxRunner
 	packets.PacketSendKeeper
 }

@@ -16,7 +16,7 @@ type Keeper struct {
 	storeKey sdk.StoreKey
 }
 
-var _ types.Authenticator = (*Keeper)(nil)
+var _ types.TxAuthenticator = (*Keeper)(nil)
 
 func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey) Keeper {
 	return Keeper{
@@ -25,7 +25,7 @@ func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey) Keeper {
 	}
 }
 
-func (k Keeper) InitTxAuthState(ctx sdk.Context, id []byte) error {
+func (k Keeper) InitTxAuthState(ctx sdk.Context, id []byte, signers []accounttypes.Account) error {
 	_, err := k.getTxAuthState(ctx, id)
 	if err == nil {
 		return fmt.Errorf("id '%x' already exists", id)
@@ -33,7 +33,7 @@ func (k Keeper) InitTxAuthState(ctx sdk.Context, id []byte) error {
 		return err
 	}
 
-	return k.setTxAuthState(ctx, id, types.TxAuthState{})
+	return k.setTxAuthState(ctx, id, types.TxAuthState{RemainingSigners: signers})
 }
 
 func (k Keeper) IsCompletedTxAuth(ctx sdk.Context, id []byte) (bool, error) {
@@ -44,16 +44,19 @@ func (k Keeper) IsCompletedTxAuth(ctx sdk.Context, id []byte) (bool, error) {
 	return state.IsCompleted(), nil
 }
 
-func (k Keeper) SignTx(ctx sdk.Context, id []byte, signers ...accounttypes.Account) error {
+func (k Keeper) SignTx(ctx sdk.Context, id []byte, signers []accounttypes.Account) (bool, error) {
 	state, err := k.getTxAuthState(ctx, id)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if state.IsCompleted() {
-		return fmt.Errorf("id '%x' is already completed", id)
+		return false, fmt.Errorf("id '%x' is already completed", id)
 	}
 	state.ConsumeSigners(signers)
-	return k.setTxAuthState(ctx, id, *state)
+	if err := k.setTxAuthState(ctx, id, *state); err != nil {
+		return false, err
+	}
+	return state.IsCompleted(), nil
 }
 
 func (k Keeper) getTxAuthState(ctx sdk.Context, id []byte) (*types.TxAuthState, error) {

@@ -1,0 +1,14 @@
+syntax = "proto3";
+package cross.core.initiator;
+
+import "gogoproto/gogo.proto";
+import "cross/core/initiator/msgs.proto";
+
+option go_package = "github.com/datachainlab/cross/x/core/initiator/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message InitiateTxState {
+  option (gogoproto.equal) = false;
+  cross.core.initiator.InitiateTxStatus status = 1;
+  cross.core.initiator.MsgInitiateTx msg = 2 [(gogoproto.nullable) = false];
+}

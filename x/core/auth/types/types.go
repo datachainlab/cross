@@ -5,10 +5,10 @@ import (
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 )
 
-type Authenticator interface {
-	InitTxAuthState(ctx sdk.Context, id []byte) error
+type TxAuthenticator interface {
+	InitTxAuthState(ctx sdk.Context, id []byte, signers []accounttypes.Account) error
 	IsCompletedTxAuth(ctx sdk.Context, id []byte) (bool, error)
-	SignTx(ctx sdk.Context, id []byte, signers ...accounttypes.Account) error
+	SignTx(ctx sdk.Context, id []byte, signers []accounttypes.Account) (bool, error)
 }
 
 // IsCompleted returns a boolean whether the required authentication is completed
