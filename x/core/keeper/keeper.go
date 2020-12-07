@@ -19,7 +19,6 @@ import (
 
 type Keeper struct {
 	m             codec.Marshaler
-	storeKey      sdk.StoreKey
 	portKeeper    types.PortKeeper
 	channelKeeper types.ChannelKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
@@ -30,7 +29,7 @@ type Keeper struct {
 }
 
 func NewKeeper(
-	cdc codec.Marshaler, key sdk.StoreKey,
+	cdc codec.Marshaler, initiatorStoreKey, authStoreKey sdk.StoreKey,
 	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
 	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txRunner txtypes.TxRunner, router router.Router,
 ) Keeper {
@@ -41,11 +40,11 @@ func NewKeeper(
 		scopedKeeper,
 	)
 	authKeeper := authkeeper.NewKeeper(
-		cdc, key, channelKeeper, packetSendKeeper, packetMiddleware,
+		cdc, authStoreKey, channelKeeper, packetSendKeeper, packetMiddleware,
 		xccResolver,
 	)
 	initiatorKeeper := initiatorkeeper.NewKeeper(
-		cdc, key, channelKeeper,
+		cdc, initiatorStoreKey, channelKeeper,
 		authKeeper,
 		packetSendKeeper,
 		packetMiddleware,
@@ -57,7 +56,6 @@ func NewKeeper(
 
 	return Keeper{
 		m:             cdc,
-		storeKey:      key,
 		portKeeper:    portKeeper,
 		channelKeeper: channelKeeper,
 		scopedKeeper:  scopedKeeper,

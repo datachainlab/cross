@@ -54,19 +54,19 @@ func (k *Keeper) SetTxManager(txm types.TxManager) {
 
 // InitAuthState implements the TxAuthenticator interface
 func (k Keeper) InitAuthState(ctx sdk.Context, id []byte, signers []accounttypes.Account) error {
-	_, err := k.getTxAuthState(ctx, id)
+	_, err := k.getAuthState(ctx, id)
 	if err == nil {
 		return fmt.Errorf("id '%x' already exists", id)
-	} else if !errors.Is(err, types.ErrIDNotFound{}) {
+	} else if !errors.As(err, &types.ErrIDNotFound{}) {
 		return err
 	}
 
-	return k.setTxAuthState(ctx, id, types.TxAuthState{RemainingSigners: signers})
+	return k.setAuthState(ctx, id, types.TxAuthState{RemainingSigners: signers})
 }
 
 // IsCompletedAuth implements the TxAuthenticator interface
 func (k Keeper) IsCompletedAuth(ctx sdk.Context, id []byte) (bool, error) {
-	state, err := k.getTxAuthState(ctx, id)
+	state, err := k.getAuthState(ctx, id)
 	if err != nil {
 		return false, err
 	}
@@ -75,7 +75,7 @@ func (k Keeper) IsCompletedAuth(ctx sdk.Context, id []byte) (bool, error) {
 
 // Sign implements the TxAuthenticator interface
 func (k Keeper) Sign(ctx sdk.Context, id []byte, signers []accounttypes.Account) (bool, error) {
-	state, err := k.getTxAuthState(ctx, id)
+	state, err := k.getAuthState(ctx, id)
 	if err != nil {
 		return false, err
 	}
@@ -83,14 +83,14 @@ func (k Keeper) Sign(ctx sdk.Context, id []byte, signers []accounttypes.Account)
 		return false, fmt.Errorf("id '%x' is already completed", id)
 	}
 	state.ConsumeSigners(signers)
-	if err := k.setTxAuthState(ctx, id, *state); err != nil {
+	if err := k.setAuthState(ctx, id, *state); err != nil {
 		return false, err
 	}
 	return state.IsCompleted(), nil
 }
 
-func (k Keeper) getTxAuthState(ctx sdk.Context, id []byte) (*types.TxAuthState, error) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyTxAuthState())
+func (k Keeper) getAuthState(ctx sdk.Context, id []byte) (*types.TxAuthState, error) {
+	store := prefix.NewStore(k.store(ctx), types.KeyTxAuthState())
 	bz := store.Get(id)
 	if bz == nil {
 		return nil, types.NewErrIDNotFound(id)
@@ -102,14 +102,23 @@ func (k Keeper) getTxAuthState(ctx sdk.Context, id []byte) (*types.TxAuthState, 
 	return &state, nil
 }
 
-func (k Keeper) setTxAuthState(ctx sdk.Context, id []byte, state types.TxAuthState) error {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyTxAuthState())
+func (k Keeper) setAuthState(ctx sdk.Context, id []byte, state types.TxAuthState) error {
+	store := prefix.NewStore(k.store(ctx), types.KeyTxAuthState())
 	bz, err := k.m.MarshalBinaryBare(&state)
 	if err != nil {
 		return err
 	}
 	store.Set(id, bz)
 	return nil
+}
+
+func (k Keeper) store(ctx sdk.Context) sdk.KVStore {
+	switch storeKey := k.storeKey.(type) {
+	case *crosstypes.PrefixStoreKey:
+		return prefix.NewStore(ctx.KVStore(storeKey.StoreKey), storeKey.Prefix)
+	default:
+		return ctx.KVStore(k.storeKey)
+	}
 }
 
 // Logger returns a logger instance

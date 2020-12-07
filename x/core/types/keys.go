@@ -32,6 +32,7 @@ const (
 
 var (
 	InitiatorKeyPrefix     = []byte("initiator")
+	AuthKeyPrefix          = []byte("auth")
 	AtomicKeyPrefix        = []byte("atomic")
 	ContractManagerPrefix  = []byte("cmanager")
 	ContractStoreKeyPrefix = []byte("cstore")

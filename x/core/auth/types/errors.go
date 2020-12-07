@@ -14,5 +14,5 @@ func NewErrIDNotFound(id []byte) ErrIDNotFound {
 
 // Error implements error.Error
 func (e ErrIDNotFound) Error() string {
-	return fmt.Sprintf("id '%v' not found", e.id)
+	return fmt.Sprintf("id '%x' not found", e.id)
 }
