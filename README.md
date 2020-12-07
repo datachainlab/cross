@@ -25,19 +25,9 @@ It is difficult to atomically execute general smart contract on multiple network
 
 To solve such problem, we need to be able to execute All or Nothing reservation contracts that exist in two different chains, rather than pegging to single blockchain. This is similar to Atomic commit protocol for distributed systems. To achieve this, each contract's state machine needs to lock the state required for "commit" at "prepare" phase. But it is not safe to enforce these requirements on each contract developers. Therefore, we decided to implement Atomic commit protocol in compliance with ics-004 and create a datastore that transparently meets the required locking protocol.
 
-## Getting started
-
-Please see [here](./docs/spec/02_smart_contract.md#how-to-execute-a-smart-contract-on-cross-chain).
-
 ## Documents
 
-For specs and documents, see [here](./docs/spec).
-
 Japanese documents can be found [here](https://github.com/datachainlab/public-docs/blob/master/cross/concepts_ja.md).
-
-## FAQ
-
-Please see [here](./docs/spec/XX_faq.md).
 
 ## Maintainers
 

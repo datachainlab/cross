@@ -1,0 +1,14 @@
+syntax = "proto3";
+package samplemod.types;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/datachainlab/cross/simapp/samplemod/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message GenesisState {}
+
+message ContractCallRequest {
+  string method = 1;
+  repeated string args = 2;
+}

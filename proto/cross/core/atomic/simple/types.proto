@@ -1,0 +1,29 @@
+syntax = "proto3";
+package cross.core.atomic.simple;
+
+import "gogoproto/gogo.proto";
+import "cross/core/tx/types.proto";
+
+option go_package = "github.com/datachainlab/cross/x/core/atomic/protocol/simple/types";
+option (gogoproto.goproto_getters_all)  = false;
+
+message PacketDataCall {
+  option (gogoproto.equal)           = false;
+
+  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
+  cross.core.tx.ResolvedContractTransaction tx = 2 [(gogoproto.nullable) = false];
+}
+
+message PacketAcknowledgementCall {
+  option (gogoproto.equal)           = false;
+
+  CommitStatus status = 1;
+}
+
+enum CommitStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  COMMIT_STATUS_UNKNOWN = 0;
+  COMMIT_STATUS_OK      = 1;
+  COMMIT_STATUS_FAILED  = 2;
+}
