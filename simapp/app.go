@@ -357,7 +357,9 @@ func NewSimApp(
 
 	// Create Cross Keepers
 	app.CrossKeeper = crosskeeper.NewKeeper(
-		appCodec, crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.InitiatorKeyPrefix),
+		appCodec,
+		crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.InitiatorKeyPrefix),
+		crosstypes.NewPrefixStoreKey(keys[crosstypes.StoreKey], crosstypes.AuthKeyPrefix),
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		scopedCrossKeeper,
 		packets.NewNOPPacketMiddleware(),

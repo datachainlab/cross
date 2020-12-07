@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 )
 
@@ -12,10 +13,10 @@ func (k Keeper) InitiateTx(ctx context.Context, msg *initiatortypes.MsgInitiateT
 	return k.initiatorKeeper.InitiateTx(ctx, msg)
 }
 
-func (k Keeper) SignTx(ctx context.Context, msg *initiatortypes.MsgSignTx) (*initiatortypes.MsgSignTxResponse, error) {
-	return k.initiatorKeeper.SignTx(ctx, msg)
+func (k Keeper) SignTx(ctx context.Context, msg *authtypes.MsgSignTx) (*authtypes.MsgSignTxResponse, error) {
+	return k.authKeeper.SignTx(ctx, msg)
 }
 
-func (k Keeper) IBCSignTx(ctx context.Context, msg *initiatortypes.MsgIBCSignTx) (*initiatortypes.MsgIBCSignTxResponse, error) {
-	return k.initiatorKeeper.IBCSignTx(ctx, msg)
+func (k Keeper) IBCSignTx(ctx context.Context, msg *authtypes.MsgIBCSignTx) (*authtypes.MsgIBCSignTxResponse, error) {
+	return k.authKeeper.IBCSignTx(ctx, msg)
 }

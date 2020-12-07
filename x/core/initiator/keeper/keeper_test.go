@@ -17,7 +17,6 @@ import (
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/utils"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -53,6 +52,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 
 	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
 	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
+	suite.Require().NoError(err)
 
 	chBA := xcctypes.ChannelInfo{Port: channelB.PortID, Channel: channelB.ID}
 
@@ -91,19 +91,25 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	}
 	suite.Require().NoError(msg0.ValidateBasic())
 
-	res0, err := suite.chainA.App.CrossKeeper.InitiateTx(
-		sdk.WrapSDKContext(suite.chainA.GetContext()),
+	ctx := suite.chainA.GetContext()
+	res0, err := suite.chainA.App.CrossKeeper.InitiatorKeeper().InitiateTx(
+		sdk.WrapSDKContext(ctx),
 		msg0,
 	)
 	suite.Require().NoError(err)
 	suite.Require().Equal(res0.Status, initiatortypes.INITIATE_TX_STATUS_PENDING)
+	{
+		ps, err := ibctesting.GetPacketsFromEvents(ctx.EventManager().ABCIEvents())
+		suite.Require().NoError(err)
+		suite.Require().Len(ps, 0)
+	}
 	suite.chainA.NextBlock()
 
 	// IBCSignTx on chainB
 	ps := ibctesting.NewCapturePacketSender(
 		packets.NewBasicPacketSender(suite.chainB.App.IBCKeeper.ChannelKeeper),
 	)
-	err = suite.chainB.App.CrossKeeper.InitiatorKeeper().SendIBCSignTx(
+	err = suite.chainB.App.CrossKeeper.AuthKeeper().SendIBCSignTx(
 		suite.chainB.GetContext(),
 		ps,
 		&chBA,
@@ -116,23 +122,46 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	suite.Require().Equal(1, len(ps.Packets()))
 	suite.chainB.NextBlock()
 
+	// Receive PacketIBCSignTx on chainA
 	p0 := ps.Packets()[0]
-	var pd0 packets.PacketData
-	suite.Require().NoError(packets.UnmarshalJSONPacketData(p0.GetData(), &pd0))
-	var payload0 packets.PacketDataPayload
-	utils.MustUnmarshalJSONAny(suite.chainB.App.AppCodec(), &payload0, pd0.GetPayload())
-	signData := payload0.(*initiatortypes.PacketDataIBCSignTx)
-
-	// ReceiveIBCSignTx on chainA
-
-	completed, err := suite.chainA.App.CrossKeeper.InitiatorKeeper().ReceiveIBCSignTx(
+	res1, _, err := suite.chainA.App.CrossKeeper.AuthKeeper().HandlePacket(
 		suite.chainA.GetContext(),
-		p0.GetDestPort(), p0.GetDestChannel(),
-		*signData,
+		channeltypes.Packet{DestinationPort: p0.GetDestPort(), DestinationChannel: p0.GetDestChannel()},
+		p0,
 	)
 	suite.Require().NoError(err)
-	suite.Require().True(completed)
 	suite.chainA.NextBlock()
+	{
+		ps, err := ibctesting.GetPacketsFromEvents(res1.GetEvents().ToABCIEvents())
+		suite.Require().NoError(err)
+		suite.Require().Len(ps, 1)
+	}
+
+	// Re-send IBCSignTx to chainB
+	ps = ibctesting.NewCapturePacketSender(
+		packets.NewBasicPacketSender(suite.chainB.App.IBCKeeper.ChannelKeeper),
+	)
+	err = suite.chainB.App.CrossKeeper.AuthKeeper().SendIBCSignTx(
+		suite.chainB.GetContext(),
+		ps,
+		&chBA,
+		res0.TxID,
+		[]accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+		clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
+		0,
+	)
+	suite.Require().NoError(err)
+	suite.Require().Equal(1, len(ps.Packets()))
+	suite.chainB.NextBlock()
+
+	// Receive PacketIBCSignTx contains same txID must be fail
+	p1 := ps.Packets()[0]
+	_, _, err = suite.chainA.App.CrossKeeper.AuthKeeper().HandlePacket(
+		suite.chainA.GetContext(),
+		channeltypes.Packet{DestinationPort: p1.GetDestPort(), DestinationChannel: p1.GetDestChannel()},
+		p1,
+	)
+	suite.Require().Error(err)
 }
 
 func TestKeeperTestSuite(t *testing.T) {

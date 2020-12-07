@@ -7,8 +7,9 @@ import (
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
 
+	authkeeper "github.com/datachainlab/cross/x/core/auth/keeper"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatorkeeper "github.com/datachainlab/cross/x/core/initiator/keeper"
-	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/datachainlab/cross/x/core/router"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/core/types"
@@ -18,42 +19,59 @@ import (
 
 type Keeper struct {
 	m             codec.Marshaler
-	storeKey      sdk.StoreKey
 	portKeeper    types.PortKeeper
 	channelKeeper types.ChannelKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
 
 	router          router.Router
 	initiatorKeeper initiatorkeeper.Keeper
+	authKeeper      authkeeper.Keeper
 }
 
 func NewKeeper(
-	cdc codec.Marshaler, key sdk.StoreKey,
+	cdc codec.Marshaler, initiatorStoreKey, authStoreKey sdk.StoreKey,
 	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
 	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txRunner txtypes.TxRunner, router router.Router,
 ) Keeper {
+	packetSendKeeper := packets.NewPacketSendKeeper(
+		cdc,
+		channelKeeper,
+		portKeeper,
+		scopedKeeper,
+	)
+	authKeeper := authkeeper.NewKeeper(
+		cdc, authStoreKey, channelKeeper, packetSendKeeper, packetMiddleware,
+		xccResolver,
+	)
 	initiatorKeeper := initiatorkeeper.NewKeeper(
-		cdc, key, channelKeeper, portKeeper, scopedKeeper,
+		cdc, initiatorStoreKey, channelKeeper,
+		authKeeper,
+		packetSendKeeper,
 		packetMiddleware,
 		xccResolver,
 		txRunner,
 	)
-	router.AddRoute(initiatortypes.PacketType, initiatorKeeper)
+	authKeeper.SetTxManager(initiatorKeeper)
+	router.AddRoute(authtypes.PacketType, authKeeper)
 
 	return Keeper{
 		m:             cdc,
-		storeKey:      key,
 		portKeeper:    portKeeper,
 		channelKeeper: channelKeeper,
 		scopedKeeper:  scopedKeeper,
 		router:        router,
 
 		initiatorKeeper: initiatorKeeper,
+		authKeeper:      authKeeper,
 	}
 }
 
 func (k Keeper) InitiatorKeeper() initiatorkeeper.Keeper {
 	return k.initiatorKeeper
+}
+
+func (k Keeper) AuthKeeper() authkeeper.Keeper {
+	return k.authKeeper
 }
 
 // IsBound checks if the transfer module is already bound to the desired port

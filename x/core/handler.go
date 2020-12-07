@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/datachainlab/cross/x/core/keeper"
 )
@@ -16,10 +17,10 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case *initiatortypes.MsgInitiateTx:
 			res, err := k.InitiateTx(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
-		case *initiatortypes.MsgSignTx:
+		case *authtypes.MsgSignTx:
 			res, err := k.SignTx(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
-		case *initiatortypes.MsgIBCSignTx:
+		case *authtypes.MsgIBCSignTx:
 			res, err := k.IBCSignTx(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
 		default:

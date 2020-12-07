@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	PacketType = "cross/core"
+	PacketType = "cross/core/auth"
 )
 
 var _ packets.PacketDataPayload = (*PacketDataIBCSignTx)(nil)

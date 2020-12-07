@@ -21,6 +21,7 @@ import (
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	porttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/05-port/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	"github.com/datachainlab/cross/x/core/client/cli"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	"github.com/datachainlab/cross/x/core/keeper"
@@ -56,6 +57,7 @@ func (AppModuleBasic) RegisterLegacyAminoCodec(*codec.LegacyAmino) {}
 func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	xcctypes.RegisterInterfaces(registry)
 	initiatortypes.RegisterInterfaces(registry)
+	authtypes.RegisterInterfaces(registry)
 	txtypes.RegisterInterfaces(registry)
 }
 
@@ -79,6 +81,7 @@ func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Rout
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc-transfer module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
 	initiatortypes.RegisterQueryHandlerClient(context.Background(), mux, initiatortypes.NewQueryClient(clientCtx))
+	authtypes.RegisterQueryHandlerClient(context.Background(), mux, authtypes.NewQueryClient(clientCtx))
 }
 
 // GetTxCmd returns the capability module's root tx command.
@@ -135,6 +138,7 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // module-specific GRPC queries.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	initiatortypes.RegisterQueryServer(cfg.QueryServer(), am.keeper)
+	authtypes.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 }
 
 // InitGenesis performs the capability module's genesis initialization It returns

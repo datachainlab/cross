@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
@@ -34,15 +33,13 @@ func (lk Link) GetSrcIndex() txtypes.TxIndex {
 }
 
 // NewInitiateTxState creates an new instance of InitiateTxState
-func NewInitiateTxState(remainingSigners []accounttypes.Account) InitiateTxState {
-	var status InitiateTxStatus
-	if len(remainingSigners) == 0 {
-		status = INITIATE_TX_STATUS_VERIFIED
-	} else {
-		status = INITIATE_TX_STATUS_PENDING
-	}
+func NewInitiateTxState(msg MsgInitiateTx) InitiateTxState {
 	return InitiateTxState{
-		Status:           status,
-		RemainingSigners: remainingSigners,
+		Status: INITIATE_TX_STATUS_PENDING,
+		Msg:    msg,
 	}
+}
+
+func (state InitiateTxState) IsVerified() bool {
+	return state.Status == INITIATE_TX_STATUS_VERIFIED
 }
