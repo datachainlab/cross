@@ -4,7 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	"github.com/datachainlab/cross/x/core/initiator/types"
+	"github.com/datachainlab/cross/x/core/auth/types"
 	"github.com/datachainlab/cross/x/core/router"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -16,7 +16,7 @@ func (p Keeper) HandlePacket(
 	packet channeltypes.Packet,
 	ip packets.IncomingPacket,
 ) (*sdk.Result, *packets.PacketAcknowledgementData, error) {
-	ctx, _, as, err := p.packetMiddleware.HandlePacket(ctx, ip, packets.NewBasicPacketSender(p.ChannelKeeper()), packets.NewBasicACKSender())
+	ctx, _, as, err := p.packetMiddleware.HandlePacket(ctx, ip, packets.NewBasicPacketSender(p.channelKeeper), packets.NewBasicACKSender())
 	if err != nil {
 		return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 	}
@@ -33,7 +33,8 @@ func (p Keeper) HandlePacket(
 
 	if completed {
 		// TODO emit an event
-		if err := p.TryRunTx(ctx, data.TxID); err != nil {
+		if err := p.txManager.PostAuth(ctx, data.TxID); err != nil {
+			p.Logger(ctx).Error("failed to call PostAuth", "err", err)
 		} else {
 		}
 	}

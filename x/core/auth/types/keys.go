@@ -2,6 +2,8 @@ package types
 
 import "fmt"
 
+const SubModuleName = "auth"
+
 const (
 	KeyTxAuthStatePrefix uint8 = iota
 )

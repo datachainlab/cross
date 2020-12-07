@@ -4,6 +4,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/datachainlab/cross/x/packets"
 )
 
 // RegisterInterfaces register the ibc transfer module interfaces to protobuf
@@ -11,7 +12,16 @@ import (
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*sdk.Msg)(nil),
-		&MsgInitiateTx{},
+		&MsgSignTx{},
+		&MsgIBCSignTx{},
+	)
+	registry.RegisterImplementations(
+		(*packets.PacketDataPayload)(nil),
+		&PacketDataIBCSignTx{},
+	)
+	registry.RegisterImplementations(
+		(*packets.PacketAcknowledgementPayload)(nil),
+		&PacketAcknowledgementIBCSignTx{},
 	)
 }
 

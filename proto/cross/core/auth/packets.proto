@@ -1,10 +1,10 @@
 syntax = "proto3";
-package cross.core.initiator;
+package cross.core.auth;
 
 import "gogoproto/gogo.proto";
 import "ibc/core/client/v1/client.proto";
 
-option go_package = "github.com/datachainlab/cross/x/core/initiator/types";
+option go_package = "github.com/datachainlab/cross/x/core/auth/types";
 option (gogoproto.goproto_getters_all) = false;
 
 message PacketDataIBCSignTx {

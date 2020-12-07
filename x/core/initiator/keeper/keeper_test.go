@@ -11,6 +11,7 @@ import (
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
@@ -103,7 +104,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	ps := ibctesting.NewCapturePacketSender(
 		packets.NewBasicPacketSender(suite.chainB.App.IBCKeeper.ChannelKeeper),
 	)
-	err = suite.chainB.App.CrossKeeper.InitiatorKeeper().SendIBCSignTx(
+	err = suite.chainB.App.CrossKeeper.AuthKeeper().SendIBCSignTx(
 		suite.chainB.GetContext(),
 		ps,
 		&chBA,
@@ -121,11 +122,11 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	suite.Require().NoError(packets.UnmarshalJSONPacketData(p0.GetData(), &pd0))
 	var payload0 packets.PacketDataPayload
 	utils.MustUnmarshalJSONAny(suite.chainB.App.AppCodec(), &payload0, pd0.GetPayload())
-	signData := payload0.(*initiatortypes.PacketDataIBCSignTx)
+	signData := payload0.(*authtypes.PacketDataIBCSignTx)
 
 	// ReceiveIBCSignTx on chainA
 
-	completed, err := suite.chainA.App.CrossKeeper.InitiatorKeeper().ReceiveIBCSignTx(
+	completed, err := suite.chainA.App.CrossKeeper.AuthKeeper().ReceiveIBCSignTx(
 		suite.chainA.GetContext(),
 		p0.GetDestPort(), p0.GetDestChannel(),
 		*signData,

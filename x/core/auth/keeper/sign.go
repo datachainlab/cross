@@ -6,7 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
-	"github.com/datachainlab/cross/x/core/initiator/types"
+	"github.com/datachainlab/cross/x/core/auth/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
@@ -68,7 +68,7 @@ func (k Keeper) ReceiveIBCSignTx(
 
 	// Verify the signers of transaction
 
-	completed, err = k.verifyTx(ctx, data.TxID, makeExternalAccounts(xcc, data.Signers))
+	completed, err = k.Sign(ctx, data.TxID, makeExternalAccounts(xcc, data.Signers))
 	if err != nil {
 		return false, err
 	} else if !completed {
@@ -77,21 +77,6 @@ func (k Keeper) ReceiveIBCSignTx(
 	}
 
 	return true, nil
-}
-
-// TryRunTx try to run the transaction
-func (k Keeper) TryRunTx(
-	ctx sdk.Context,
-	txID txtypes.TxID,
-) error {
-	txState, found := k.getTxState(ctx, txID)
-	if !found {
-		return fmt.Errorf("txState '%x' not found", txID)
-	}
-	if !txState.IsVerified() {
-		return fmt.Errorf("txState '%x' must be verified", txID)
-	}
-	return k.runTx(ctx, txID, &txState.Msg)
 }
 
 func makeExternalAccounts(xcc xcctypes.XCC, signers []accounttypes.AccountID) []accounttypes.Account {

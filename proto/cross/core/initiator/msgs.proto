@@ -14,10 +14,6 @@ option (gogoproto.goproto_getters_all) = false;
 service Msg {
   // InitiateTx defines a rpc handler method for MsgInitiateTx.
   rpc InitiateTx(MsgInitiateTx) returns (MsgInitiateTxResponse);
-  // SignTx defines a rpc handler method for MsgSignTx.
-  rpc SignTx(MsgSignTx) returns (MsgSignTxResponse);
-  // IBCSignTx defines a rpc handler method for MsgIBCSignTx.
-  rpc IBCSignTx(MsgIBCSignTx) returns (MsgIBCSignTxResponse);
 }
 
 message MsgInitiateTx {
@@ -47,55 +43,6 @@ message MsgInitiateTxResponse {
 
   bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
   InitiateTxStatus status = 2;
-}
-
-message MsgSignTx {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
-  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
-  repeated bytes signers = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
-  // Timeout height relative to the current block height.
-  // The timeout is disabled when set to 0.
-  ibc.core.client.v1.Height timeout_height = 3
-      [(gogoproto.moretags) = "yaml:\"timeout_height\"", (gogoproto.nullable) = false];
-  // Timeout timestamp (in nanoseconds) relative to the current block timestamp.
-  // The timeout is disabled when set to 0.
-  uint64 timeout_timestamp = 4
-    [(gogoproto.moretags) = "yaml:\"timeout_timestamp\""];
-}
-
-// MsgSignTxResponse defines the Msg/SignTx response type.
-message MsgSignTxResponse {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
-  cross.core.initiator.InitiateTxStatus status = 1;
-}
-
-message MsgIBCSignTx {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
-  google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
-  bytes txID = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
-  repeated bytes signers = 3 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
-  // Timeout height relative to the current block height.
-  // The timeout is disabled when set to 0.
-  ibc.core.client.v1.Height timeout_height = 4
-      [(gogoproto.moretags) = "yaml:\"timeout_height\"", (gogoproto.nullable) = false];
-  // Timeout timestamp (in nanoseconds) relative to the current block timestamp.
-  // The timeout is disabled when set to 0.
-  uint64 timeout_timestamp = 5
-    [(gogoproto.moretags) = "yaml:\"timeout_timestamp\""];
-}
-
-// MsgIBCSignTxResponse defines the Msg/IBCSignTx response type.
-message MsgIBCSignTxResponse {
-  option (gogoproto.equal)           = false;
-  option (gogoproto.goproto_getters) = false;
-
-  uint32 status = 1;
 }
 
 enum InitiateTxStatus {

@@ -9,23 +9,51 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/auth/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
+	"github.com/datachainlab/cross/x/packets"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 type Keeper struct {
 	m        codec.Marshaler
 	storeKey sdk.StoreKey
+
+	channelKeeper    types.ChannelKeeper
+	packetMiddleware packets.PacketMiddleware
+	xccResolver      xcctypes.XCCResolver
+	txManager        types.TxManager
+	packets.PacketSendKeeper
 }
 
 var _ types.TxAuthenticator = (*Keeper)(nil)
 
-func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey) Keeper {
+func NewKeeper(
+	m codec.Marshaler,
+	storeKey sdk.StoreKey,
+	channelKeeper types.ChannelKeeper,
+	packetSendKeeper packets.PacketSendKeeper,
+	packetMiddleware packets.PacketMiddleware,
+	xccResolver xcctypes.XCCResolver,
+) Keeper {
 	return Keeper{
 		m:        m,
 		storeKey: storeKey,
+
+		channelKeeper:    channelKeeper,
+		xccResolver:      xccResolver,
+		packetMiddleware: packetMiddleware,
+		PacketSendKeeper: packetSendKeeper,
 	}
 }
 
-func (k Keeper) InitTxAuthState(ctx sdk.Context, id []byte, signers []accounttypes.Account) error {
+// SetTxManager sets the keeper to txManager
+func (k *Keeper) SetTxManager(txm types.TxManager) {
+	k.txManager = txm
+}
+
+// InitAuthState implements the TxAuthenticator interface
+func (k Keeper) InitAuthState(ctx sdk.Context, id []byte, signers []accounttypes.Account) error {
 	_, err := k.getTxAuthState(ctx, id)
 	if err == nil {
 		return fmt.Errorf("id '%x' already exists", id)
@@ -36,7 +64,8 @@ func (k Keeper) InitTxAuthState(ctx sdk.Context, id []byte, signers []accounttyp
 	return k.setTxAuthState(ctx, id, types.TxAuthState{RemainingSigners: signers})
 }
 
-func (k Keeper) IsCompletedTxAuth(ctx sdk.Context, id []byte) (bool, error) {
+// IsCompletedAuth implements the TxAuthenticator interface
+func (k Keeper) IsCompletedAuth(ctx sdk.Context, id []byte) (bool, error) {
 	state, err := k.getTxAuthState(ctx, id)
 	if err != nil {
 		return false, err
@@ -44,7 +73,8 @@ func (k Keeper) IsCompletedTxAuth(ctx sdk.Context, id []byte) (bool, error) {
 	return state.IsCompleted(), nil
 }
 
-func (k Keeper) SignTx(ctx sdk.Context, id []byte, signers []accounttypes.Account) (bool, error) {
+// Sign implements the TxAuthenticator interface
+func (k Keeper) Sign(ctx sdk.Context, id []byte, signers []accounttypes.Account) (bool, error) {
 	state, err := k.getTxAuthState(ctx, id)
 	if err != nil {
 		return false, err
@@ -80,4 +110,9 @@ func (k Keeper) setTxAuthState(ctx sdk.Context, id []byte, state types.TxAuthSta
 	}
 	store.Set(id, bz)
 	return nil
+}
+
+// Logger returns a logger instance
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", fmt.Sprintf("x/%s-%s", crosstypes.ModuleName, types.SubModuleName))
 }

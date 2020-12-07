@@ -3,12 +3,25 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
+// TxAuthenticator defines the expected interface of cross-chain authenticator
 type TxAuthenticator interface {
-	InitTxAuthState(ctx sdk.Context, id []byte, signers []accounttypes.Account) error
-	IsCompletedTxAuth(ctx sdk.Context, id []byte) (bool, error)
-	SignTx(ctx sdk.Context, id []byte, signers []accounttypes.Account) (bool, error)
+	// InitAuthState initializes the state of the tx corresponding to a given txID
+	InitAuthState(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) error
+	// IsCompletedAuth returns a boolean whether the tx corresponding a given txID is completed
+	IsCompletedAuth(ctx sdk.Context, txID txtypes.TxID) (bool, error)
+	// Sign executes
+	Sign(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) (bool, error)
+}
+
+// TxManager defines the expected interface of transaction manager
+type TxManager interface {
+	// IsActive returns a boolean whether the tx corresponding to a given txID is still active
+	IsActive(ctx sdk.Context, txID txtypes.TxID) (bool, error)
+	// PostAuth represents a callback function is called at post authentication
+	PostAuth(ctx sdk.Context, txID txtypes.TxID) error
 }
 
 // IsCompleted returns a boolean whether the required authentication is completed
