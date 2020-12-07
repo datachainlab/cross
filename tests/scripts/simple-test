@@ -59,7 +59,7 @@ tx_id=$(echo $res0 | jq -r '.logs[0].events[1].attributes[0].value')
 sleep 3
 
 # Sign a cross-chain transaction on chain0 from chain1
-${CHAIN_1_CMD} tx cross initiator ibc-signtx \
+${CHAIN_1_CMD} tx cross auth ibc-signtx \
     --from=user \
     --yes \
     --chain-id=ibc1 \

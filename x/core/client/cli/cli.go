@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/datachainlab/cross/x/core/auth"
 	"github.com/datachainlab/cross/x/core/initiator"
 	"github.com/datachainlab/cross/x/core/types"
 )
@@ -20,6 +21,7 @@ func GetTxCmd() *cobra.Command {
 
 	ibcTxCmd.AddCommand(
 		initiator.GetTxCmd(),
+		auth.GetTxCmd(),
 	)
 
 	return ibcTxCmd
@@ -38,6 +40,7 @@ func GetQueryCmd() *cobra.Command {
 
 	ibcQueryCmd.AddCommand(
 		initiator.GetQueryCmd(),
+		auth.GetQueryCmd(),
 	)
 
 	return ibcQueryCmd
