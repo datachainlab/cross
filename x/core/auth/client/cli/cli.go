@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/datachainlab/cross/x/core/initiator/types"
+	"github.com/datachainlab/cross/x/core/auth/types"
 	"github.com/spf13/cobra"
 )
 
@@ -19,9 +19,7 @@ func GetQueryCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	queryCmd.AddCommand(
-		GetCreateContractTransaction(),
-	)
+	// queryCmd.AddCommand()
 
 	return queryCmd
 }
@@ -37,7 +35,7 @@ func NewTxCmd() *cobra.Command {
 	}
 
 	txCmd.AddCommand(
-		NewInitiateTxCmd(),
+		NewIBCSignTxCmd(),
 	)
 
 	return txCmd
