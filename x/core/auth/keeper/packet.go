@@ -32,10 +32,11 @@ func (p Keeper) HandlePacket(
 	}
 
 	if completed {
-		// TODO emit an event
-		if err := p.txManager.PostAuth(ctx, data.TxID); err != nil {
+		if err := p.txManager.OnPostAuth(ctx, data.TxID); err != nil {
 			p.Logger(ctx).Error("failed to call PostAuth", "err", err)
+			return nil, nil, err
 		} else {
+			// TODO emit an event
 		}
 	}
 

@@ -8,7 +8,7 @@ import (
 
 var _ authtypes.TxManager = (*Keeper)(nil)
 
-// IsActive implements AuthCallbacks
+// IsActive implements TxManager interface
 func (a Keeper) IsActive(ctx sdk.Context, txID txtypes.TxID) (bool, error) {
 	// TODO add timeout support to initiator?
 	_, found := a.getTxState(ctx, txID)
@@ -18,7 +18,7 @@ func (a Keeper) IsActive(ctx sdk.Context, txID txtypes.TxID) (bool, error) {
 	return true, nil
 }
 
-// PostAuth implements AuthCallbacks
-func (a Keeper) PostAuth(ctx sdk.Context, txID txtypes.TxID) error {
+// OnPostAuth implements TxManager interface
+func (a Keeper) OnPostAuth(ctx sdk.Context, txID txtypes.TxID) error {
 	return a.TryRunTx(ctx, txID)
 }

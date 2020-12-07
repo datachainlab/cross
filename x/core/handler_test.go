@@ -17,6 +17,7 @@ import (
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/core/types"
@@ -108,7 +109,7 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 	// Send a MsgIBCSignTx to chainB & receive the MsgIBCSignTx to run the transaction on chainA
 	var packetCall channeltypes.Packet
 	{
-		msg1 := initiatortypes.MsgIBCSignTx{
+		msg1 := authtypes.MsgIBCSignTx{
 			CrossChainChannel: xccA,
 			TxID:              txID,
 			Signers:           []accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
@@ -237,7 +238,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 
 	// Send a MsgIBCSignTx to chainB
 	{
-		msg := initiatortypes.MsgIBCSignTx{
+		msg := authtypes.MsgIBCSignTx{
 			CrossChainChannel: xccBA,
 			TxID:              txID,
 			Signers:           []accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
@@ -264,7 +265,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 
 	// Send a MsgIBCSignTx to chainC
 	{
-		msg := initiatortypes.MsgIBCSignTx{
+		msg := authtypes.MsgIBCSignTx{
 			CrossChainChannel: xccCA,
 			TxID:              txID,
 			Signers:           []accounttypes.AccountID{suite.chainC.SenderAccount.GetAddress().Bytes()},

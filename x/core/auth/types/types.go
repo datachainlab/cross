@@ -20,8 +20,8 @@ type TxAuthenticator interface {
 type TxManager interface {
 	// IsActive returns a boolean whether the tx corresponding to a given txID is still active
 	IsActive(ctx sdk.Context, txID txtypes.TxID) (bool, error)
-	// PostAuth represents a callback function is called at post authentication
-	PostAuth(ctx sdk.Context, txID txtypes.TxID) error
+	// OnPostAuth represents a callback function is called at post authentication
+	OnPostAuth(ctx sdk.Context, txID txtypes.TxID) error
 }
 
 // IsCompleted returns a boolean whether the required authentication is completed
