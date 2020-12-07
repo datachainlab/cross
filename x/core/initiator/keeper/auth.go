@@ -1,8 +1,11 @@
 package keeper
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
+	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 )
 
@@ -20,5 +23,14 @@ func (a Keeper) IsActive(ctx sdk.Context, txID txtypes.TxID) (bool, error) {
 
 // OnPostAuth implements TxManager interface
 func (a Keeper) OnPostAuth(ctx sdk.Context, txID txtypes.TxID) error {
-	return a.TryRunTx(ctx, txID)
+	txState, found := a.getTxState(ctx, txID)
+	if !found {
+		return fmt.Errorf("txState '%x' not found", txID)
+	}
+	if txState.IsVerified() {
+		return fmt.Errorf("txState '%x' is already verified", txID)
+	}
+	txState.Status = types.INITIATE_TX_STATUS_VERIFIED
+	a.setTxState(ctx, txID, *txState)
+	return a.runTx(ctx, txID, &txState.Msg)
 }

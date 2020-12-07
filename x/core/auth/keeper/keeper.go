@@ -83,10 +83,11 @@ func (k Keeper) Sign(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.
 	if state.IsCompleted() {
 		return false, fmt.Errorf("id '%x' is already completed", txID)
 	}
-	isConsumed := state.ConsumeSigners(signers)
-	if !isConsumed {
-		return false, errors.New("any signers aren't consumed")
-	}
+	_ = state.ConsumeSigners(signers)
+	// TODO if no signers are consumed, returns an error
+	// if !isConsumed {
+	// 	return false, errors.New("any signers aren't consumed")
+	// }
 	if err := k.setAuthState(ctx, txID, *state); err != nil {
 		return false, err
 	}

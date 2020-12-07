@@ -23,7 +23,7 @@ func TestSign(t *testing.T) {
 		requiredSigners []accounttypes.Account
 		signers         []accounttypes.Account
 		isCompleted     bool
-		wantsSignErrors []bool
+		wantsConsumed   []bool
 	}{
 		{
 			"case-0",
@@ -34,7 +34,7 @@ func TestSign(t *testing.T) {
 				{Id: []byte{0}},
 			},
 			true,
-			[]bool{false},
+			[]bool{true},
 		},
 		{
 			"case-1",
@@ -47,7 +47,7 @@ func TestSign(t *testing.T) {
 				{Id: []byte{1}},
 			},
 			true,
-			[]bool{false, false},
+			[]bool{true, true},
 		},
 		{
 			"case-2",
@@ -60,7 +60,7 @@ func TestSign(t *testing.T) {
 				{Id: []byte{2}},
 			},
 			false,
-			[]bool{false, true},
+			[]bool{true, false},
 		},
 		{
 			"case-3",
@@ -74,7 +74,7 @@ func TestSign(t *testing.T) {
 				{Id: []byte{1}},
 			},
 			true,
-			[]bool{false, true, false},
+			[]bool{true, false, true},
 		},
 		{
 			"case-4",
@@ -98,11 +98,19 @@ func TestSign(t *testing.T) {
 			require.NoError(k.InitAuthState(ctx, txID, cs.requiredSigners))
 
 			for j, acc := range cs.signers {
+				state, _ := k.getAuthState(ctx, txID)
+				before := len(state.RemainingSigners)
+
 				_, err := k.Sign(ctx, txID, []accounttypes.Account{acc})
-				if cs.wantsSignErrors[j] {
-					require.Error(err)
+				require.NoError(err)
+
+				state, _ = k.getAuthState(ctx, txID)
+				after := len(state.RemainingSigners)
+
+				if cs.wantsConsumed[j] {
+					require.True(before > after)
 				} else {
-					require.NoError(err)
+					require.True(before == after)
 				}
 			}
 			state, err := k.getAuthState(ctx, txID)

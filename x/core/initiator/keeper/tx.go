@@ -11,21 +11,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-// TryRunTx try to run the transaction
-func (k Keeper) TryRunTx(
-	ctx sdk.Context,
-	txID txtypes.TxID,
-) error {
-	txState, found := k.getTxState(ctx, txID)
-	if !found {
-		return fmt.Errorf("txState '%x' not found", txID)
-	}
-	if !txState.IsVerified() {
-		return fmt.Errorf("txState '%x' must be verified", txID)
-	}
-	return k.runTx(ctx, txID, &txState.Msg)
-}
-
 func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (txtypes.TxID, bool, error) {
 	txID := types.MakeTxID(msg)
 	_, found := k.getTxState(ctx, txID)
