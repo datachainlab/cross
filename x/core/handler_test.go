@@ -1,9 +1,6 @@
 package core_test
 
 import (
-	"errors"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -120,7 +117,7 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 		suite.Require().NoError(err)
 		suite.chainB.NextBlock()
 
-		ps, err := getPacketsFromResult(res1)
+		ps, err := ibctesting.GetPacketsFromEvents(res1.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
 		p := ps[0]
 
@@ -129,11 +126,11 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 		)
 		suite.Require().NoError(err)
 		suite.chainA.NextBlock()
-		ps, err = getPacketsFromResult(res2)
+		ps, err = ibctesting.GetPacketsFromEvents(res2.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
 		packetCall = ps[0]
 
-		ack, err := getACKFromResult(res2)
+		ack, err := ibctesting.GetACKFromEvents(res2.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
 		_, err = acknowledgePacket(
 			suite.coordinator,
@@ -158,7 +155,7 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 		suite.Require().NoError(err)
 		suite.chainB.NextBlock()
 
-		ack, err := getACKFromResult(res)
+		ack, err := ibctesting.GetACKFromEvents(res.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
 		_, err = acknowledgePacket(
 			suite.coordinator,
@@ -249,7 +246,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 		suite.Require().NoError(err)
 		suite.chainB.NextBlock()
 
-		ps, err := getPacketsFromResult(res0)
+		ps, err := ibctesting.GetPacketsFromEvents(res0.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
 		p := ps[0]
 
@@ -259,7 +256,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 		suite.Require().NoError(err)
 		suite.chainA.NextBlock()
 		suite.chainB.NextBlock()
-		ps, err = getPacketsFromResult(res1)
+		ps, err = ibctesting.GetPacketsFromEvents(res1.GetEvents().ToABCIEvents())
 		suite.Require().Equal(0, len(ps))
 	}
 
@@ -276,7 +273,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 		suite.Require().NoError(err)
 		suite.chainC.NextBlock()
 
-		ps, err := getPacketsFromResult(res0)
+		ps, err := ibctesting.GetPacketsFromEvents(res0.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
 		p := ps[0]
 
@@ -287,7 +284,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 		suite.chainA.NextBlock()
 		suite.chainC.NextBlock()
 
-		ps, err = getPacketsFromResult(res1)
+		ps, err = ibctesting.GetPacketsFromEvents(res1.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
 		suite.Require().Equal(2, len(ps))
 	}
@@ -332,74 +329,6 @@ func acknowledgePacket(coord *ibctesting.Coordinator,
 
 	ackMsg := channeltypes.NewMsgAcknowledgement(packet, ack, proof, proofHeight, source.SenderAccount.GetAddress())
 	return sendMsgs(coord, source, counterparty, counterpartyClient, ackMsg)
-}
-
-func getPacketsFromResult(res *sdk.Result) ([]channeltypes.Packet, error) {
-	var packets []channeltypes.Packet
-	events := sdk.StringifyEvents(res.GetEvents().ToABCIEvents())
-	for _, ev := range events {
-		if ev.Type == channeltypes.EventTypeSendPacket {
-			// NOTE: Attributes of packet are included in one event.
-			var packet channeltypes.Packet
-			for _, attr := range ev.Attributes {
-				switch attr.Key {
-				case channeltypes.AttributeKeyData:
-					// AttributeKeyData key indicates a start of packet attributes
-					packet = channeltypes.Packet{}
-					packet.Data = []byte(attr.Value)
-				case channeltypes.AttributeKeyTimeoutHeight:
-					parts := strings.Split(attr.Value, "-")
-					packet.TimeoutHeight = clienttypes.NewHeight(
-						strToUint64(parts[0]),
-						strToUint64(parts[1]),
-					)
-				case channeltypes.AttributeKeyTimeoutTimestamp:
-					packet.TimeoutTimestamp = strToUint64(attr.Value)
-				case channeltypes.AttributeKeySequence:
-					packet.Sequence = strToUint64(attr.Value)
-				case channeltypes.AttributeKeySrcPort:
-					packet.SourcePort = attr.Value
-				case channeltypes.AttributeKeySrcChannel:
-					packet.SourceChannel = attr.Value
-				case channeltypes.AttributeKeyDstPort:
-					packet.DestinationPort = attr.Value
-				case channeltypes.AttributeKeyDstChannel:
-					packet.DestinationChannel = attr.Value
-				case channeltypes.AttributeKeyChannelOrdering:
-					// AttributeKeyChannelOrdering key indicates the end of packet atrributes
-					if err := packet.ValidateBasic(); err != nil {
-						return nil, err
-					}
-					packets = append(packets, packet)
-				}
-			}
-		}
-	}
-	return packets, nil
-}
-
-func getACKFromResult(res *sdk.Result) ([]byte, error) {
-	events := sdk.StringifyEvents(res.GetEvents().ToABCIEvents())
-	for _, ev := range events {
-		if ev.Type == channeltypes.EventTypeWriteAck {
-			for _, attr := range ev.Attributes {
-				switch attr.Key {
-				case channeltypes.AttributeKeyAck:
-					return []byte(attr.Value), nil
-				}
-			}
-		}
-	}
-
-	return nil, errors.New("ack not found")
-}
-
-func strToUint64(s string) uint64 {
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-	return uint64(v)
 }
 
 func TestCrossTestSuite(t *testing.T) {
