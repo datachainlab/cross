@@ -9,6 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/auth/types"
+	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
@@ -53,20 +54,20 @@ func (k *Keeper) SetTxManager(txm types.TxManager) {
 }
 
 // InitAuthState implements the TxAuthenticator interface
-func (k Keeper) InitAuthState(ctx sdk.Context, id []byte, signers []accounttypes.Account) error {
-	_, err := k.getAuthState(ctx, id)
+func (k Keeper) InitAuthState(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) error {
+	_, err := k.getAuthState(ctx, txID)
 	if err == nil {
-		return fmt.Errorf("id '%x' already exists", id)
+		return fmt.Errorf("id '%x' already exists", txID)
 	} else if !errors.As(err, &types.ErrIDNotFound{}) {
 		return err
 	}
 
-	return k.setAuthState(ctx, id, types.TxAuthState{RemainingSigners: signers})
+	return k.setAuthState(ctx, txID, types.TxAuthState{RemainingSigners: signers})
 }
 
 // IsCompletedAuth implements the TxAuthenticator interface
-func (k Keeper) IsCompletedAuth(ctx sdk.Context, id []byte) (bool, error) {
-	state, err := k.getAuthState(ctx, id)
+func (k Keeper) IsCompletedAuth(ctx sdk.Context, txID txtypes.TxID) (bool, error) {
+	state, err := k.getAuthState(ctx, txID)
 	if err != nil {
 		return false, err
 	}
@@ -74,16 +75,19 @@ func (k Keeper) IsCompletedAuth(ctx sdk.Context, id []byte) (bool, error) {
 }
 
 // Sign implements the TxAuthenticator interface
-func (k Keeper) Sign(ctx sdk.Context, id []byte, signers []accounttypes.Account) (bool, error) {
-	state, err := k.getAuthState(ctx, id)
+func (k Keeper) Sign(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) (bool, error) {
+	state, err := k.getAuthState(ctx, txID)
 	if err != nil {
 		return false, err
 	}
 	if state.IsCompleted() {
-		return false, fmt.Errorf("id '%x' is already completed", id)
+		return false, fmt.Errorf("id '%x' is already completed", txID)
 	}
-	state.ConsumeSigners(signers)
-	if err := k.setAuthState(ctx, id, *state); err != nil {
+	isConsumed := state.ConsumeSigners(signers)
+	if !isConsumed {
+		return false, errors.New("any signers aren't consumed")
+	}
+	if err := k.setAuthState(ctx, txID, *state); err != nil {
 		return false, err
 	}
 	return state.IsCompleted(), nil

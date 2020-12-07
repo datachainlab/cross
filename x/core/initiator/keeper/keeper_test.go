@@ -92,7 +92,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	}
 	suite.Require().NoError(msg0.ValidateBasic())
 
-	res0, err := suite.chainA.App.CrossKeeper.InitiateTx(
+	res0, err := suite.chainA.App.CrossKeeper.InitiatorKeeper().InitiateTx(
 		sdk.WrapSDKContext(suite.chainA.GetContext()),
 		msg0,
 	)

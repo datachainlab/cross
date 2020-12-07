@@ -1,0 +1,23 @@
+syntax = "proto3";
+package cross.core.auth;
+
+import "google/api/annotations.proto";
+import "gogoproto/gogo.proto";
+import "cross/core/auth/types.proto";
+
+option go_package = "github.com/datachainlab/cross/x/core/auth/types";
+option (gogoproto.goproto_getters_all) = false;
+
+service Query {
+  rpc TxAuthState(QueryTxAuthStateRequest) returns (QueryTxAuthStateResponse) {
+    option (google.api.http).get = "/cross/core/auth/txauthstate";
+  }
+}
+
+message QueryTxAuthStateRequest {
+  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
+}
+
+message QueryTxAuthStateResponse {
+  cross.core.auth.TxAuthState tx_auth_state = 1;
+}

@@ -30,8 +30,10 @@ func (s TxAuthState) IsCompleted() bool {
 }
 
 // ConsumeSigners removes the signers from required signers
-func (s *TxAuthState) ConsumeSigners(signers []accounttypes.Account) {
+func (s *TxAuthState) ConsumeSigners(signers []accounttypes.Account) (isConsumed bool) {
+	before := len(s.RemainingSigners)
 	s.RemainingSigners = getRemainingAccounts(signers, s.RemainingSigners)
+	return before-len(s.RemainingSigners) > 0
 }
 
 func getRemainingAccounts(signers, required []accounttypes.Account) []accounttypes.Account {
