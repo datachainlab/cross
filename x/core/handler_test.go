@@ -50,7 +50,6 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 	// setup
 
 	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(types.PortID)
 	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, types.PortID, types.PortID, channeltypes.UNORDERED)
 
 	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
@@ -174,7 +173,6 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	// setup
 
 	clientAB, clientBA, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(types.PortID)
 	channelAB, channelBA := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connAB, connBA, types.PortID, types.PortID, channeltypes.UNORDERED)
 	chAB := xcctypes.ChannelInfo{Port: channelAB.PortID, Channel: channelAB.ID}
 	xccAB, err := xcctypes.PackCrossChainChannel(&chAB)
@@ -184,7 +182,6 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	suite.Require().NoError(err)
 
 	clientAC, clientCA, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, ibctesting.Tendermint)
-	suite.chainC.CreatePortCapability(types.PortID)
 	channelAC, channelCA := suite.coordinator.CreateChannel(suite.chainA, suite.chainC, connAC, connCA, types.PortID, types.PortID, channeltypes.UNORDERED)
 	chAC := xcctypes.ChannelInfo{Port: channelAC.PortID, Channel: channelAC.ID}
 	xccAC, err := xcctypes.PackCrossChainChannel(&chAC)

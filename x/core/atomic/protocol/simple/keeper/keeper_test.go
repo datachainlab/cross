@@ -53,7 +53,6 @@ func (suite *KeeperTestSuite) TestCall() {
 	// setup
 
 	_, _, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(crosstypes.PortID)
 	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
 	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
