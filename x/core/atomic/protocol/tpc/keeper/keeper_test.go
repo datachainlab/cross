@@ -53,14 +53,12 @@ func (suite *KeeperTestSuite) TestTransaction() {
 	// A(coordinator) => C(participant) -> Connection: AC, CA, Channel: AC, AC
 
 	_, _, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(crosstypes.PortID)
 	channelAB, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connAB, connBA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAB := xcctypes.ChannelInfo{Port: channelAB.PortID, Channel: channelAB.ID}
 	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
 	suite.Require().NoError(err)
 
 	_, _, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, ibctesting.Tendermint)
-	suite.chainC.CreatePortCapability(crosstypes.PortID)
 	channelAC, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainC, connAC, connCA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAC := xcctypes.ChannelInfo{Port: channelAC.PortID, Channel: channelAC.ID}
 	xccC, err := xcctypes.PackCrossChainChannel(&chAC)

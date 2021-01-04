@@ -43,12 +43,10 @@ func (suite *KeeperTestSuite) SetupTest() {
 func (suite *KeeperTestSuite) TestAuth() {
 	// setup channels
 	_, _, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
-	suite.chainB.CreatePortCapability(crosstypes.PortID)
 	channelAB, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connAB, connBA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAB := xcctypes.ChannelInfo{Port: channelAB.PortID, Channel: channelAB.ID}
 
 	_, _, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, ibctesting.Tendermint)
-	suite.chainC.CreatePortCapability(crosstypes.PortID)
 	channelAC, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainC, connAC, connCA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAC := xcctypes.ChannelInfo{Port: channelAC.PortID, Channel: channelAC.ID}
 
