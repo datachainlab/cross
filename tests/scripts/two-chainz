@@ -71,7 +71,3 @@ SEED0=$(jq -r '.mnemonic' $CHAIN_DATA/ibc0/key_seed.json)
 SEED1=$(jq -r '.mnemonic' $CHAIN_DATA/ibc1/key_seed.json)
 echo "Key $(${RLY_BINARY} keys restore ibc0 testkey "$SEED0") imported from ibc0 to relayer..."
 echo "Key $(${RLY_BINARY} keys restore ibc1 testkey "$SEED1") imported from ibc1 to relayer..."
-echo "Creating light clients..."
-sleep 3
-${RLY_BINARY} light init ibc0 -f
-${RLY_BINARY} light init ibc1 -f
