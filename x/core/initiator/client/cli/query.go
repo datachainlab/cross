@@ -37,6 +37,7 @@ func GetCreateContractTransaction() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			ctx := cmd.Context()
 
 			var anyXCC *codectypes.Any
 
@@ -46,16 +47,20 @@ func GetCreateContractTransaction() *cobra.Command {
 			if isInitiator {
 				// Query self-XCC to query server
 				crossClient := types.NewQueryClient(clientCtx)
-				res, err := crossClient.SelfXCC(context.Background(), &types.QuerySelfXCCRequest{})
+				res, err := crossClient.SelfXCC(ctx, &types.QuerySelfXCCRequest{})
 				if err != nil {
 					return err
 				}
 				anyXCC = res.Xcc
 			} else {
 				anyXCC, err = resolveXCCForInitiator(
+					ctx,
 					channeltypes.NewQueryClient(clientCtx),
 					initiatorChannel,
 				)
+				if err != nil {
+					return err
+				}
 			}
 
 			var signers []accounttypes.AccountID
@@ -105,21 +110,20 @@ func parseChannelInfoFromString(s string) (*xcctypes.ChannelInfo, error) {
 	return &xcctypes.ChannelInfo{Channel: parts[0], Port: parts[1]}, nil
 }
 
-func resolveXCCForInitiator(queryClient channeltypes.QueryClient, s string) (*codectypes.Any, error) {
+func resolveXCCForInitiator(ctx context.Context, queryClient channeltypes.QueryClient, s string) (*codectypes.Any, error) {
 	ci, err := parseChannelInfoFromString(s)
 	if err != nil {
 		return nil, err
 	}
-	xcc, err := resolveXCCFromChannel(queryClient, *ci)
+	xcc, err := resolveXCCFromChannel(ctx, queryClient, *ci)
 	if err != nil {
 		return nil, err
 	}
 	return xcctypes.PackCrossChainChannel(xcc)
 }
 
-func resolveXCCFromChannel(queryClient channeltypes.QueryClient, ci xcctypes.ChannelInfo) (xcctypes.XCC, error) {
+func resolveXCCFromChannel(ctx context.Context, queryClient channeltypes.QueryClient, ci xcctypes.ChannelInfo) (xcctypes.XCC, error) {
 	// Get a source chainId of initiator
-	ctx := context.Background()
 	res, err := queryClient.Channel(ctx, &channeltypes.QueryChannelRequest{PortId: ci.Port, ChannelId: ci.Channel})
 	if err != nil {
 		return nil, err
