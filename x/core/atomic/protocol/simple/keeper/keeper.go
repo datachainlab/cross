@@ -101,38 +101,49 @@ func (k Keeper) SendCall(
 	if !found {
 		return sdkerrors.Wrap(channeltypes.ErrChannelNotFound, ch1.Channel)
 	}
+
+	var coordinatorPhase atomictypes.CoordinatorPhase
+	var prepareResult atomictypes.PrepareResult
+
 	// TODO returns a result of contract call
 	_, err = k.cm.PrepareCommit(ctx, txID, TxIndexCoordinator, tx0)
 	if err != nil {
-		return err
-	}
+		coordinatorPhase = atomictypes.COORDINATOR_PHASE_COMMIT
+		prepareResult = atomictypes.PREPARE_RESULT_FAILED
+	} else {
+		payload := types.NewPacketDataCall(txID, tx1)
+		if err := k.SendPacket(
+			ctx,
+			packetSender,
+			&payload,
+			ch1.Port, ch1.Channel,
+			c.Counterparty.PortId, c.Counterparty.ChannelId,
+			timeoutHeight,
+			timeoutTimestamp,
+		); err != nil {
+			return err
+		}
 
-	payload := types.NewPacketDataCall(txID, tx1)
-	if err := k.SendPacket(
-		ctx,
-		packetSender,
-		&payload,
-		ch1.Port, ch1.Channel,
-		c.Counterparty.PortId, c.Counterparty.ChannelId,
-		timeoutHeight,
-		timeoutTimestamp,
-	); err != nil {
-		return err
+		coordinatorPhase = atomictypes.COORDINATOR_PHASE_PREPARE
+		prepareResult = atomictypes.PREPARE_RESULT_OK
 	}
 
 	cs := atomictypes.NewCoordinatorState(
 		txtypes.COMMIT_PROTOCOL_SIMPLE,
-		atomictypes.COORDINATOR_PHASE_PREPARE,
+		coordinatorPhase,
 		[]xcctypes.ChannelInfo{*ch0, *ch1},
 	)
 	if err := cs.Confirm(TxIndexCoordinator, *ch0); err != nil {
 		return err
 	}
+	if prepareResult == atomictypes.PREPARE_RESULT_FAILED {
+		cs.Decision = atomictypes.COORDINATOR_DECISION_ABORT
+	}
 	k.SetCoordinatorState(ctx, txID, cs)
 
 	cTxState := atomictypes.NewContractTransactionState(
 		atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE,
-		atomictypes.PREPARE_RESULT_OK,
+		prepareResult,
 		*ch0,
 	)
 	k.SetContractTransactionState(ctx, txID, TxIndexCoordinator, cTxState)
@@ -172,6 +183,7 @@ func (k Keeper) ReceiveCallPacket(
 	)
 	res, err := k.cm.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.Tx)
 	if err != nil {
+		res = &txtypes.ContractCallResult{}
 		prepareStatus = atomictypes.PREPARE_RESULT_FAILED
 		commitStatus = types.COMMIT_STATUS_FAILED
 		ctxStatus = atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT
@@ -256,6 +268,7 @@ func (k Keeper) TryCommit(
 		}
 		status = atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT
 	} else {
+		res = &txtypes.ContractCallResult{}
 		err = k.cm.Abort(ctx, txID, TxIndexCoordinator)
 		if err != nil {
 			return nil, err
