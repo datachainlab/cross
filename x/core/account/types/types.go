@@ -7,12 +7,16 @@ import (
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
+// AccountID represents ID of account
+// e.g. AccAddress in cosmos-SDK
 type AccountID []byte
 
+// AccountIDFromAccAddress converts given AccAddress to AccountID
 func AccountIDFromAccAddress(acc sdk.AccAddress) AccountID {
 	return AccountID(acc)
 }
 
+// AccAddress returns AccAddress
 func (id AccountID) AccAddress() sdk.AccAddress {
 	return sdk.AccAddress(id)
 }
