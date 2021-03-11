@@ -278,25 +278,29 @@ func (suite *KeeperTestSuite) TestCall() {
 			ps := ibctesting.NewCapturePacketSender(
 				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
 			)
-			err = kA.SendCall(
-				suite.chainA.GetContext(),
-				ps,
-				txID,
-				txs,
-				clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
-				0,
+			suite.Require().NoError(
+				kA.SendCall(
+					suite.chainA.GetContext(),
+					ps,
+					txID,
+					txs,
+					clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
+					0,
+				),
 			)
 
-			// If the transaction initiator fails, this process is terminated at this point.
+			// check if coordinator state is expected
+			cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
+			suite.Require().True(found)
 			if c.hasErrorSendCall {
-				suite.Require().Error(err)
-
-				_, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
-				suite.Require().False(found)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_COMMIT, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_ABORT, cs.Decision)
 				suite.Require().Equal(0, len(ps.Packets()))
 				return
 			} else {
-				suite.Require().NoError(err)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
+				suite.Require().Equal(1, len(ps.Packets()))
 			}
 
 			suite.chainA.NextBlock()
@@ -315,7 +319,7 @@ func (suite *KeeperTestSuite) TestCall() {
 
 			// check if coordinator state is expected
 
-			cs, found := suite.chainA.App.AtomicKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
+			cs, found = suite.chainA.App.AtomicKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
 			suite.Require().True(found)
 			suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
 			suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)

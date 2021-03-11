@@ -183,7 +183,6 @@ func (k Keeper) ReceiveCallPacket(
 	)
 	res, err := k.cm.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.Tx)
 	if err != nil {
-		res = &txtypes.ContractCallResult{}
 		prepareStatus = atomictypes.PREPARE_RESULT_FAILED
 		commitStatus = types.COMMIT_STATUS_FAILED
 		ctxStatus = atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT
@@ -268,7 +267,6 @@ func (k Keeper) TryCommit(
 		}
 		status = atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT
 	} else {
-		res = &txtypes.ContractCallResult{}
 		err = k.cm.Abort(ctx, txID, TxIndexCoordinator)
 		if err != nil {
 			return nil, err
