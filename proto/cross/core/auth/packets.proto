@@ -24,5 +24,13 @@ message PacketDataIBCSignTx {
 
 message PacketAcknowledgementIBCSignTx {
   option (gogoproto.equal)           = false;
-  uint32 status = 1;
+  IBCSignTxStatus status = 1;
+}
+
+enum IBCSignTxStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  IBC_SIGN_TX_STATUS_UNKNOWN = 0;
+  IBC_SIGN_TX_STATUS_OK      = 1;
+  IBC_SIGN_TX_STATUS_FAILED  = 2;
 }
