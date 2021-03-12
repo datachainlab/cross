@@ -15,8 +15,8 @@ var _ packets.PacketDataPayload = (*PacketDataCall)(nil)
 func NewPacketDataCall(
 	txID txtypes.TxID,
 	tx txtypes.ResolvedContractTransaction,
-) PacketDataCall {
-	return PacketDataCall{TxId: txID, Tx: tx}
+) *PacketDataCall {
+	return &PacketDataCall{TxId: txID, Tx: tx}
 }
 
 func (p PacketDataCall) ValidateBasic() error {
