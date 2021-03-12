@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -11,6 +12,7 @@ import (
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
@@ -152,14 +154,19 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	suite.Require().Equal(1, len(ps.Packets()))
 	suite.chainB.NextBlock()
 
-	// Receive PacketIBCSignTx contains same txID must be fail
+	// Receive PacketIBCSignTx contains duplicate txID must be fail
 	p1 := ps.Packets()[0]
-	_, _, err = suite.chainA.App.CrossKeeper.AuthKeeper().HandlePacket(
+	_, ack, err := suite.chainA.App.CrossKeeper.AuthKeeper().HandlePacket(
 		suite.chainA.GetContext(),
 		channeltypes.Packet{DestinationPort: p1.GetDestPort(), DestinationChannel: p1.GetDestChannel()},
 		p1,
 	)
-	suite.Require().Error(err)
+	suite.Require().NoError(err)
+	ackBz, err := json.Marshal(ack)
+	suite.Require().NoError(err)
+	inAck, err := packets.UnmarshalJSONIncomingPacketAcknowledgement(suite.chainA.App.AppCodec(), ackBz)
+	suite.Require().NoError(err)
+	suite.Require().Equal(authtypes.IBC_SIGN_TX_STATUS_FAILED, inAck.Payload().(*authtypes.PacketAcknowledgementIBCSignTx).Status)
 }
 
 func TestKeeperTestSuite(t *testing.T) {

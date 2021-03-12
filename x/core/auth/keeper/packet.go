@@ -21,38 +21,41 @@ func (p Keeper) HandlePacket(
 		return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to handle request: %v", err)
 	}
 
+	var (
+		status types.IBCSignTxStatus
+		log    string
+	)
 	data := *ip.Payload().(*types.PacketDataIBCSignTx)
 	completed, err := p.ReceiveIBCSignTx(
 		ctx,
 		packet.DestinationPort, packet.DestinationChannel,
 		data,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if completed {
+	switch {
+	case err == nil && completed:
+		status = types.IBC_SIGN_TX_STATUS_OK
 		if err := p.txManager.OnPostAuth(ctx, data.TxID); err != nil {
 			p.Logger(ctx).Error("failed to call PostAuth", "err", err)
-			return nil, nil, err
-		} else {
-			// TODO emit an event
+			log = err.Error()
 		}
+	case err == nil:
+		status = types.IBC_SIGN_TX_STATUS_OK
+	default:
+		status = types.IBC_SIGN_TX_STATUS_FAILED
+		log = err.Error()
 	}
 
-	// TODO fix status code
 	ack := packets.NewOutgoingPacketAcknowledgement(
 		p.m,
 		nil,
-		&types.PacketAcknowledgementIBCSignTx{Status: 0},
+		&types.PacketAcknowledgementIBCSignTx{Status: status},
 	)
-
 	if err = as.SendACK(ctx, ack); err != nil {
 		return nil, nil, err
 	}
 
 	ackData := ack.Data()
-	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, &ackData, nil
+	return &sdk.Result{Events: ctx.EventManager().ABCIEvents(), Log: log}, &ackData, nil
 }
 
 func (p Keeper) HandleACK(
@@ -61,5 +64,6 @@ func (p Keeper) HandleACK(
 	ip packets.IncomingPacket,
 	ipa packets.IncomingPacketAcknowledgement,
 ) (*sdk.Result, error) {
+	// TODO handle an acknowledgement data
 	return &sdk.Result{Data: nil, Events: ctx.EventManager().ABCIEvents()}, nil
 }

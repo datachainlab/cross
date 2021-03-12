@@ -10,6 +10,7 @@ import (
 
 var _ types.QueryServer = (*Keeper)(nil)
 
+// SelfXCC returns XCC which indicates self channel
 func (q Keeper) SelfXCC(c context.Context, req *types.QuerySelfXCCRequest) (*types.QuerySelfXCCResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	xcc := q.xccResolver.GetSelfCrossChainChannel(ctx)

@@ -108,8 +108,8 @@ func (k contractManager) processTransaction(
 		return nil, err
 	}
 
-	if !tx.ReturnValue.IsNil() && !tx.ReturnValue.Equal(txtypes.NewReturnValue(res.Data)) {
-		return nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *tx.ReturnValue, res.Data)
+	if !tx.ReturnValue.IsNil() && !tx.ReturnValue.Equal(txtypes.NewReturnValue(res.GetData())) {
+		return nil, fmt.Errorf("unexpected return-value: expected='%X' actual='%X'", *tx.ReturnValue, res.GetData())
 	}
 
 	return res, nil

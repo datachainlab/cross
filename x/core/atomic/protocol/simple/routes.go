@@ -51,7 +51,7 @@ func (h PacketHandler) HandlePacket(
 		return nil, nil, err
 	}
 	ackData := ack.Data()
-	return &sdk.Result{Data: res.Data, Events: ctx.EventManager().ABCIEvents()}, &ackData, nil
+	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().ABCIEvents()}, &ackData, nil
 }
 
 func (h PacketHandler) HandleACK(
@@ -74,5 +74,5 @@ func (h PacketHandler) HandleACK(
 		return nil, err
 	}
 	ctx.EventManager().EmitEvents(res.GetEvents())
-	return &sdk.Result{Data: res.Data, Events: ctx.EventManager().ABCIEvents()}, nil
+	return &sdk.Result{Data: res.GetData(), Events: ctx.EventManager().ABCIEvents()}, nil
 }

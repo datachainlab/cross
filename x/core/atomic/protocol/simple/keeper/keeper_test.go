@@ -278,25 +278,29 @@ func (suite *KeeperTestSuite) TestCall() {
 			ps := ibctesting.NewCapturePacketSender(
 				packets.NewBasicPacketSender(suite.chainA.App.IBCKeeper.ChannelKeeper),
 			)
-			err = kA.SendCall(
-				suite.chainA.GetContext(),
-				ps,
-				txID,
-				txs,
-				clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
-				0,
+			suite.Require().NoError(
+				kA.SendCall(
+					suite.chainA.GetContext(),
+					ps,
+					txID,
+					txs,
+					clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
+					0,
+				),
 			)
 
-			// If the transaction initiator fails, this process is terminated at this point.
+			// check if coordinator state is expected
+			cs, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
+			suite.Require().True(found)
 			if c.hasErrorSendCall {
-				suite.Require().Error(err)
-
-				_, found := kA.GetCoordinatorState(suite.chainA.GetContext(), txID)
-				suite.Require().False(found)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_COMMIT, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_ABORT, cs.Decision)
 				suite.Require().Equal(0, len(ps.Packets()))
 				return
 			} else {
-				suite.Require().NoError(err)
+				suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
+				suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
+				suite.Require().Equal(1, len(ps.Packets()))
 			}
 
 			suite.chainA.NextBlock()
@@ -315,7 +319,7 @@ func (suite *KeeperTestSuite) TestCall() {
 
 			// check if coordinator state is expected
 
-			cs, found := suite.chainA.App.AtomicKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
+			cs, found = suite.chainA.App.AtomicKeeper.SimpleKeeper().GetCoordinatorState(suite.chainA.GetContext(), txID)
 			suite.Require().True(found)
 			suite.Require().Equal(atomictypes.COORDINATOR_PHASE_PREPARE, cs.Phase)
 			suite.Require().Equal(atomictypes.COORDINATOR_DECISION_UNKNOWN, cs.Decision)
@@ -338,7 +342,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			// If participant call is success, returns the result data of contract.
 			if ack.Status == types.COMMIT_STATUS_OK {
 				suite.Require().NotNil(res)
-				suite.Require().Equal(res.Data, c.expectedResult[1])
+				suite.Require().Equal(c.expectedResult[1], res.GetData())
 				// check if concurrent access is success
 				suite.Require().NotPanics(func() {
 					ctx, _ := suite.chainB.GetContext().CacheContext()
@@ -371,7 +375,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			suite.Require().NoError(err)
 			if c.initiatorCommittable {
 				suite.Require().NotNil(res)
-				suite.Require().Equal(c.expectedResult[0], res.Data)
+				suite.Require().Equal(c.expectedResult[0], res.GetData())
 			} else {
 				suite.Require().Nil(res)
 			}

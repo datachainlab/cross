@@ -27,8 +27,20 @@ type ContractManager interface {
 	) error
 }
 
+// GetData returns Data
+func (res *ContractCallResult) GetData() []byte {
+	if res == nil {
+		return nil
+	} else {
+		return res.Data
+	}
+}
+
 // GetEvents converts Events to sdk.Events
-func (res ContractCallResult) GetEvents() sdk.Events {
+func (res *ContractCallResult) GetEvents() sdk.Events {
+	if res == nil {
+		return nil
+	}
 	events := make(sdk.Events, 0, len(res.Events))
 	for _, ev := range res.Events {
 		attrs := make([]sdk.Attribute, 0, len(ev.Attributes))

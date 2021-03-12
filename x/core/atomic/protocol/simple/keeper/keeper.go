@@ -101,41 +101,31 @@ func (k Keeper) SendCall(
 	if !found {
 		return sdkerrors.Wrap(channeltypes.ErrChannelNotFound, ch1.Channel)
 	}
+
+	var prepareResult atomictypes.PrepareResult
+
 	// TODO returns a result of contract call
 	_, err = k.cm.PrepareCommit(ctx, txID, TxIndexCoordinator, tx0)
 	if err != nil {
-		return err
+		prepareResult = atomictypes.PREPARE_RESULT_FAILED
+		k.Logger(ctx).Info("failed to PrepareCommit", "err", err)
+	} else {
+		prepareResult = atomictypes.PREPARE_RESULT_OK
+		if err := k.SendPacket(
+			ctx,
+			packetSender,
+			types.NewPacketDataCall(txID, tx1),
+			ch1.Port, ch1.Channel,
+			c.Counterparty.PortId, c.Counterparty.ChannelId,
+			timeoutHeight,
+			timeoutTimestamp,
+		); err != nil {
+			return err
+		}
 	}
 
-	payload := types.NewPacketDataCall(txID, tx1)
-	if err := k.SendPacket(
-		ctx,
-		packetSender,
-		&payload,
-		ch1.Port, ch1.Channel,
-		c.Counterparty.PortId, c.Counterparty.ChannelId,
-		timeoutHeight,
-		timeoutTimestamp,
-	); err != nil {
-		return err
-	}
-
-	cs := atomictypes.NewCoordinatorState(
-		txtypes.COMMIT_PROTOCOL_SIMPLE,
-		atomictypes.COORDINATOR_PHASE_PREPARE,
-		[]xcctypes.ChannelInfo{*ch0, *ch1},
-	)
-	if err := cs.Confirm(TxIndexCoordinator, *ch0); err != nil {
-		return err
-	}
-	k.SetCoordinatorState(ctx, txID, cs)
-
-	cTxState := atomictypes.NewContractTransactionState(
-		atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE,
-		atomictypes.PREPARE_RESULT_OK,
-		*ch0,
-	)
-	k.SetContractTransactionState(ctx, txID, TxIndexCoordinator, cTxState)
+	k.SetCoordinatorState(ctx, txID, makeCoordinatorState([]xcctypes.ChannelInfo{*ch0, *ch1}, prepareResult))
+	k.SetContractTransactionState(ctx, txID, TxIndexCoordinator, makeSenderContractTransactionState(prepareResult, *ch0))
 	return nil
 }
 
@@ -165,29 +155,23 @@ func (k Keeper) ReceiveCallPacket(
 	// 	return nil, nil, errors.New("CrossChainResolver cannot resolve cannot support the cross-chain calls feature")
 	// }
 
-	var (
-		prepareStatus atomictypes.PrepareResult
-		commitStatus  types.CommitStatus
-		ctxStatus     atomictypes.ContractTransactionStatus
-	)
+	var commitStatus types.CommitStatus
 	res, err := k.cm.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.Tx)
 	if err != nil {
-		prepareStatus = atomictypes.PREPARE_RESULT_FAILED
 		commitStatus = types.COMMIT_STATUS_FAILED
-		ctxStatus = atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT
 		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
 	} else {
-		prepareStatus = atomictypes.PREPARE_RESULT_OK
 		commitStatus = types.COMMIT_STATUS_OK
-		ctxStatus = atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT
 	}
-
-	txinfo := atomictypes.NewContractTransactionState(
-		ctxStatus,
-		prepareStatus,
-		xcctypes.ChannelInfo{Port: destPort, Channel: destChannel},
+	k.SetContractTransactionState(
+		ctx,
+		data.TxId,
+		TxIndexParticipant,
+		makeReceiverContractTransactionState(
+			xcctypes.ChannelInfo{Port: destPort, Channel: destChannel},
+			commitStatus,
+		),
 	)
-	k.SetContractTransactionState(ctx, data.TxId, TxIndexParticipant, txinfo)
 	return res, types.NewPacketAcknowledgementCall(commitStatus), nil
 }
 
@@ -236,6 +220,8 @@ func (k Keeper) ReceiveCallAcknowledgement(
 	return isCommittable, nil
 }
 
+// TryCommit try to commit or abort a transaction
+// caller is coordinator
 func (k Keeper) TryCommit(
 	ctx sdk.Context,
 	txID txtypes.TxID,
@@ -269,4 +255,74 @@ func (k Keeper) TryCommit(
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("cross/core/atomic/%s", TypeName))
+}
+
+// makeCoordinatorState returns a state of coordinator after `prepare`
+// CONTRACT:
+// - `channels` length must be 2
+// - `prepareResult` must be PREPARE_RESULT_OK or PREPARE_RESULT_FAILED
+func makeCoordinatorState(channels []xcctypes.ChannelInfo, prepareResult atomictypes.PrepareResult) atomictypes.CoordinatorState {
+	if len(channels) != 2 {
+		panic(fmt.Errorf("channels length must be 2"))
+	}
+
+	var (
+		coordinatorPhase    atomictypes.CoordinatorPhase
+		coordinatorDecision atomictypes.CoordinatorDecision
+	)
+
+	if prepareResult == atomictypes.PREPARE_RESULT_OK {
+		coordinatorPhase = atomictypes.COORDINATOR_PHASE_PREPARE
+		coordinatorDecision = atomictypes.COORDINATOR_DECISION_UNKNOWN
+	} else if prepareResult == atomictypes.PREPARE_RESULT_FAILED {
+		coordinatorPhase = atomictypes.COORDINATOR_PHASE_COMMIT
+		coordinatorDecision = atomictypes.COORDINATOR_DECISION_ABORT
+	} else {
+		panic(fmt.Errorf("unexpected value: %v", prepareResult))
+	}
+
+	cs := atomictypes.NewCoordinatorState(
+		txtypes.COMMIT_PROTOCOL_SIMPLE,
+		coordinatorPhase,
+		channels,
+	)
+	cs.Decision = coordinatorDecision
+	if err := cs.Confirm(TxIndexCoordinator, channels[0]); err != nil {
+		panic(err)
+	}
+	return cs
+}
+
+// makeSenderContractTransactionState returns a ContractTransactionState of coordinator after `prepare`
+// CONTRACT:
+// - `prepareResult` must be PREPARE_RESULT_OK or PREPARE_RESULT_FAILED
+func makeSenderContractTransactionState(prepareResult atomictypes.PrepareResult, channel xcctypes.ChannelInfo) atomictypes.ContractTransactionState {
+	if prepareResult == atomictypes.PREPARE_RESULT_OK {
+		return atomictypes.NewContractTransactionState(atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE, prepareResult, channel)
+	} else if prepareResult == atomictypes.PREPARE_RESULT_FAILED {
+		return atomictypes.NewContractTransactionState(atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT, prepareResult, channel)
+	} else {
+		panic(fmt.Errorf("unexpected value: %v", prepareResult))
+	}
+}
+
+// makeReceiverContractTransactionState returns a ContractTransactionState of participant(doesn't have the coordinator role) after `commit`
+// CONTRACT:
+// - `commitStatus` must be COMMIT_STATUS_OK or COMMIT_STATUS_FAILED
+func makeReceiverContractTransactionState(channel xcctypes.ChannelInfo, commitStatus types.CommitStatus) atomictypes.ContractTransactionState {
+	if commitStatus == types.COMMIT_STATUS_OK {
+		return atomictypes.NewContractTransactionState(
+			atomictypes.CONTRACT_TRANSACTION_STATUS_COMMIT,
+			atomictypes.PREPARE_RESULT_OK,
+			channel,
+		)
+	} else if commitStatus == types.COMMIT_STATUS_FAILED {
+		return atomictypes.NewContractTransactionState(
+			atomictypes.CONTRACT_TRANSACTION_STATUS_ABORT,
+			atomictypes.PREPARE_RESULT_FAILED,
+			channel,
+		)
+	} else {
+		panic(fmt.Errorf("unexpected value: %v", commitStatus))
+	}
 }
