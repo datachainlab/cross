@@ -342,7 +342,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			// If participant call is success, returns the result data of contract.
 			if ack.Status == types.COMMIT_STATUS_OK {
 				suite.Require().NotNil(res)
-				suite.Require().Equal(res.Data, c.expectedResult[1])
+				suite.Require().Equal(c.expectedResult[1], res.GetData())
 				// check if concurrent access is success
 				suite.Require().NotPanics(func() {
 					ctx, _ := suite.chainB.GetContext().CacheContext()
@@ -375,7 +375,7 @@ func (suite *KeeperTestSuite) TestCall() {
 			suite.Require().NoError(err)
 			if c.initiatorCommittable {
 				suite.Require().NotNil(res)
-				suite.Require().Equal(c.expectedResult[0], res.Data)
+				suite.Require().Equal(c.expectedResult[0], res.GetData())
 			} else {
 				suite.Require().Nil(res)
 			}
