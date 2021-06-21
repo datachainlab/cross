@@ -9,6 +9,7 @@ import (
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
@@ -20,7 +21,6 @@ import (
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/utils"
 )
 
 type KeeperTestSuite struct {
@@ -332,9 +332,11 @@ func (suite *KeeperTestSuite) TestTransaction() {
 
 func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Marshaler, p packets.OutgoingPacket) packets.PacketDataPayload {
 	var pd packets.PacketData
-	suite.Require().NoError(packets.UnmarshalJSONPacketData(p.GetData(), &pd))
+	suite.Require().NoError(proto.Unmarshal(p.GetData(), &pd))
 	var payload packets.PacketDataPayload
-	utils.MustUnmarshalJSONAny(cdc, &payload, pd.GetPayload())
+	if err := cdc.UnpackAny(pd.GetPayload(), &payload); err != nil {
+		panic(err)
+	}
 	return payload
 }
 

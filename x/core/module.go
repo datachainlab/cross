@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
@@ -296,7 +297,7 @@ func (am AppModule) OnRecvPacket(
 		return res, channeltypes.NewErrorAcknowledgement(err.Error()).GetBytes(), nil
 	}
 
-	bz, err := packets.MarshalJSONPacketAcknowledgementData(*ack)
+	bz, err := proto.Marshal(ack)
 	if err != nil { // maybe it's an internal error
 		return nil, nil, err
 	}
@@ -316,7 +317,7 @@ func (am AppModule) OnAcknowledgementPacket(
 	}
 	switch res := ack.Response.(type) {
 	case *channeltypes.Acknowledgement_Result:
-		parsedAck, err := packets.UnmarshalJSONIncomingPacketAcknowledgement(am.cdc, res.Result)
+		parsedAck, err := packets.UnmarshalIncomingPacketAcknowledgement(am.cdc, res.Result)
 		if err != nil {
 			return nil, err
 		}

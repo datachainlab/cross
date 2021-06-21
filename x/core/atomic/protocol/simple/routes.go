@@ -43,7 +43,6 @@ func (h PacketHandler) HandlePacket(
 	}
 
 	ack := packets.NewOutgoingPacketAcknowledgement(
-		h.cdc,
 		nil,
 		ap,
 	)

@@ -8,7 +8,7 @@ import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	"github.com/datachainlab/cross/x/utils"
+	"github.com/gogo/protobuf/proto"
 )
 
 type PacketSendKeeper struct {
@@ -44,8 +44,8 @@ func (k PacketSendKeeper) SendPacket(
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
-	pd := NewPacketData(nil, utils.MustMarshalJSONAny(k.cdc, payload))
-	bz, err := MarshalJSONPacketData(pd)
+	pd := NewPacketData(nil, payload)
+	bz, err := proto.Marshal(&pd)
 	if err != nil {
 		return err
 	}

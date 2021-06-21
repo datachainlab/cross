@@ -46,7 +46,6 @@ func (p Keeper) HandlePacket(
 	}
 
 	ack := packets.NewOutgoingPacketAcknowledgement(
-		p.m,
 		nil,
 		&types.PacketAcknowledgementIBCSignTx{Status: status},
 	)
