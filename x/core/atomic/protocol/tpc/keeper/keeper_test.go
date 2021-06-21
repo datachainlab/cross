@@ -9,7 +9,6 @@ import (
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
@@ -331,10 +330,10 @@ func (suite *KeeperTestSuite) TestTransaction() {
 }
 
 func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Marshaler, p packets.OutgoingPacket) packets.PacketDataPayload {
-	var pd packets.PacketData
-	suite.Require().NoError(proto.Unmarshal(p.GetData(), &pd))
+	ip, err := packets.UnmarshalIncomingPacket(suite.chainA.App.AppCodec(), p)
+	suite.Require().NoError(err)
 	var payload packets.PacketDataPayload
-	if err := cdc.UnpackAny(pd.GetPayload(), &payload); err != nil {
+	if err := cdc.UnpackAny(ip.PacketData().GetPayload(), &payload); err != nil {
 		panic(err)
 	}
 	return payload

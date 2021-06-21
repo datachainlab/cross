@@ -10,7 +10,6 @@ import (
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
@@ -328,10 +327,10 @@ func (suite *KeeperTestSuite) TestCall() {
 
 			suite.Require().Equal(1, len(ps.Packets()))
 			p0 := ps.Packets()[0]
-			var pd0 packets.PacketData
-			suite.Require().NoError(proto.Unmarshal(p0.GetData(), &pd0))
+			ip0, err := packets.UnmarshalIncomingPacket(suite.chainA.App.AppCodec(), p0)
+			suite.Require().NoError(err)
 			var payload0 packets.PacketDataPayload
-			suite.Require().NoError(suite.chainB.App.AppCodec().UnpackAny(pd0.GetPayload(), &payload0))
+			suite.Require().NoError(suite.chainB.App.AppCodec().UnpackAny(ip0.PacketData().GetPayload(), &payload0))
 			callData := payload0.(*types.PacketDataCall)
 
 			kB := suite.chainB.App.AtomicKeeper.SimpleKeeper()
