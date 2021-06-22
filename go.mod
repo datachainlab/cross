@@ -1,6 +1,6 @@
 module github.com/datachainlab/cross
 
-go 1.15
+go 1.16
 
 require (
 	github.com/bluele/interchain-simple-packet v0.0.0-20210621072258-be32aaced4b1
