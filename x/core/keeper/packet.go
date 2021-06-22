@@ -24,7 +24,7 @@ func (p Keeper) ReceivePacket(ctx sdk.Context, packet channeltypes.Packet) (*sdk
 	return res, ack, nil
 }
 
-func (p Keeper) ReceivePacketAcknowledgementfunc(ctx sdk.Context, packet channeltypes.Packet, ack packets.IncomingPacketAcknowledgement) (*sdk.Result, error) {
+func (p Keeper) ReceivePacketAcknowledgement(ctx sdk.Context, packet channeltypes.Packet, ack packets.IncomingPacketAcknowledgement) (*sdk.Result, error) {
 	ip, err := packets.UnmarshalIncomingPacket(p.m, packet)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC packet type: %T: %v", packet, err)
