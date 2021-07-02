@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
@@ -293,15 +294,15 @@ func (am AppModule) OnRecvPacket(
 ) (*sdk.Result, []byte, error) {
 	res, ack, err := am.keeper.ReceivePacket(ctx, packet)
 	if err != nil {
-		return res, channeltypes.NewErrorAcknowledgement(err.Error()).GetBytes(), nil
+		return res, types.NewAcknowledgement(false, []byte(err.Error())).GetBytes(), nil
 	}
 
-	bz, err := packets.MarshalJSONPacketAcknowledgementData(*ack)
+	bz, err := proto.Marshal(ack)
 	if err != nil { // maybe it's an internal error
 		return nil, nil, err
 	}
 
-	return res, channeltypes.NewResultAcknowledgement(bz).GetBytes(), nil
+	return res, types.NewAcknowledgement(true, bz).GetBytes(), nil
 }
 
 // OnAcknowledgementPacket implements the IBCModule interface
@@ -310,22 +311,19 @@ func (am AppModule) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	acknowledgement []byte,
 ) (*sdk.Result, error) {
-	var ack channeltypes.Acknowledgement
-	if err := am.cdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
-		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal Cross packet acknowledgement: %v", err)
+	ack, err := types.UnmarshalAcknowledgement(acknowledgement)
+	if err != nil {
+		return nil, err
 	}
-	switch res := ack.Response.(type) {
-	case *channeltypes.Acknowledgement_Result:
-		parsedAck, err := packets.UnmarshalJSONIncomingPacketAcknowledgement(am.cdc, res.Result)
+	if ack.Success {
+		parsedAck, err := packets.UnmarshalIncomingPacketAcknowledgement(am.cdc, ack.Result)
 		if err != nil {
 			return nil, err
 		}
-		return am.keeper.ReceivePacketAcknowledgementfunc(ctx, packet, parsedAck)
-	case *channeltypes.Acknowledgement_Error:
-		// TODO add an error case
-		panic(res.Error)
-	default:
-		panic(fmt.Sprintf("unknown type '%T'", res))
+		return am.keeper.ReceivePacketAcknowledgement(ctx, packet, parsedAck)
+	} else {
+		// TODO handle an error case
+		panic(string(ack.Result))
 	}
 }
 

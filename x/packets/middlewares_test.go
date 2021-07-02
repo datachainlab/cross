@@ -9,7 +9,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
-	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,12 +53,8 @@ type testPacket struct {
 }
 
 func newTestPacket(header Header, payload PacketDataPayload) *testPacket {
-	bz, err := proto.Marshal(payload)
-	if err != nil {
-		panic(err)
-	}
 	return &testPacket{
-		pd:      NewPacketData(&header, bz),
+		pd:      NewPacketData(&header, payload),
 		payload: payload,
 	}
 }
@@ -79,7 +74,7 @@ func (p testPacket) Payload() PacketDataPayload {
 	return p.payload
 }
 
-func (p *testPacket) SetPacketData(m codec.JSONMarshaler, header Header, payload PacketDataPayload) {
+func (p *testPacket) SetPacketData(header Header, payload PacketDataPayload) {
 	*p = *newTestPacket(header, payload)
 }
 
@@ -145,7 +140,7 @@ func (ps packetSender) SendPacket(
 ) error {
 	h := packet.Header()
 	setCount(&h, ps.count)
-	packet.SetPacketData(codecm, h, packet.Payload())
+	packet.SetPacketData(h, packet.Payload())
 	return ps.next.SendPacket(ctx, channelCap, packet)
 }
 
@@ -163,7 +158,7 @@ func newACKSender(count uint32, next ACKSender) ACKSender {
 func (as ackSender) SendACK(ctx sdk.Context, ack OutgoingPacketAcknowledgement) error {
 	h := ack.Header()
 	setCount(&h, as.count)
-	ack.SetData(codecm, h, ack.Payload())
+	ack.SetData(h, ack.Payload())
 	return nil
 }
 

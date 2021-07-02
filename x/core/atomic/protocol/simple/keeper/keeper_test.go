@@ -24,7 +24,6 @@ import (
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/utils"
 )
 
 type KeeperTestSuite struct {
@@ -328,10 +327,10 @@ func (suite *KeeperTestSuite) TestCall() {
 
 			suite.Require().Equal(1, len(ps.Packets()))
 			p0 := ps.Packets()[0]
-			var pd0 packets.PacketData
-			suite.Require().NoError(packets.UnmarshalJSONPacketData(p0.GetData(), &pd0))
+			ip0, err := packets.UnmarshalIncomingPacket(suite.chainA.App.AppCodec(), p0)
+			suite.Require().NoError(err)
 			var payload0 packets.PacketDataPayload
-			utils.MustUnmarshalJSONAny(suite.chainB.App.AppCodec(), &payload0, pd0.GetPayload())
+			suite.Require().NoError(suite.chainB.App.AppCodec().UnpackAny(ip0.PacketData().GetPayload(), &payload0))
 			callData := payload0.(*types.PacketDataCall)
 
 			kB := suite.chainB.App.AtomicKeeper.SimpleKeeper()

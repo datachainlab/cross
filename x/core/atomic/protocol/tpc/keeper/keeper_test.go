@@ -20,7 +20,6 @@ import (
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/datachainlab/cross/x/utils"
 )
 
 type KeeperTestSuite struct {
@@ -331,10 +330,12 @@ func (suite *KeeperTestSuite) TestTransaction() {
 }
 
 func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Marshaler, p packets.OutgoingPacket) packets.PacketDataPayload {
-	var pd packets.PacketData
-	suite.Require().NoError(packets.UnmarshalJSONPacketData(p.GetData(), &pd))
+	ip, err := packets.UnmarshalIncomingPacket(suite.chainA.App.AppCodec(), p)
+	suite.Require().NoError(err)
 	var payload packets.PacketDataPayload
-	utils.MustUnmarshalJSONAny(cdc, &payload, pd.GetPayload())
+	if err := cdc.UnpackAny(ip.PacketData().GetPayload(), &payload); err != nil {
+		panic(err)
+	}
 	return payload
 }
 

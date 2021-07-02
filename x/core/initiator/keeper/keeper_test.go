@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -9,6 +8,7 @@ import (
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	"github.com/golang/protobuf/proto"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
@@ -162,9 +162,9 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 		p1,
 	)
 	suite.Require().NoError(err)
-	ackBz, err := json.Marshal(ack)
+	ackBz, err := proto.Marshal(ack)
 	suite.Require().NoError(err)
-	inAck, err := packets.UnmarshalJSONIncomingPacketAcknowledgement(suite.chainA.App.AppCodec(), ackBz)
+	inAck, err := packets.UnmarshalIncomingPacketAcknowledgement(suite.chainA.App.AppCodec(), ackBz)
 	suite.Require().NoError(err)
 	suite.Require().Equal(authtypes.IBC_SIGN_TX_STATUS_FAILED, inAck.Payload().(*authtypes.PacketAcknowledgementIBCSignTx).Status)
 }

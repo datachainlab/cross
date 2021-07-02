@@ -49,7 +49,7 @@ func (h PacketHandler) HandlePacket(
 		if err != nil {
 			return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to ReceivePreparePacket: %v", err)
 		}
-		ack = packets.NewOutgoingPacketAcknowledgement(h.cdc, nil, ap)
+		ack = packets.NewOutgoingPacketAcknowledgement(nil, ap)
 		data = res.GetData()
 	case *types.PacketDataCommit:
 		res, ap, err := h.keeper.ReceivePacketCommit(
@@ -60,7 +60,7 @@ func (h PacketHandler) HandlePacket(
 		if err != nil {
 			return nil, nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "failed to ReceivePacketCommit: %v", err)
 		}
-		ack = packets.NewOutgoingPacketAcknowledgement(h.cdc, nil, ap)
+		ack = packets.NewOutgoingPacketAcknowledgement(nil, ap)
 		if res != nil {
 			data = res.GetData()
 			ctx.EventManager().EmitEvents(res.GetEvents())
