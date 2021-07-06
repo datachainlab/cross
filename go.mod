@@ -22,6 +22,6 @@ require (
 )
 
 replace (
-	github.com/cosmos/ibc-go => github.com/datachainlab/ibc-go v0.0.0-20210706064815-c0b89e0641ff
+	github.com/cosmos/ibc-go => github.com/datachainlab/ibc-go v0.0.0-20210706141244-07dc9d32d9e7
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 )
