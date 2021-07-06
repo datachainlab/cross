@@ -297,7 +297,7 @@ func (am AppModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) exported.Acknowledgement {
-	res, ack, err := am.keeper.ReceivePacket(ctx, packet)
+	_, ack, err := am.keeper.ReceivePacket(ctx, packet)
 	if err != nil {
 		return types.NewAcknowledgement(false, []byte(err.Error()))
 	}
@@ -306,8 +306,6 @@ func (am AppModule) OnRecvPacket(
 	if err != nil { // maybe it's an internal error
 		return types.NewAcknowledgement(false, []byte(err.Error()))
 	}
-
-	ctx.EventManager().EmitEvents(res.GetEvents())
 	return types.NewAcknowledgement(true, bz)
 }
 

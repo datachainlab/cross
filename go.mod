@@ -21,4 +21,7 @@ require (
 	google.golang.org/grpc v1.37.0
 )
 
-replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+replace (
+	github.com/cosmos/ibc-go => github.com/datachainlab/ibc-go v0.0.0-20210706064815-c0b89e0641ff
+	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+)

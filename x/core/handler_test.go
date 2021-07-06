@@ -50,7 +50,7 @@ func (suite *CrossTestSuite) SetupTest() {
 func (suite *CrossTestSuite) TestInitiateTxSimple() {
 	// setup
 
-	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint)
+	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint, ibctesting.CrossVersion)
 	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, types.PortID, types.PortID, channeltypes.UNORDERED)
 
 	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
@@ -119,8 +119,8 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 
 		ps, err := ibctesting.GetPacketsFromEvents(res1.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
+		suite.Require().Len(ps, 1)
 		p := ps[0]
-
 		res2, err := recvPacket(
 			suite.coordinator, suite.chainB, suite.chainA, clientB, p,
 		)
@@ -128,17 +128,19 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 		suite.chainA.NextBlock()
 		ps, err = ibctesting.GetPacketsFromEvents(res2.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
+		suite.Require().Len(ps, 1)
 		packetCall = ps[0]
 
-		ack, err := ibctesting.GetACKFromEvents(res2.GetEvents().ToABCIEvents())
+		acks, err := ibctesting.GetPacketAcknowledgementsFromEvents(res2.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
+		suite.Require().Len(acks, 1)
 		_, err = acknowledgePacket(
 			suite.coordinator,
 			suite.chainB,
 			suite.chainA,
 			clientA,
 			p,
-			ack,
+			acks[0].Data(),
 		)
 		suite.Require().NoError(err)
 		suite.chainB.NextBlock()
@@ -155,15 +157,16 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 		suite.Require().NoError(err)
 		suite.chainB.NextBlock()
 
-		ack, err := ibctesting.GetACKFromEvents(res.GetEvents().ToABCIEvents())
+		acks, err := ibctesting.GetPacketAcknowledgementsFromEvents(res.GetEvents().ToABCIEvents())
 		suite.Require().NoError(err)
+		suite.Require().Len(acks, 1)
 		_, err = acknowledgePacket(
 			suite.coordinator,
 			suite.chainA,
 			suite.chainB,
 			clientB,
 			packetCall,
-			ack,
+			acks[0].Data(),
 		)
 		suite.Require().NoError(err)
 		suite.chainB.NextBlock()
@@ -173,7 +176,7 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	// setup
 
-	clientAB, clientBA, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint)
+	clientAB, clientBA, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint, ibctesting.CrossVersion)
 	channelAB, channelBA := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connAB, connBA, types.PortID, types.PortID, channeltypes.UNORDERED)
 	chAB := xcctypes.ChannelInfo{Port: channelAB.PortID, Channel: channelAB.ID}
 	xccAB, err := xcctypes.PackCrossChainChannel(&chAB)
@@ -182,7 +185,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	xccBA, err := xcctypes.PackCrossChainChannel(&chBA)
 	suite.Require().NoError(err)
 
-	clientAC, clientCA, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, exported.Tendermint)
+	clientAC, clientCA, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, exported.Tendermint, ibctesting.CrossVersion)
 	channelAC, channelCA := suite.coordinator.CreateChannel(suite.chainA, suite.chainC, connAC, connCA, types.PortID, types.PortID, channeltypes.UNORDERED)
 	chAC := xcctypes.ChannelInfo{Port: channelAC.PortID, Channel: channelAC.ID}
 	xccAC, err := xcctypes.PackCrossChainChannel(&chAC)

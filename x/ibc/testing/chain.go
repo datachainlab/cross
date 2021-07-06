@@ -83,7 +83,7 @@ var (
 type TestChain struct {
 	t *testing.T
 
-	App           TestingApp
+	App           *simapp.SimApp
 	ChainID       string
 	LastHeader    *ibctmtypes.Header // header for last block height committed
 	CurrentHeader tmproto.Header     // header for current block height
@@ -144,7 +144,7 @@ func NewTestChain(t *testing.T, chainID string) *TestChain {
 	chain := &TestChain{
 		t:             t,
 		ChainID:       chainID,
-		App:           app,
+		App:           app.(*simapp.SimApp),
 		CurrentHeader: header,
 		QueryServer:   app.GetIBCKeeper(),
 		TxConfig:      txConfig,
