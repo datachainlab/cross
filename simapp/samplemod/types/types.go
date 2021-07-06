@@ -14,6 +14,6 @@ func NewContractCallRequest(method string, args ...string) ContractCallRequest {
 }
 
 // ContractCallInfo converts the ContractCallRequest to a ContractCallInfo
-func (r ContractCallRequest) ContractCallInfo(m codec.Marshaler) txtypes.ContractCallInfo {
+func (r ContractCallRequest) ContractCallInfo(m codec.Codec) txtypes.ContractCallInfo {
 	return m.MustMarshalJSON(&r)
 }

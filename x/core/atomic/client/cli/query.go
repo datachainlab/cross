@@ -15,8 +15,7 @@ func GetCoordinatorState() *cobra.Command {
 		Use:  "coordinator-state [TxID: hex encoding]",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
+			clientCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -33,7 +32,7 @@ func GetCoordinatorState() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return clientCtx.PrintOutput(&res.CoodinatorState)
+			return clientCtx.PrintProto(&res.CoodinatorState)
 		},
 	}
 	flags.AddQueryFlagsToCmd(cmd)

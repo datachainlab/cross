@@ -12,7 +12,7 @@ import (
 
 // SetCoordinatorState sets the store to a CoordinatorState
 func (k Keeper) SetCoordinatorState(ctx sdk.Context, txID txtypes.TxID, cs types.CoordinatorState) {
-	bz := k.cdc.MustMarshalBinaryBare(&cs)
+	bz := k.cdc.MustMarshal(&cs)
 	k.store(ctx).Set(types.KeyCoordinatorState(txID), bz)
 }
 
@@ -23,14 +23,14 @@ func (k Keeper) GetCoordinatorState(ctx sdk.Context, txID txtypes.TxID) (*types.
 		return nil, false
 	}
 	var cs types.CoordinatorState
-	k.cdc.MustUnmarshalBinaryBare(bz, &cs)
+	k.cdc.MustUnmarshal(bz, &cs)
 	return &cs, true
 }
 
 // TODO use channelInfo to create a key
 // SetContractTransactionState sets the store to a ContractTransactionState
 func (k Keeper) SetContractTransactionState(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex, txState types.ContractTransactionState) {
-	bz := k.cdc.MustMarshalBinaryBare(&txState)
+	bz := k.cdc.MustMarshal(&txState)
 	k.store(ctx).Set(types.KeyContractTransactionState(txID, txIndex), bz)
 }
 
@@ -41,7 +41,7 @@ func (k Keeper) GetContractTransactionState(ctx sdk.Context, txID txtypes.TxID, 
 		return nil, false
 	}
 	var txState types.ContractTransactionState
-	k.cdc.MustUnmarshalBinaryBare(bz, &txState)
+	k.cdc.MustUnmarshal(bz, &txState)
 	return &txState, true
 }
 

@@ -12,11 +12,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	commitmenttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
-	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
-	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
-	solomachinetypes "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/06-solomachine/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	host "github.com/cosmos/ibc-go/modules/core/24-host"
+	"github.com/cosmos/ibc-go/modules/core/exported"
+	solomachinetypes "github.com/cosmos/ibc-go/modules/light-clients/06-solomachine/types"
 )
 
 var prefix = commitmenttypes.NewMerklePrefix([]byte("ibc"))
@@ -121,7 +121,7 @@ func (solo *Solomachine) CreateHeader() *solomachinetypes.Header {
 		NewDiversifier: solo.Diversifier,
 	}
 
-	dataBz, err := solo.cdc.MarshalBinaryBare(data)
+	dataBz, err := solo.cdc.Marshal(data)
 	require.NoError(solo.t, err)
 
 	signBytes := &solomachinetypes.SignBytes{
@@ -132,7 +132,7 @@ func (solo *Solomachine) CreateHeader() *solomachinetypes.Header {
 		Data:        dataBz,
 	}
 
-	bz, err := solo.cdc.MarshalBinaryBare(signBytes)
+	bz, err := solo.cdc.Marshal(signBytes)
 	require.NoError(solo.t, err)
 
 	sig := solo.GenerateSignature(bz)
@@ -173,7 +173,7 @@ func (solo *Solomachine) CreateMisbehaviour() *solomachinetypes.Misbehaviour {
 		Data:        dataOne,
 	}
 
-	bz, err := solo.cdc.MarshalBinaryBare(signBytes)
+	bz, err := solo.cdc.Marshal(signBytes)
 	require.NoError(solo.t, err)
 
 	sig := solo.GenerateSignature(bz)
@@ -195,7 +195,7 @@ func (solo *Solomachine) CreateMisbehaviour() *solomachinetypes.Misbehaviour {
 		Data:        dataTwo,
 	}
 
-	bz, err = solo.cdc.MarshalBinaryBare(signBytes)
+	bz, err = solo.cdc.Marshal(signBytes)
 	require.NoError(solo.t, err)
 
 	sig = solo.GenerateSignature(bz)
@@ -243,7 +243,7 @@ func (solo *Solomachine) GenerateSignature(signBytes []byte) []byte {
 	}
 
 	protoSigData := signing.SignatureDataToProto(sigData)
-	bz, err := solo.cdc.MarshalBinaryBare(protoSigData)
+	bz, err := solo.cdc.Marshal(protoSigData)
 	require.NoError(solo.t, err)
 
 	return bz

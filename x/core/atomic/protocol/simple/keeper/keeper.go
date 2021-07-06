@@ -7,8 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	basekeeper "github.com/datachainlab/cross/x/core/atomic/protocol/base/keeper"
@@ -29,7 +29,7 @@ const (
 )
 
 type Keeper struct {
-	cdc codec.Marshaler
+	cdc codec.Codec
 
 	cm          txtypes.ContractManager
 	xccResolver xcctypes.XCCResolver
@@ -38,7 +38,7 @@ type Keeper struct {
 }
 
 func NewKeeper(
-	cdc codec.Marshaler,
+	cdc codec.Codec,
 	cm txtypes.ContractManager,
 	xccResolver xcctypes.XCCResolver,
 	baseKeeper basekeeper.Keeper,
@@ -65,8 +65,8 @@ func (k Keeper) SendCall(
 		return errors.New("the number of contract transactions must be 2")
 	} else if !k.xccResolver.Capabilities().CrossChainCalls(ctx) && (len(transactions[0].Objects) > 0 || len(transactions[1].Objects) > 0) {
 		return errors.New("the chainResolver cannot resolve cannot support the cross-chain calls feature")
-	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetVersionHeight() {
-		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetVersionHeight())
+	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetRevisionHeight() {
+		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetRevisionHeight())
 	} else if _, found := k.GetCoordinatorState(ctx, txID); found {
 		return fmt.Errorf("txID '%X' already exists", txID)
 	}

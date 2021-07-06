@@ -7,10 +7,5 @@ import (
 )
 
 func PackAny(msg proto.Message) (*types.Any, error) {
-	any := &types.Any{}
-	err := any.Pack(msg)
-	if err != nil {
-		return nil, err
-	}
-	return any, nil
+	return types.NewAnyWithValue(msg)
 }

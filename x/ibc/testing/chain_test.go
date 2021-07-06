@@ -7,8 +7,8 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	ibctesting "github.com/cosmos/cosmos-sdk/x/ibc/testing"
-	"github.com/cosmos/cosmos-sdk/x/ibc/testing/mock"
+	ibctesting "github.com/cosmos/ibc-go/testing"
+	"github.com/cosmos/ibc-go/testing/mock"
 )
 
 func TestCreateSortedSignerArray(t *testing.T) {

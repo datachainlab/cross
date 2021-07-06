@@ -9,6 +9,6 @@ option (gogoproto.goproto_getters_all) = false;
 message GenesisState {}
 
 message Acknowledgement {
-  bool success = 1;
+  bool is_success = 1;
   bytes result = 2;
 }

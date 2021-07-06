@@ -3,6 +3,7 @@ package types
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/datachainlab/cross/x/utils"
 )
 
 // RegisterInterfaces register the ibc transfer module interfaces to protobuf
@@ -24,14 +25,10 @@ var (
 )
 
 func PackCrossChainChannel(xcc XCC) (*codectypes.Any, error) {
-	var any codectypes.Any
-	if err := any.Pack(xcc); err != nil {
-		return nil, err
-	}
-	return &any, nil
+	return utils.PackAny(xcc)
 }
 
-func UnpackCrossChainChannel(m codec.Marshaler, anyXCC codectypes.Any) (XCC, error) {
+func UnpackCrossChainChannel(m codec.Codec, anyXCC codectypes.Any) (XCC, error) {
 	var xcc XCC
 	if err := m.UnpackAny(&anyXCC, &xcc); err != nil {
 		return nil, err

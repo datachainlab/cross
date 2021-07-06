@@ -10,9 +10,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	ibctmtypes "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	ibctmtypes "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -34,13 +34,12 @@ func NewInitiateTxCmd() *cobra.Command {
 		Short: "Create a NewMsgInitiateTx transaction",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
+			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
 			sender := accounttypes.AccountIDFromAccAddress(clientCtx.GetFromAddress())
-			ctxs, err := readContractTransactions(clientCtx.JSONMarshaler, viper.GetStringSlice(flagContractTransactions))
+			ctxs, err := readContractTransactions(clientCtx.JSONCodec, viper.GetStringSlice(flagContractTransactions))
 			if err != nil {
 				return err
 			}
@@ -73,7 +72,7 @@ func NewInitiateTxCmd() *cobra.Command {
 	return cmd
 }
 
-func readContractTransactions(m codec.JSONMarshaler, pathList []string) ([]types.ContractTransaction, error) {
+func readContractTransactions(m codec.JSONCodec, pathList []string) ([]types.ContractTransaction, error) {
 	var cTxs []types.ContractTransaction
 	for _, path := range pathList {
 		bz, err := ioutil.ReadFile(path)

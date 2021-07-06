@@ -8,11 +8,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	"github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/stretchr/testify/require"
 )
 
-var codecm codec.Marshaler
+var codecm codec.Codec
 
 func TestMiddleware(t *testing.T) {
 	require := require.New(t)

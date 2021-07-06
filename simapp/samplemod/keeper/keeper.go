@@ -19,14 +19,14 @@ import (
 )
 
 type Keeper struct {
-	m        codec.Marshaler
+	m        codec.Codec
 	storeKey sdk.StoreKey
 	xstore   storetypes.KVStoreI
 
 	exContractCaller contracttypes.ExternalContractCaller
 }
 
-func NewKeeper(m codec.Marshaler, storeKey sdk.StoreKey, xstore storetypes.KVStoreI) Keeper {
+func NewKeeper(m codec.Codec, storeKey sdk.StoreKey, xstore storetypes.KVStoreI) Keeper {
 	return Keeper{
 		m:                m,
 		storeKey:         storeKey,

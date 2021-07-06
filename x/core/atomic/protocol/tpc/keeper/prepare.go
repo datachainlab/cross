@@ -6,8 +6,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 
 	"github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types"
 	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
@@ -26,8 +26,8 @@ func (k Keeper) SendPrepare(
 ) error {
 	if len(transactions) == 0 {
 		return errors.New("the number of contract transactions must be greater than 1")
-	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetVersionHeight() {
-		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetVersionHeight())
+	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetRevisionHeight() {
+		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetRevisionHeight())
 	} else if _, found := k.GetCoordinatorState(ctx, txID); found {
 		return fmt.Errorf("txID '%X' already exists", txID)
 	}
