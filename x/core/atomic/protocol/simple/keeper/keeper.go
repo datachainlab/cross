@@ -159,7 +159,7 @@ func (k Keeper) ReceiveCallPacket(
 	res, err := k.cm.CommitImmediately(ctx, data.TxId, TxIndexParticipant, data.Tx)
 	if err != nil {
 		commitStatus = types.COMMIT_STATUS_FAILED
-		k.Logger(ctx).Info("failed to CommitImmediatelyTransaction", "err", err)
+		k.Logger(ctx).Error("failed to CommitImmediatelyTransaction", "err", err)
 	} else {
 		commitStatus = types.COMMIT_STATUS_OK
 	}

@@ -37,6 +37,7 @@ func NewIBCSignTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			clientCtx = clientCtx.WithOutputFormat("json")
 			anyXCC, err := resolveXCC(
 				channeltypes.NewQueryClient(clientCtx),
 				viper.GetString(flagInitiatorChainChannel),

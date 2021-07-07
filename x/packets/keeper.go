@@ -67,7 +67,7 @@ func (k PacketSendKeeper) SendPacket(
 	)
 	channelCap, ok := k.scopedKeeper.GetCapability(ctx, host.ChannelCapabilityPath(sourcePort, sourceChannel))
 	if !ok {
-		return sdkerrors.Wrap(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability")
+		return sdkerrors.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability '%v:%v'", sourcePort, sourceChannel)
 	}
 
 	if err := packetSender.SendPacket(ctx, channelCap, NewOutgoingPacket(packet, pd, payload)); err != nil {

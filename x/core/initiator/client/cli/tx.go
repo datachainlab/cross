@@ -38,6 +38,7 @@ func NewInitiateTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			clientCtx = clientCtx.WithOutputFormat("json")
 			sender := accounttypes.AccountIDFromAccAddress(clientCtx.GetFromAddress())
 			ctxs, err := readContractTransactions(clientCtx.JSONCodec, viper.GetStringSlice(flagContractTransactions))
 			if err != nil {

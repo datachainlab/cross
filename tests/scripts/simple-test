@@ -20,14 +20,6 @@ KEY_OPT="--keyring-backend=test"
 
 initiator_cc=$(${CHAIN_1_CMD} query ibc channel channels -o json | jq -r '.channels[0] | .channel_id + ":" + .port_id')
 
-# Start the relayer
-echo "==> (Re)starting the relayer"
-PID=$(pgrep rly || echo "")
-if [[ $PID != "" ]]; then
-	pkill rly
-fi
-${RLY_CMD} start ${PATH_NAME} &
-
 # Create a contract transaction of chain1 (no broadcast)
 ${CHAIN_1_CMD} query cross initiator create-contract-tx \
     --call-info="{\"method\":\"counter\"}" \
@@ -50,6 +42,7 @@ ${CHAIN_0_CMD} query cross initiator create-contract-tx \
 res0=$(${CHAIN_0_CMD} tx cross initiator initiate-tx \
     --from=user \
     --yes \
+    -b=block \
     --chain-id=ibc0 \
     --contract-txs="./data/ibc0-tx,./data/ibc1-tx" \
     ${KEY_OPT})
@@ -62,16 +55,22 @@ sleep 3
 ${CHAIN_1_CMD} tx cross auth ibc-signtx \
     --from=user \
     --yes \
+    -b=block \
     --chain-id=ibc1 \
     --tx-id=${tx_id} \
     --initiator-chain-channel=${initiator_cc} \
     ${KEY_OPT}
 
-# Wait until all packets are relayed
-sleep 10
+sleep 3
 
-echo "==> Stopping the relayer"
-pkill rly
+${RLY_CMD} tx relay ${PATH_NAME}
+sleep 3
+
+${RLY_CMD} tx relay ${PATH_NAME}
+sleep 3
+
+${RLY_CMD} tx relay-acknowledgements ${PATH_NAME}
+sleep 3
 
 # Check if the tx is completed
 res1=$(${CHAIN_0_CMD} query cross-atomic coordinator-state \

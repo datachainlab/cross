@@ -7,7 +7,7 @@
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 CHAIN_DATA="$(pwd)/data"
 RELAYER_DIR="$(dirname $SCRIPTDIR)"
-RELAYER_CONF="$HOME/.relayer"
+RELAYER_CONF="$HOME/.urelayer"
 CHAIN_BINARY=../build/simd
 RLY_BINARY=./bin/rly
 
@@ -36,7 +36,7 @@ fi
 
 # Ensure user understands what will be deleted
 if [[ -d $CHAIN_DATA ]] && [[ ! "$1" == "skip" ]]; then
-  read -p "$(basename $0) will delete \$(pwd)/data and \$HOME/.relayer folders. Do you wish to continue? (y/n): " -n 1 -r
+  read -p "$(basename $0) will delete \$(pwd)/data and \$HOME/.urelayer folders. Do you wish to continue? (y/n): " -n 1 -r
   echo
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
       exit 1
@@ -65,9 +65,9 @@ mkdir -p $CHAIN_DATA && cd $CHAIN_DATA && cd ../
 
 echo "Generating ${RLY_BINARY} configurations..."
 ${RLY_BINARY} config init
-${RLY_BINARY} config add-dir configs/demo/
+${RLY_BINARY} chains add-dir configs/demo/
 
 SEED0=$(jq -r '.mnemonic' $CHAIN_DATA/ibc0/key_seed.json)
 SEED1=$(jq -r '.mnemonic' $CHAIN_DATA/ibc1/key_seed.json)
-echo "Key $(${RLY_BINARY} keys restore ibc0 testkey "$SEED0") imported from ibc0 to relayer..."
-echo "Key $(${RLY_BINARY} keys restore ibc1 testkey "$SEED1") imported from ibc1 to relayer..."
+echo "Key $(${RLY_BINARY} tendermint keys restore ibc0 testkey "$SEED0") imported from ibc0 to relayer..."
+echo "Key $(${RLY_BINARY} tendermint keys restore ibc1 testkey "$SEED1") imported from ibc1 to relayer..."
