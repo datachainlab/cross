@@ -9,7 +9,7 @@ import (
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
-func (tx ContractTransaction) GetCrossChainChannel(m codec.Marshaler) (xcctypes.XCC, error) {
+func (tx ContractTransaction) GetCrossChainChannel(m codec.Codec) (xcctypes.XCC, error) {
 	var xcc xcctypes.XCC
 	if err := m.UnpackAny(tx.CrossChainChannel, &xcc); err != nil {
 		return nil, err

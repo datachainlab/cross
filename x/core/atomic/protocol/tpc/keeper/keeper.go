@@ -17,7 +17,7 @@ const (
 )
 
 type Keeper struct {
-	cdc codec.Marshaler
+	cdc codec.Codec
 
 	cm          txtypes.ContractManager
 	xccResolver xcctypes.XCCResolver
@@ -26,7 +26,7 @@ type Keeper struct {
 }
 
 func NewKeeper(
-	cdc codec.Marshaler,
+	cdc codec.Codec,
 	cm txtypes.ContractManager,
 	xccResolver xcctypes.XCCResolver,
 	baseKeeper basekeeper.Keeper,

@@ -10,7 +10,7 @@ import (
 )
 
 type contractManager struct {
-	cdc      codec.Marshaler
+	cdc      codec.Codec
 	storeKey sdk.StoreKey
 
 	mod                     types.ContractModule
@@ -22,7 +22,7 @@ type contractManager struct {
 var _ txtypes.ContractManager = (*contractManager)(nil)
 
 func NewContractManager(
-	cdc codec.Marshaler,
+	cdc codec.Codec,
 	storeKey sdk.StoreKey,
 	mod types.ContractModule,
 	commitStore types.CommitStoreI,

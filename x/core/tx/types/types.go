@@ -9,7 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/gogo/protobuf/proto"
 
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
@@ -55,8 +55,8 @@ type Object interface {
 	proto.Message
 	Type() ObjectType
 	Key() []byte
-	GetCrossChainChannel(m codec.Marshaler) xcctypes.XCC
-	WithCrossChainChannel(m codec.Marshaler, xcc xcctypes.XCC) Object
+	GetCrossChainChannel(m codec.Codec) xcctypes.XCC
+	WithCrossChainChannel(m codec.Codec, xcc xcctypes.XCC) Object
 	Evaluate([]byte) ([]byte, error)
 }
 
@@ -81,7 +81,7 @@ func (ConstantValueObject) Type() ObjectType {
 }
 
 // GetCrossChainChannel implements Object.GetCrossChainChannel
-func (obj ConstantValueObject) GetCrossChainChannel(m codec.Marshaler) xcctypes.XCC {
+func (obj ConstantValueObject) GetCrossChainChannel(m codec.Codec) xcctypes.XCC {
 	xcc, err := xcctypes.UnpackCrossChainChannel(m, obj.CrossChainChannel)
 	if err != nil {
 		panic(err)
@@ -90,7 +90,7 @@ func (obj ConstantValueObject) GetCrossChainChannel(m codec.Marshaler) xcctypes.
 }
 
 // WithChainID implements Object.WithCrossChainChannel
-func (obj ConstantValueObject) WithCrossChainChannel(m codec.Marshaler, xcc xcctypes.XCC) Object {
+func (obj ConstantValueObject) WithCrossChainChannel(m codec.Codec, xcc xcctypes.XCC) Object {
 	anyXCC, err := xcctypes.PackCrossChainChannel(xcc)
 	if err != nil {
 		panic(err)
@@ -110,11 +110,11 @@ func (l ConstantValueObject) Evaluate(bz []byte) ([]byte, error) {
 }
 
 // ObjectResolverProvider is a provider of ObjectResolver
-type ObjectResolverProvider func(m codec.Marshaler, libs []Object) (ObjectResolver, error)
+type ObjectResolverProvider func(m codec.Codec, libs []Object) (ObjectResolver, error)
 
 // DefaultResolverProvider returns a default implements of ObjectResolver
 func DefaultResolverProvider() ObjectResolverProvider {
-	return func(m codec.Marshaler, libs []Object) (ObjectResolver, error) {
+	return func(m codec.Codec, libs []Object) (ObjectResolver, error) {
 		return NewSequentialResolver(m, libs), nil
 	}
 }
@@ -126,7 +126,7 @@ type ObjectResolver interface {
 
 // SequentialResolver is a resolver that resolves an object in sequential
 type SequentialResolver struct {
-	m       codec.Marshaler
+	m       codec.Codec
 	seq     uint8
 	objects []Object
 }
@@ -134,7 +134,7 @@ type SequentialResolver struct {
 var _ ObjectResolver = (*SequentialResolver)(nil)
 
 // NewSequentialResolver returns SequentialResolver
-func NewSequentialResolver(m codec.Marshaler, objects []Object) *SequentialResolver {
+func NewSequentialResolver(m codec.Codec, objects []Object) *SequentialResolver {
 	return &SequentialResolver{m: m, seq: 0, objects: objects}
 }
 
@@ -188,7 +188,7 @@ func (tx ResolvedContractTransaction) ValidateBasic() error {
 	return nil
 }
 
-func (tx ResolvedContractTransaction) UnpackObjects(m codec.Marshaler) []Object {
+func (tx ResolvedContractTransaction) UnpackObjects(m codec.Codec) []Object {
 	objects, err := UnpackObjects(m, tx.Objects)
 	if err != nil {
 		panic(err)
@@ -196,7 +196,7 @@ func (tx ResolvedContractTransaction) UnpackObjects(m codec.Marshaler) []Object 
 	return objects
 }
 
-func (tx ResolvedContractTransaction) GetCrossChainChannel(m codec.Marshaler) (xcctypes.XCC, error) {
+func (tx ResolvedContractTransaction) GetCrossChainChannel(m codec.Codec) (xcctypes.XCC, error) {
 	var xcc xcctypes.XCC
 	if err := m.UnpackAny(tx.CrossChainChannel, &xcc); err != nil {
 		return nil, err

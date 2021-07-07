@@ -10,9 +10,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	ibctmtypes "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	ibctmtypes "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -33,11 +33,11 @@ func NewIBCSignTxCmd() *cobra.Command {
 		Short: "Sign the cross-chain transaction on other chain via the chain",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
+			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
+			clientCtx = clientCtx.WithOutputFormat("json")
 			anyXCC, err := resolveXCC(
 				channeltypes.NewQueryClient(clientCtx),
 				viper.GetString(flagInitiatorChainChannel),

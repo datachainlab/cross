@@ -37,7 +37,7 @@ func NewAccount(xcc xcctypes.XCC, id AccountID) Account {
 }
 
 // GetCrossChainChannel returns CrossChainChannel
-func (acc Account) GetCrossChainChannel(m codec.Marshaler) xcctypes.XCC {
+func (acc Account) GetCrossChainChannel(m codec.Codec) xcctypes.XCC {
 	xcc, err := xcctypes.UnpackCrossChainChannel(m, *acc.CrossChainChannel)
 	if err != nil {
 		panic(err)

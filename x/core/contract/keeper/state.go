@@ -12,7 +12,7 @@ import (
 // TODO use channelInfo to create a key
 // setContractCallResult sets the store to a result
 func (k contractManager) setContractCallResult(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex, result txtypes.ContractCallResult) {
-	bz := k.cdc.MustMarshalBinaryBare(&result)
+	bz := k.cdc.MustMarshal(&result)
 	k.store(ctx).Set(types.KeyContractCallResult(txID, txIndex), bz)
 }
 
@@ -23,7 +23,7 @@ func (k contractManager) getContractCallResult(ctx sdk.Context, txID txtypes.TxI
 		return nil
 	}
 	var result txtypes.ContractCallResult
-	k.cdc.MustUnmarshalBinaryBare(bz, &result)
+	k.cdc.MustUnmarshal(bz, &result)
 	return &result
 }
 

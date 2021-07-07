@@ -55,6 +55,7 @@ fi
 
 # Build genesis file incl account for passed address
 coins="100000000000stake,100000000000samoleans"
+delegate="100000000000stake"
 
 $BINARY --home $CHAINDIR/$CHAINID --chain-id $CHAINID init $CHAINID &> /dev/null
 sleep 1
@@ -66,7 +67,7 @@ $BINARY --home $CHAINDIR/$CHAINID add-genesis-account $($BINARY --home $CHAINDIR
 sleep 1
 $BINARY --home $CHAINDIR/$CHAINID add-genesis-account $($BINARY --home $CHAINDIR/$CHAINID keys --keyring-backend="test" show validator -a) $coins  &> /dev/null
 sleep 1
-$BINARY --home $CHAINDIR/$CHAINID gentx validator --keyring-backend="test" --chain-id $CHAINID &> /dev/null
+$BINARY --home $CHAINDIR/$CHAINID gentx validator $delegate --keyring-backend="test" --chain-id $CHAINID &> /dev/null
 sleep 1
 $BINARY --home $CHAINDIR/$CHAINID collect-gentxs &> /dev/null
 sleep 1
@@ -99,4 +100,4 @@ else
 fi
 
 # Start the gaia
-$BINARY --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc.address="0.0.0.0:$GRPCPORT" > $CHAINDIR/$CHAINID.log 2>&1 &
+$BINARY --home $CHAINDIR/$CHAINID start --pruning=nothing --grpc.address="0.0.0.0:$GRPCPORT" --grpc-web.enable=false > $CHAINDIR/$CHAINID.log 2>&1 &

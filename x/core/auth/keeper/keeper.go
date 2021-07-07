@@ -17,7 +17,7 @@ import (
 )
 
 type Keeper struct {
-	m        codec.Marshaler
+	m        codec.Codec
 	storeKey sdk.StoreKey
 
 	channelKeeper    types.ChannelKeeper
@@ -30,7 +30,7 @@ type Keeper struct {
 var _ types.TxAuthenticator = (*Keeper)(nil)
 
 func NewKeeper(
-	m codec.Marshaler,
+	m codec.Codec,
 	storeKey sdk.StoreKey,
 	channelKeeper types.ChannelKeeper,
 	packetSendKeeper packets.PacketSendKeeper,
@@ -101,7 +101,7 @@ func (k Keeper) getAuthState(ctx sdk.Context, id []byte) (*types.TxAuthState, er
 		return nil, types.NewErrIDNotFound(id)
 	}
 	var state types.TxAuthState
-	if err := k.m.UnmarshalBinaryBare(bz, &state); err != nil {
+	if err := k.m.Unmarshal(bz, &state); err != nil {
 		return nil, err
 	}
 	return &state, nil
@@ -109,7 +109,7 @@ func (k Keeper) getAuthState(ctx sdk.Context, id []byte) (*types.TxAuthState, er
 
 func (k Keeper) setAuthState(ctx sdk.Context, id []byte, state types.TxAuthState) error {
 	store := prefix.NewStore(k.store(ctx), types.KeyTxAuthState())
-	bz, err := k.m.MarshalBinaryBare(&state)
+	bz, err := k.m.Marshal(&state)
 	if err != nil {
 		return err
 	}

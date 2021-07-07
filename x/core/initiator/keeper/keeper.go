@@ -19,7 +19,7 @@ import (
 )
 
 type Keeper struct {
-	m                codec.Marshaler
+	m                codec.Codec
 	storeKey         sdk.StoreKey
 	portKeeper       types.PortKeeper
 	channelKeeper    types.ChannelKeeper
@@ -33,7 +33,7 @@ type Keeper struct {
 
 // NewKeeper creates a new instance of Cross Keeper
 func NewKeeper(
-	m codec.Marshaler,
+	m codec.Codec,
 	storeKey sdk.StoreKey,
 	channelKeeper types.ChannelKeeper,
 	authenticator authtypes.TxAuthenticator,

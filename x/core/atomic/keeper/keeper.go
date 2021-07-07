@@ -29,7 +29,7 @@ type Keeper struct {
 }
 
 func NewKeeper(
-	cdc codec.Marshaler,
+	cdc codec.Codec,
 	storeKey sdk.StoreKey,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,

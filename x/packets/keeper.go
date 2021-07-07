@@ -5,14 +5,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/modules/core/24-host"
 	"github.com/gogo/protobuf/proto"
 )
 
 type PacketSendKeeper struct {
-	cdc codec.Marshaler
+	cdc codec.Codec
 
 	channelKeeper ChannelKeeper
 	portKeeper    PortKeeper
@@ -20,7 +20,7 @@ type PacketSendKeeper struct {
 }
 
 func NewPacketSendKeeper(
-	cdc codec.Marshaler,
+	cdc codec.Codec,
 	channelKeeper ChannelKeeper,
 	portKeeper PortKeeper,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
@@ -67,7 +67,7 @@ func (k PacketSendKeeper) SendPacket(
 	)
 	channelCap, ok := k.scopedKeeper.GetCapability(ctx, host.ChannelCapabilityPath(sourcePort, sourceChannel))
 	if !ok {
-		return sdkerrors.Wrap(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability")
+		return sdkerrors.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability '%v:%v'", sourcePort, sourceChannel)
 	}
 
 	if err := packetSender.SendPacket(ctx, channelCap, NewOutgoingPacket(packet, pd, payload)); err != nil {

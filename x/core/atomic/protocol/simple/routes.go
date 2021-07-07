@@ -4,7 +4,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	"github.com/datachainlab/cross/x/core/atomic/protocol/simple/keeper"
 	"github.com/datachainlab/cross/x/core/atomic/protocol/simple/types"
 	"github.com/datachainlab/cross/x/core/router"
@@ -14,13 +14,13 @@ import (
 type PacketHandler struct {
 	packetMiddleware packets.PacketMiddleware
 
-	cdc    codec.Marshaler
+	cdc    codec.Codec
 	keeper keeper.Keeper
 }
 
 var _ router.PacketHandler = (*PacketHandler)(nil)
 
-func NewPacketHandler(cdc codec.Marshaler, k keeper.Keeper, packetMiddleware packets.PacketMiddleware) PacketHandler {
+func NewPacketHandler(cdc codec.Codec, k keeper.Keeper, packetMiddleware packets.PacketMiddleware) PacketHandler {
 	return PacketHandler{cdc: cdc, keeper: k, packetMiddleware: packetMiddleware}
 }
 

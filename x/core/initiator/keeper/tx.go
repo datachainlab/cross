@@ -58,18 +58,22 @@ func (k Keeper) getTxState(ctx sdk.Context, txID txtypes.TxID) (*types.InitiateT
 }
 
 func (k Keeper) runTx(ctx sdk.Context, txID txtypes.TxID, msg *types.MsgInitiateTx) error {
-	ctx, ps, err := k.packetMiddleware.HandleMsg(ctx, msg, packets.NewBasicPacketSender(k.channelKeeper))
+	wctx, ps, err := k.packetMiddleware.HandleMsg(ctx, msg, packets.NewBasicPacketSender(k.channelKeeper))
 	if err != nil {
 		return err
 	}
 
-	rtxs, err := k.ResolveTransactions(ctx, msg.ContractTransactions)
+	rtxs, err := k.ResolveTransactions(wctx, msg.ContractTransactions)
 	if err != nil {
 		return err
 	}
 
 	tx := txtypes.NewTx(txID, msg.CommitProtocol, rtxs, msg.TimeoutHeight, msg.TimeoutTimestamp)
-	return k.txRunner.RunTx(ctx, tx, ps)
+	if err := k.txRunner.RunTx(wctx, tx, ps); err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
 
 func (k Keeper) ResolveTransactions(ctx sdk.Context, ctxs []types.ContractTransaction) ([]txtypes.ResolvedContractTransaction, error) {

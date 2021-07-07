@@ -62,7 +62,7 @@ func (s kvStore) store(ctx sdk.Context) sdk.KVStore {
 
 type CommitKVStore struct {
 	storeKey   sdk.StoreKey
-	m          codec.Marshaler
+	m          codec.Codec
 	stateStore types.KVStoreI
 	lockStore  LockStore
 	txStore    types.KVStoreI
@@ -71,7 +71,7 @@ type CommitKVStore struct {
 
 var _ types.CommitKVStoreI = (*CommitKVStore)(nil)
 
-func NewStore(m codec.Marshaler, storeKey sdk.StoreKey) CommitKVStore {
+func NewStore(m codec.Codec, storeKey sdk.StoreKey) CommitKVStore {
 	return CommitKVStore{
 		storeKey:   storeKey,
 		m:          m,

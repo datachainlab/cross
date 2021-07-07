@@ -5,7 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	host "github.com/cosmos/cosmos-sdk/x/ibc/core/24-host"
+	host "github.com/cosmos/ibc-go/modules/core/24-host"
 
 	authkeeper "github.com/datachainlab/cross/x/core/auth/keeper"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
@@ -18,7 +18,7 @@ import (
 )
 
 type Keeper struct {
-	m             codec.Marshaler
+	m             codec.Codec
 	portKeeper    types.PortKeeper
 	channelKeeper types.ChannelKeeper
 	scopedKeeper  capabilitykeeper.ScopedKeeper
@@ -29,7 +29,7 @@ type Keeper struct {
 }
 
 func NewKeeper(
-	cdc codec.Marshaler, initiatorStoreKey, authStoreKey sdk.StoreKey,
+	cdc codec.Codec, initiatorStoreKey, authStoreKey sdk.StoreKey,
 	channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper, scopedKeeper capabilitykeeper.ScopedKeeper,
 	packetMiddleware packets.PacketMiddleware, xccResolver xcctypes.XCCResolver, txRunner txtypes.TxRunner, router router.Router,
 ) Keeper {

@@ -15,13 +15,13 @@ import (
 
 // Linker resolves links that each ContractTransaction has.
 type Linker struct {
-	cdc                       codec.Marshaler
+	cdc                       codec.Codec
 	crossChainChannelResolver xcctypes.XCCResolver
 	objects                   map[txtypes.TxIndex]lazyObject
 }
 
 // MakeLinker returns Linker
-func MakeLinker(cdc codec.Marshaler, xccResolver xcctypes.XCCResolver, txs []ContractTransaction) (*Linker, error) {
+func MakeLinker(cdc codec.Codec, xccResolver xcctypes.XCCResolver, txs []ContractTransaction) (*Linker, error) {
 	lkr := Linker{cdc: cdc, crossChainChannelResolver: xccResolver, objects: make(map[txtypes.TxIndex]lazyObject, len(txs))}
 	for i, tx := range txs {
 		idx := txtypes.TxIndex(i)

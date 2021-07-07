@@ -7,7 +7,7 @@ import (
 	context "context"
 	fmt "fmt"
 	types1 "github.com/cosmos/cosmos-sdk/codec/types"
-	types "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	types "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	github_com_datachainlab_cross_x_core_account_types "github.com/datachainlab/cross/x/core/account/types"
 	github_com_datachainlab_cross_x_core_tx_types "github.com/datachainlab/cross/x/core/tx/types"
 	_ "github.com/gogo/protobuf/gogoproto"

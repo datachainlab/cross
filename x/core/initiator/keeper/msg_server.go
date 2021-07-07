@@ -19,7 +19,7 @@ func (k Keeper) InitiateTx(goCtx context.Context, msg *types.MsgInitiateTx) (*ty
 
 	if ctx.ChainID() != msg.ChainId {
 		return nil, fmt.Errorf("unexpected chainID: '%v' != '%v'", ctx.ChainID(), msg.ChainId)
-	} else if !msg.TimeoutHeight.IsZero() && ctx.BlockHeight() >= int64(msg.TimeoutHeight.GetVersionHeight()) {
+	} else if !msg.TimeoutHeight.IsZero() && ctx.BlockHeight() >= int64(msg.TimeoutHeight.GetRevisionHeight()) {
 		return nil, fmt.Errorf("the Msg is already timeout: current=%v timeout-height=%v", ctx.BlockHeight(), msg.TimeoutHeight)
 	} else if msg.TimeoutTimestamp > 0 && uint64(ctx.BlockTime().Unix()) >= msg.TimeoutTimestamp {
 		return nil, fmt.Errorf("the Msg is already timeout: current=%v timeout-timestamp=%v", ctx.BlockTime().Unix(), msg.TimeoutTimestamp)

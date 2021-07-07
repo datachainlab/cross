@@ -5,9 +5,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	"github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/golang/protobuf/proto"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
@@ -47,7 +48,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 func (suite *KeeperTestSuite) TestInitiateTx() {
 	// setup
 
-	_, _, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
+	_, _, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint, ibctesting.CrossVersion)
 	channelA, channelB := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 
 	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}

@@ -6,9 +6,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	"github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
@@ -51,13 +52,13 @@ func (suite *KeeperTestSuite) TestTransaction() {
 	// A(coordinator) => B(participant) -> Connection: AB, BA, Channel: AB, AB
 	// A(coordinator) => C(participant) -> Connection: AC, CA, Channel: AC, AC
 
-	_, _, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, ibctesting.Tendermint)
+	_, _, connAB, connBA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint, ibctesting.CrossVersion)
 	channelAB, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connAB, connBA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAB := xcctypes.ChannelInfo{Port: channelAB.PortID, Channel: channelAB.ID}
 	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
 	suite.Require().NoError(err)
 
-	_, _, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, ibctesting.Tendermint)
+	_, _, connAC, connCA := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainC, exported.Tendermint, ibctesting.CrossVersion)
 	channelAC, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainC, connAC, connCA, crosstypes.PortID, crosstypes.PortID, channeltypes.UNORDERED)
 	chAC := xcctypes.ChannelInfo{Port: channelAC.PortID, Channel: channelAC.ID}
 	xccC, err := xcctypes.PackCrossChainChannel(&chAC)
@@ -329,7 +330,7 @@ func (suite *KeeperTestSuite) TestTransaction() {
 	}
 }
 
-func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Marshaler, p packets.OutgoingPacket) packets.PacketDataPayload {
+func (suite *KeeperTestSuite) parsePacketToPacketDataPrepare(cdc codec.Codec, p packets.OutgoingPacket) packets.PacketDataPayload {
 	ip, err := packets.UnmarshalIncomingPacket(suite.chainA.App.AppCodec(), p)
 	suite.Require().NoError(err)
 	var payload packets.PacketDataPayload

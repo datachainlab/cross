@@ -5,7 +5,7 @@ import (
 
 	sptypes "github.com/bluele/interchain-simple-packet/types"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	"github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/datachainlab/cross/x/utils"
 	"github.com/gogo/protobuf/proto"
 )
@@ -50,7 +50,7 @@ type IncomingPacket interface {
 	Payload() PacketDataPayload
 }
 
-func UnmarshalIncomingPacket(m codec.Marshaler, raw exported.PacketI) (IncomingPacket, error) {
+func UnmarshalIncomingPacket(m codec.Codec, raw exported.PacketI) (IncomingPacket, error) {
 	data, err := hex.DecodeString(string(raw.GetData()))
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func (a incomingPacketAcknowledgement) Payload() PacketAcknowledgementPayload {
 	return a.payload
 }
 
-func UnmarshalIncomingPacketAcknowledgement(m codec.Marshaler, ack []byte) (IncomingPacketAcknowledgement, error) {
+func UnmarshalIncomingPacketAcknowledgement(m codec.Codec, ack []byte) (IncomingPacketAcknowledgement, error) {
 	var pd PacketAcknowledgementData
 	var payload PacketAcknowledgementPayload
 

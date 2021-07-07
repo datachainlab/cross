@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	channeltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -32,8 +32,7 @@ func GetCreateContractTransaction() *cobra.Command {
 		Short: "Create a new contract transaction",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
+			clientCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -84,7 +83,7 @@ func GetCreateContractTransaction() *cobra.Command {
 				return err
 			}
 			defer closeFunc()
-			return clientCtx.WithOutput(cmd.OutOrStdout()).PrintOutput(&cTx)
+			return clientCtx.WithOutput(cmd.OutOrStdout()).PrintProto(&cTx)
 		},
 	}
 

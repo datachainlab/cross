@@ -47,7 +47,7 @@ func TestStore(t *testing.T) {
 	require := require.New(t)
 
 	stk := sdk.NewKVStoreKey("state")
-	var m codec.Marshaler
+	var m codec.Codec
 	s := NewStore(m, stk)
 
 	cms := makeCMStore(t, stk)
