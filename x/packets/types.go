@@ -1,8 +1,6 @@
 package packets
 
 import (
-	"encoding/hex"
-
 	sptypes "github.com/bluele/interchain-simple-packet/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/ibc-go/modules/core/exported"
@@ -51,13 +49,9 @@ type IncomingPacket interface {
 }
 
 func UnmarshalIncomingPacket(m codec.Codec, raw exported.PacketI) (IncomingPacket, error) {
-	data, err := hex.DecodeString(string(raw.GetData()))
-	if err != nil {
-		return nil, err
-	}
 	var pd PacketData
 	var payload PacketDataPayload
-	if err := proto.Unmarshal(data, &pd); err != nil {
+	if err := proto.Unmarshal(raw.GetData(), &pd); err != nil {
 		return nil, err
 	}
 	if err := m.UnpackAny(pd.GetPayload(), &payload); err != nil {
@@ -148,7 +142,7 @@ func (p outgoingPacket) GetData() []byte {
 	if err != nil {
 		panic(err)
 	}
-	return []byte(hex.EncodeToString(bz))
+	return bz
 }
 
 // NewPacketAcknowledgementData returns a new PacketAcknowledgementData
