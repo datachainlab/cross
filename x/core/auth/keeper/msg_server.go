@@ -24,6 +24,11 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 	if err != nil {
 		return nil, err
 	}
+	if completed {
+		if err := k.txManager.OnPostAuth(ctx, msg.TxID); err != nil {
+			k.Logger(ctx).Error("failed to call PostAuth", "err", err)
+		}
+	}
 	return &types.MsgSignTxResponse{TxAuthCompleted: completed}, nil
 }
 
