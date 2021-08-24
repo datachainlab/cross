@@ -11,8 +11,8 @@ option (gogoproto.goproto_getters_all)  = false;
 message PacketDataPrepare {
   option (gogoproto.equal) = false;
 
-  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
-  uint32 tx_index = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndex"];
+  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
+  uint32 tx_index = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxIndex"];
   cross.core.tx.ResolvedContractTransaction tx = 3 [(gogoproto.nullable) = false];
 }
 
@@ -25,8 +25,8 @@ message PacketAcknowledgementPrepare {
 message PacketDataCommit {
   option (gogoproto.equal) = false;
 
-  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
-  uint32 tx_index = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxIndex"];
+  bytes tx_id  = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
+  uint32 tx_index = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxIndex"];
   bool is_committable = 3;
 }
 

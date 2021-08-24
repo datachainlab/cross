@@ -3,6 +3,7 @@ package types
 import (
 	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
@@ -14,9 +15,9 @@ var _ packets.PacketDataPayload = (*PacketDataPrepare)(nil)
 
 // NewPacketDataPrepare creates a new instance of PacketDataPrepare
 func NewPacketDataPrepare(
-	txID txtypes.TxID,
+	txID crosstypes.TxID,
 	tx txtypes.ResolvedContractTransaction,
-	txIndex txtypes.TxIndex,
+	txIndex crosstypes.TxIndex,
 ) PacketDataPrepare {
 	return PacketDataPrepare{TxId: txID, TxIndex: txIndex, Tx: tx}
 }
@@ -52,7 +53,7 @@ func (PacketAcknowledgementPrepare) Type() string {
 
 var _ packets.PacketDataPayload = (*PacketDataCommit)(nil)
 
-func NewPacketDataCommit(txID txtypes.TxID, txIndex txtypes.TxIndex, isCommittable bool) *PacketDataCommit {
+func NewPacketDataCommit(txID crosstypes.TxID, txIndex crosstypes.TxIndex, isCommittable bool) *PacketDataCommit {
 	return &PacketDataCommit{
 		TxId:          txID,
 		TxIndex:       txIndex,

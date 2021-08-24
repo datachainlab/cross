@@ -12,6 +12,7 @@ import (
 	"github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types"
 	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -19,7 +20,7 @@ import (
 func (k Keeper) SendCommit(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,
-	txID txtypes.TxID,
+	txID crosstypes.TxID,
 	isCommittable bool,
 ) error {
 	cs, found := k.GetCoordinatorState(ctx, txID)
@@ -40,7 +41,7 @@ func (k Keeper) SendCommit(
 		if !found {
 			return sdkerrors.Wrap(channeltypes.ErrChannelNotFound, c.Channel)
 		}
-		pd := types.NewPacketDataCommit(txID, txtypes.TxIndex(id), isCommittable)
+		pd := types.NewPacketDataCommit(txID, crosstypes.TxIndex(id), isCommittable)
 		if err := k.SendPacket(
 			ctx,
 			packetSender,
@@ -107,8 +108,8 @@ func (k Keeper) ReceivePacketCommit(
 
 func (k Keeper) ReceiveCommitAcknowledgement(
 	ctx sdk.Context,
-	txID txtypes.TxID,
-	txIndex txtypes.TxIndex,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
 ) error {
 	cs, found := k.GetCoordinatorState(ctx, txID)
 	if !found {

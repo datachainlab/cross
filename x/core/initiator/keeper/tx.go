@@ -7,11 +7,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 	"github.com/gogo/protobuf/proto"
 )
 
-func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (txtypes.TxID, bool, error) {
+func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (crosstypes.TxID, bool, error) {
 	txID := types.MakeTxID(msg)
 	_, found := k.getTxState(ctx, txID)
 	if found {
@@ -37,7 +38,7 @@ func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (txtypes.TxID,
 	return txID, completed, nil
 }
 
-func (k Keeper) setTxState(ctx sdk.Context, txID txtypes.TxID, state types.InitiateTxState) {
+func (k Keeper) setTxState(ctx sdk.Context, txID crosstypes.TxID, state types.InitiateTxState) {
 	bz, err := proto.Marshal(&state)
 	if err != nil {
 		panic(err)
@@ -45,7 +46,7 @@ func (k Keeper) setTxState(ctx sdk.Context, txID txtypes.TxID, state types.Initi
 	prefix.NewStore(k.store(ctx), types.KeyInitiateTxState()).Set(txID, bz)
 }
 
-func (k Keeper) getTxState(ctx sdk.Context, txID txtypes.TxID) (*types.InitiateTxState, bool) {
+func (k Keeper) getTxState(ctx sdk.Context, txID crosstypes.TxID) (*types.InitiateTxState, bool) {
 	var state types.InitiateTxState
 	bz := prefix.NewStore(k.store(ctx), types.KeyInitiateTxState()).Get(txID)
 	if bz == nil {
@@ -57,7 +58,7 @@ func (k Keeper) getTxState(ctx sdk.Context, txID txtypes.TxID) (*types.InitiateT
 	return &state, true
 }
 
-func (k Keeper) runTx(ctx sdk.Context, txID txtypes.TxID, msg *types.MsgInitiateTx) error {
+func (k Keeper) runTx(ctx sdk.Context, txID crosstypes.TxID, msg *types.MsgInitiateTx) error {
 	wctx, ps, err := k.packetMiddleware.HandleMsg(ctx, msg, packets.NewBasicPacketSender(k.channelKeeper))
 	if err != nil {
 		return err

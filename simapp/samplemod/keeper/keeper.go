@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/datachainlab/cross/simapp/samplemod/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	contracttypes "github.com/datachainlab/cross/x/core/contract/types"
 	storetypes "github.com/datachainlab/cross/x/core/store/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
@@ -66,7 +66,7 @@ func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*
 	return &txtypes.ContractCallResult{Data: bz}, nil
 }
 
-func (k Keeper) getCounter(ctx sdk.Context, account accounttypes.AccountID) uint64 {
+func (k Keeper) getCounter(ctx sdk.Context, account authtypes.AccountID) uint64 {
 	var count uint64
 	v := k.xstore.Prefix(account).Get(ctx, counterKey)
 	if v == nil {
@@ -77,7 +77,7 @@ func (k Keeper) getCounter(ctx sdk.Context, account accounttypes.AccountID) uint
 	return count
 }
 
-func (k Keeper) setCounter(ctx sdk.Context, account accounttypes.AccountID, value uint64) []byte {
+func (k Keeper) setCounter(ctx sdk.Context, account authtypes.AccountID, value uint64) []byte {
 	bz := sdk.Uint64ToBigEndian(value)
 	k.xstore.Prefix(account).Set(ctx, counterKey, bz)
 	return bz
@@ -104,7 +104,7 @@ func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallReques
 			Channel: channelID,
 		},
 		callInfo,
-		[]accounttypes.AccountID{accID},
+		[]authtypes.AccountID{accID},
 	)
 	return &txtypes.ContractCallResult{Data: ret}, nil
 }

@@ -7,9 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/auth/types"
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
@@ -54,7 +53,7 @@ func (k *Keeper) SetTxManager(txm types.TxManager) {
 }
 
 // InitAuthState implements the TxAuthenticator interface
-func (k Keeper) InitAuthState(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) error {
+func (k Keeper) InitAuthState(ctx sdk.Context, txID crosstypes.TxID, signers []authtypes.Account) error {
 	_, err := k.getAuthState(ctx, txID)
 	if err == nil {
 		return fmt.Errorf("id '%x' already exists", txID)
@@ -66,7 +65,7 @@ func (k Keeper) InitAuthState(ctx sdk.Context, txID txtypes.TxID, signers []acco
 }
 
 // IsCompletedAuth implements the TxAuthenticator interface
-func (k Keeper) IsCompletedAuth(ctx sdk.Context, txID txtypes.TxID) (bool, error) {
+func (k Keeper) IsCompletedAuth(ctx sdk.Context, txID crosstypes.TxID) (bool, error) {
 	state, err := k.getAuthState(ctx, txID)
 	if err != nil {
 		return false, err
@@ -75,7 +74,7 @@ func (k Keeper) IsCompletedAuth(ctx sdk.Context, txID txtypes.TxID) (bool, error
 }
 
 // Sign implements the TxAuthenticator interface
-func (k Keeper) Sign(ctx sdk.Context, txID txtypes.TxID, signers []accounttypes.Account) (bool, error) {
+func (k Keeper) Sign(ctx sdk.Context, txID crosstypes.TxID, signers []authtypes.Account) (bool, error) {
 	state, err := k.getAuthState(ctx, txID)
 	if err != nil {
 		return false, err

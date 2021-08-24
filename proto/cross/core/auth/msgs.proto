@@ -4,6 +4,7 @@ package cross.core.auth;
 import "google/protobuf/any.proto";
 import "gogoproto/gogo.proto";
 import "ibc/core/client/v1/client.proto";
+import "cross/core/auth/types.proto";
 
 option go_package = "github.com/datachainlab/cross/x/core/auth/types";
 option (gogoproto.goproto_getters_all) = false;
@@ -20,8 +21,8 @@ message MsgSignTx {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
-  repeated bytes signers = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
+  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
+  repeated bytes signers = 2 [(gogoproto.casttype) = "AccountID"];
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.
   ibc.core.client.v1.Height timeout_height = 3
@@ -46,8 +47,8 @@ message MsgIBCSignTx {
   option (gogoproto.goproto_getters) = false;
 
   google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
-  bytes txID = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
-  repeated bytes signers = 3 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
+  bytes txID = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
+  repeated bytes signers = 3 [(gogoproto.casttype) = "AccountID"];
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.
   ibc.core.client.v1.Height timeout_height = 4

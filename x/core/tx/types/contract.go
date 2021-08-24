@@ -1,29 +1,32 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
+)
 
 type ContractManager interface {
 	PrepareCommit(
 		ctx sdk.Context,
-		txID TxID,
-		txIndex TxIndex,
+		txID crosstypes.TxID,
+		txIndex crosstypes.TxIndex,
 		tx ResolvedContractTransaction,
 	) (*ContractCallResult, error)
 	CommitImmediately(
 		ctx sdk.Context,
-		txID TxID,
-		txIndex TxIndex,
+		txID crosstypes.TxID,
+		txIndex crosstypes.TxIndex,
 		tx ResolvedContractTransaction,
 	) (*ContractCallResult, error)
 	Commit(
 		ctx sdk.Context,
-		txID TxID,
-		txIndex TxIndex,
+		txID crosstypes.TxID,
+		txIndex crosstypes.TxIndex,
 	) (*ContractCallResult, error)
 	Abort(
 		ctx sdk.Context,
-		txID TxID,
-		txIndex TxIndex,
+		txID crosstypes.TxID,
+		txIndex crosstypes.TxIndex,
 	) error
 }
 

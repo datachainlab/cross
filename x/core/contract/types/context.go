@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 )
 
 type contractRuntimeInfoContextKey struct{}
@@ -34,11 +34,11 @@ func CommitModeFromContext(ctx context.Context) CommitMode {
 type contractSignersContextKey struct{}
 
 // ContractSignersFromContext returns the []AccountID from context
-func ContractSignersFromContext(ctx context.Context) []accounttypes.AccountID {
-	return ctx.Value(contractSignersContextKey{}).([]accounttypes.AccountID)
+func ContractSignersFromContext(ctx context.Context) []authtypes.AccountID {
+	return ctx.Value(contractSignersContextKey{}).([]authtypes.AccountID)
 }
 
 // ContextWithContractSigners returns a context with an updated accounts
-func ContextWithContractSigners(ctx context.Context, accounts []accounttypes.AccountID) context.Context {
+func ContextWithContractSigners(ctx context.Context, accounts []authtypes.AccountID) context.Context {
 	return context.WithValue(ctx, contractSignersContextKey{}, accounts)
 }

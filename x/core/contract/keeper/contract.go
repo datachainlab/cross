@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/core/contract/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
 type contractManager struct {
@@ -41,8 +42,8 @@ func NewContractManager(
 
 func (k contractManager) PrepareCommit(
 	ctx sdk.Context,
-	txID txtypes.TxID,
-	txIndex txtypes.TxIndex,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
 	tx txtypes.ResolvedContractTransaction,
 ) (*txtypes.ContractCallResult, error) {
 	ctx, err := k.setupContext(ctx, tx, types.AtomicMode)
@@ -117,8 +118,8 @@ func (k contractManager) processTransaction(
 
 func (k contractManager) CommitImmediately(
 	ctx sdk.Context,
-	txID txtypes.TxID,
-	txIndex txtypes.TxIndex,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
 	tx txtypes.ResolvedContractTransaction,
 ) (*txtypes.ContractCallResult, error) {
 	ctx, err := k.setupContext(ctx, tx, types.BasicMode)
@@ -136,8 +137,8 @@ func (k contractManager) CommitImmediately(
 // Commit commits the transaction
 func (k contractManager) Commit(
 	ctx sdk.Context,
-	txID txtypes.TxID,
-	txIndex txtypes.TxIndex,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
 ) (*txtypes.ContractCallResult, error) {
 	if err := k.commitStore.Commit(ctx, makeContractTransactionID(txID, txIndex)); err != nil {
 		return nil, err
@@ -151,8 +152,8 @@ func (k contractManager) Commit(
 // Abort aborts the transaction
 func (k contractManager) Abort(
 	ctx sdk.Context,
-	txID txtypes.TxID,
-	txIndex txtypes.TxIndex,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
 ) error {
 	if err := k.commitStore.Abort(ctx, makeContractTransactionID(txID, txIndex)); err != nil {
 		return err

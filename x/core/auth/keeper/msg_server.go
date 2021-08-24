@@ -6,7 +6,7 @@ import (
 	"github.com/datachainlab/cross/x/core/auth/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -16,9 +16,9 @@ var _ types.MsgServer = (*Keeper)(nil)
 // SignTx defines a rpc handler method for MsgSignTx.
 func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgSignTxResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	var accounts []accounttypes.Account
+	var accounts []authtypes.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, accounttypes.NewAccount(k.xccResolver.GetSelfCrossChainChannel(ctx), addr))
+		accounts = append(accounts, authtypes.NewAccount(k.xccResolver.GetSelfCrossChainChannel(ctx), addr))
 	}
 	completed, err := k.Sign(ctx, msg.TxID, accounts)
 	if err != nil {
@@ -49,9 +49,9 @@ func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*type
 		return nil, err
 	}
 
-	var accounts []accounttypes.Account
+	var accounts []authtypes.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, accounttypes.NewAccount(k.xccResolver.GetSelfCrossChainChannel(ctx), addr))
+		accounts = append(accounts, authtypes.NewAccount(k.xccResolver.GetSelfCrossChainChannel(ctx), addr))
 	}
 
 	err = k.SendIBCSignTx(

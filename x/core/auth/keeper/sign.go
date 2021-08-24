@@ -5,9 +5,9 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/auth/types"
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -17,8 +17,8 @@ func (k Keeper) SendIBCSignTx(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,
 	xcc xcctypes.XCC,
-	txID txtypes.TxID,
-	signers []accounttypes.AccountID,
+	txID crosstypes.TxID,
+	signers []authtypes.AccountID,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
@@ -79,10 +79,10 @@ func (k Keeper) ReceiveIBCSignTx(
 	return true, nil
 }
 
-func makeExternalAccounts(xcc xcctypes.XCC, signers []accounttypes.AccountID) []accounttypes.Account {
-	var accs []accounttypes.Account
+func makeExternalAccounts(xcc xcctypes.XCC, signers []authtypes.AccountID) []authtypes.Account {
+	var accs []authtypes.Account
 	for _, id := range signers {
-		accs = append(accs, accounttypes.NewAccount(xcc, id))
+		accs = append(accs, authtypes.NewAccount(xcc, id))
 	}
 	return accs
 }

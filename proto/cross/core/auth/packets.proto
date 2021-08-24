@@ -10,8 +10,8 @@ option (gogoproto.goproto_getters_all) = false;
 message PacketDataIBCSignTx {
   option (gogoproto.equal)           = false;
 
-  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
-  repeated bytes signers       = 2 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
+  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
+  repeated bytes signers       = 2 [(gogoproto.casttype) = "AccountID"];
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.
   ibc.core.client.v1.Height timeout_height = 3

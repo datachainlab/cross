@@ -11,13 +11,13 @@ import (
 
 // TODO use channelInfo to create a key
 // setContractCallResult sets the store to a result
-func (k contractManager) setContractCallResult(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex, result txtypes.ContractCallResult) {
+func (k contractManager) setContractCallResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, result txtypes.ContractCallResult) {
 	bz := k.cdc.MustMarshal(&result)
 	k.store(ctx).Set(types.KeyContractCallResult(txID, txIndex), bz)
 }
 
 // getContractCallResult returns the result of a given txID and txIndex
-func (k contractManager) getContractCallResult(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex) *txtypes.ContractCallResult {
+func (k contractManager) getContractCallResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) *txtypes.ContractCallResult {
 	bz := k.store(ctx).Get(types.KeyContractCallResult(txID, txIndex))
 	if bz == nil {
 		return nil
@@ -28,7 +28,7 @@ func (k contractManager) getContractCallResult(ctx sdk.Context, txID txtypes.TxI
 }
 
 // removeContractCallResult removes the result from store
-func (k contractManager) removeContractCallResult(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex) {
+func (k contractManager) removeContractCallResult(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) {
 	k.store(ctx).Delete(types.KeyContractCallResult(txID, txIndex))
 }
 

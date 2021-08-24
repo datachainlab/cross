@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
@@ -39,7 +39,7 @@ func NewInitiateTxCmd() *cobra.Command {
 				return err
 			}
 			clientCtx = clientCtx.WithOutputFormat("json")
-			sender := accounttypes.AccountIDFromAccAddress(clientCtx.GetFromAddress())
+			sender := authtypes.AccountIDFromAccAddress(clientCtx.GetFromAddress())
 			ctxs, err := readContractTransactions(clientCtx.JSONCodec, viper.GetStringSlice(flagContractTransactions))
 			if err != nil {
 				return err

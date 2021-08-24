@@ -10,19 +10,13 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
-type (
-	// TxID represents a ID of transaction. This value must be unique in a chain
-	TxID = []byte
-	// TxIndex represents an index of an array of contract transactions
-	TxIndex = uint32
-)
-
-func NewTx(id TxID, commitProtocol CommitProtocol, ctxs []ResolvedContractTransaction, timeoutHeight clienttypes.Height, timeoutTimestamp uint64) Tx {
+func NewTx(id crosstypes.TxID, commitProtocol CommitProtocol, ctxs []ResolvedContractTransaction, timeoutHeight clienttypes.Height, timeoutTimestamp uint64) Tx {
 	return Tx{
 		Id:                   id,
 		CommitProtocol:       commitProtocol,
@@ -170,7 +164,7 @@ func (FakeResolver) Resolve(xcc xcctypes.XCC, key []byte) (Object, error) {
 	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%v' '%X'", xcc, key))
 }
 
-func NewResolvedContractTransaction(anyXCC *codectypes.Any, signers []accounttypes.AccountID, callInfo ContractCallInfo, returnValue *ReturnValue, linkObjects []Object) ResolvedContractTransaction {
+func NewResolvedContractTransaction(anyXCC *codectypes.Any, signers []authtypes.AccountID, callInfo ContractCallInfo, returnValue *ReturnValue, linkObjects []Object) ResolvedContractTransaction {
 	anyObjects, err := PackObjects(linkObjects)
 	if err != nil {
 		panic(err)

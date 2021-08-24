@@ -5,6 +5,13 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
+type (
+	// TxID represents a ID of transaction. This value must be unique in a chain
+	TxID = []byte
+	// TxIndex represents an index of an array of contract transactions
+	TxIndex = uint32
+)
+
 var _ exported.Acknowledgement = (*Acknowledgement)(nil)
 
 func NewAcknowledgement(success bool, result []byte) *Acknowledgement {

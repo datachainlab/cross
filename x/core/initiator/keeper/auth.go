@@ -6,13 +6,13 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
 var _ authtypes.TxManager = (*Keeper)(nil)
 
 // IsActive implements TxManager interface
-func (a Keeper) IsActive(ctx sdk.Context, txID txtypes.TxID) (bool, error) {
+func (a Keeper) IsActive(ctx sdk.Context, txID crosstypes.TxID) (bool, error) {
 	// TODO add timeout support to initiator?
 	_, found := a.getTxState(ctx, txID)
 	if !found {
@@ -22,7 +22,7 @@ func (a Keeper) IsActive(ctx sdk.Context, txID txtypes.TxID) (bool, error) {
 }
 
 // OnPostAuth implements TxManager interface
-func (a Keeper) OnPostAuth(ctx sdk.Context, txID txtypes.TxID) error {
+func (a Keeper) OnPostAuth(ctx sdk.Context, txID crosstypes.TxID) error {
 	txState, found := a.getTxState(ctx, txID)
 	if !found {
 		return fmt.Errorf("txState '%x' not found", txID)

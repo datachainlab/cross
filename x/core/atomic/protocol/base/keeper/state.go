@@ -6,18 +6,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/datachainlab/cross/x/core/atomic/types"
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
 // SetCoordinatorState sets the store to a CoordinatorState
-func (k Keeper) SetCoordinatorState(ctx sdk.Context, txID txtypes.TxID, cs types.CoordinatorState) {
+func (k Keeper) SetCoordinatorState(ctx sdk.Context, txID crosstypes.TxID, cs types.CoordinatorState) {
 	bz := k.cdc.MustMarshal(&cs)
 	k.store(ctx).Set(types.KeyCoordinatorState(txID), bz)
 }
 
 // GetCoordinatorState returns the CoordinatorState of a given txID
-func (k Keeper) GetCoordinatorState(ctx sdk.Context, txID txtypes.TxID) (*types.CoordinatorState, bool) {
+func (k Keeper) GetCoordinatorState(ctx sdk.Context, txID crosstypes.TxID) (*types.CoordinatorState, bool) {
 	bz := k.store(ctx).Get(types.KeyCoordinatorState(txID))
 	if bz == nil {
 		return nil, false
@@ -29,13 +28,13 @@ func (k Keeper) GetCoordinatorState(ctx sdk.Context, txID txtypes.TxID) (*types.
 
 // TODO use channelInfo to create a key
 // SetContractTransactionState sets the store to a ContractTransactionState
-func (k Keeper) SetContractTransactionState(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex, txState types.ContractTransactionState) {
+func (k Keeper) SetContractTransactionState(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, txState types.ContractTransactionState) {
 	bz := k.cdc.MustMarshal(&txState)
 	k.store(ctx).Set(types.KeyContractTransactionState(txID, txIndex), bz)
 }
 
 // GetContractTransactionState returns the GetContractTransactionState of a given txID and txIndex
-func (k Keeper) GetContractTransactionState(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex) (*types.ContractTransactionState, bool) {
+func (k Keeper) GetContractTransactionState(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex) (*types.ContractTransactionState, bool) {
 	bz := k.store(ctx).Get(types.KeyContractTransactionState(txID, txIndex))
 	if bz == nil {
 		return nil, false
@@ -46,7 +45,7 @@ func (k Keeper) GetContractTransactionState(ctx sdk.Context, txID txtypes.TxID, 
 }
 
 // EnsureContractTransactionStatus ensures that the status of the tx equals a given status
-func (k Keeper) EnsureContractTransactionStatus(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex, status types.ContractTransactionStatus) (*types.ContractTransactionState, error) {
+func (k Keeper) EnsureContractTransactionStatus(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, status types.ContractTransactionStatus) (*types.ContractTransactionState, error) {
 	txState, found := k.GetContractTransactionState(ctx, txID, txIndex)
 	if !found {
 		return nil, fmt.Errorf("(txID, txIndex) = ('%x', '%v') not found", txID, txIndex)
@@ -59,7 +58,7 @@ func (k Keeper) EnsureContractTransactionStatus(ctx sdk.Context, txID txtypes.Tx
 }
 
 // UpdateContractTransactionStatus updates the status of the tx
-func (k Keeper) UpdateContractTransactionStatus(ctx sdk.Context, txID txtypes.TxID, txIndex txtypes.TxIndex, status types.ContractTransactionStatus) error {
+func (k Keeper) UpdateContractTransactionStatus(ctx sdk.Context, txID crosstypes.TxID, txIndex crosstypes.TxIndex, status types.ContractTransactionStatus) error {
 	txState, found := k.GetContractTransactionState(ctx, txID, txIndex)
 	if !found {
 		return fmt.Errorf("(txID, txIndex) = ('%x', '%v') not found", txID, txIndex)

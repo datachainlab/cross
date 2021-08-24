@@ -12,7 +12,6 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
@@ -63,15 +62,15 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	txs := []initiatortypes.ContractTransaction{
 		{
 			CrossChainChannel: xccSelf,
-			Signers: []accounttypes.AccountID{
-				accounttypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+			Signers: []authtypes.AccountID{
+				authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 			},
 			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
 		},
 		{
 			CrossChainChannel: xccB,
-			Signers: []accounttypes.AccountID{
-				accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+			Signers: []authtypes.AccountID{
+				authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 			},
 			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
 		},
@@ -85,7 +84,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 		Nonce:                0,
 		CommitProtocol:       txtypes.COMMIT_PROTOCOL_SIMPLE,
 		ContractTransactions: txs,
-		Signers: []accounttypes.AccountID{
+		Signers: []authtypes.AccountID{
 			suite.chainA.SenderAccount.GetAddress().Bytes(),
 		},
 		TimeoutHeight: clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
@@ -115,7 +114,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 		ps,
 		&chBA,
 		res0.TxID,
-		[]accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+		[]authtypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
 		clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
 		0,
 	)
@@ -147,7 +146,7 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 		ps,
 		&chBA,
 		res0.TxID,
-		[]accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+		[]authtypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
 		clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
 		0,
 	)

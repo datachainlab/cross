@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
@@ -62,13 +62,13 @@ func GetCreateContractTransaction() *cobra.Command {
 				}
 			}
 
-			var signers []accounttypes.AccountID
+			var signers []authtypes.AccountID
 			for _, s := range viper.GetStringSlice(flagSigners) {
 				keyInfo, err := clientCtx.Keyring.Key(s)
 				if err != nil {
 					return err
 				}
-				signers = append(signers, accounttypes.AccountIDFromAccAddress(keyInfo.GetAddress()))
+				signers = append(signers, authtypes.AccountIDFromAccAddress(keyInfo.GetAddress()))
 			}
 
 			callInfo := []byte(viper.GetString(flagCallInfo))

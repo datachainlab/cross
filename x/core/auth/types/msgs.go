@@ -5,8 +5,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
@@ -66,7 +64,7 @@ var _ sdk.Msg = (*MsgIBCSignTx)(nil)
 
 // NewMsgIBCSignTx creates a new instance of MsgIBCSignTx
 func NewMsgIBCSignTx(
-	anyXCC *codectypes.Any, txID txtypes.TxID, signers []accounttypes.AccountID,
+	anyXCC *codectypes.Any, txID crosstypes.TxID, signers []AccountID,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgIBCSignTx {
 	return &MsgIBCSignTx{

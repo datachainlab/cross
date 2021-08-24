@@ -6,8 +6,8 @@ import (
 
 	sdkstore "github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/auth/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 
@@ -20,17 +20,17 @@ import (
 func TestSign(t *testing.T) {
 	var cases = []struct {
 		name            string
-		requiredSigners []accounttypes.Account
-		signers         []accounttypes.Account
+		requiredSigners []authtypes.Account
+		signers         []authtypes.Account
 		isCompleted     bool
 		wantsConsumed   []bool
 	}{
 		{
 			"case-0",
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 			},
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 			},
 			true,
@@ -38,11 +38,11 @@ func TestSign(t *testing.T) {
 		},
 		{
 			"case-1",
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 				{Id: []byte{1}},
 			},
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 				{Id: []byte{1}},
 			},
@@ -51,11 +51,11 @@ func TestSign(t *testing.T) {
 		},
 		{
 			"case-2",
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 				{Id: []byte{1}},
 			},
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 				{Id: []byte{2}},
 			},
@@ -64,11 +64,11 @@ func TestSign(t *testing.T) {
 		},
 		{
 			"case-3",
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 				{Id: []byte{1}},
 			},
-			[]accounttypes.Account{
+			[]authtypes.Account{
 				{Id: []byte{0}},
 				{Id: []byte{2}},
 				{Id: []byte{1}},
@@ -78,8 +78,8 @@ func TestSign(t *testing.T) {
 		},
 		{
 			"case-4",
-			[]accounttypes.Account{},
-			[]accounttypes.Account{},
+			[]authtypes.Account{},
+			[]authtypes.Account{},
 			true,
 			[]bool{},
 		},
@@ -101,7 +101,7 @@ func TestSign(t *testing.T) {
 				state, _ := k.getAuthState(ctx, txID)
 				before := len(state.RemainingSigners)
 
-				_, err := k.Sign(ctx, txID, []accounttypes.Account{acc})
+				_, err := k.Sign(ctx, txID, []authtypes.Account{acc})
 				require.NoError(err)
 
 				state, _ = k.getAuthState(ctx, txID)

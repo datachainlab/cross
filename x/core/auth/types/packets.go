@@ -4,8 +4,7 @@ import (
 	"errors"
 
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
@@ -17,8 +16,8 @@ var _ packets.PacketDataPayload = (*PacketDataIBCSignTx)(nil)
 
 // NewPacketDataIBCSignTx creates a new instance of PacketDataIBCSignTx
 func NewPacketDataIBCSignTx(
-	txID txtypes.TxID,
-	signers []accounttypes.AccountID,
+	txID crosstypes.TxID,
+	signers []AccountID,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) PacketDataIBCSignTx {
