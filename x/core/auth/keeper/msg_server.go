@@ -24,7 +24,14 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 	if err != nil {
 		return nil, err
 	}
-	return &types.MsgSignTxResponse{TxAuthCompleted: completed}, nil
+	res := &types.MsgSignTxResponse{TxAuthCompleted: completed}
+	if completed {
+		if err := k.txManager.OnPostAuth(ctx, msg.TxID); err != nil {
+			k.Logger(ctx).Error("failed to call PostAuth", "err", err)
+			res.Log = err.Error()
+		}
+	}
+	return res, nil
 }
 
 // IBCSignTx defines a rpc handler method for MsgIBCSignTx.

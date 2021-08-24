@@ -38,6 +38,7 @@ message MsgSignTxResponse {
   option (gogoproto.goproto_getters) = false;
 
   bool tx_auth_completed = 1;
+  string log = 2;
 }
 
 message MsgIBCSignTx {
