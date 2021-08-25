@@ -1,19 +1,22 @@
 package keeper
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gogo/protobuf/proto"
+
 	"github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
-	"github.com/gogo/protobuf/proto"
 )
 
 func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (txtypes.TxID, bool, error) {
 	txID := types.MakeTxID(msg)
-	_, found := k.getTxState(ctx, txID)
+	_, found := k.GetTxState(ctx, txID)
 	if found {
 		return nil, false, fmt.Errorf("txID '%X' already exists", txID)
 	}
@@ -24,7 +27,26 @@ func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (txtypes.TxID,
 		return nil, false, err
 	}
 
-	completed, err := k.authenticator.Sign(ctx, txID, msg.GetAccounts(k.xccResolver.GetSelfCrossChainChannel(ctx)))
+	xcc, err := func (ctx sdk.Context, msg *types.MsgInitiateTx) (xcctypes.XCC, error) {
+		for _, tx := range msg.ContractTransactions {
+			for _, signer := range tx.Signers {
+				if bytes.Equal(msg.Sender, signer) {
+					if xcc, err := xcctypes.UnpackCrossChainChannel(k.m, *tx.CrossChainChannel); err != nil {
+						return nil, err
+					} else {
+						return k.xccResolver.ResolveCrossChainChannel(ctx, xcc)
+					}
+				}
+			}
+		}
+
+		return nil, fmt.Errorf("the same signer does not exist. %v:%v", msg.Signers, msg.Sender)
+	}(ctx, msg)
+	if err != nil {
+		return nil, false, err
+	}
+
+	completed, err := k.authenticator.Sign(ctx, txID, msg.GetAccounts(xcc))
 	if err != nil {
 		return nil, false, err
 	}
@@ -45,7 +67,7 @@ func (k Keeper) setTxState(ctx sdk.Context, txID txtypes.TxID, state types.Initi
 	prefix.NewStore(k.store(ctx), types.KeyInitiateTxState()).Set(txID, bz)
 }
 
-func (k Keeper) getTxState(ctx sdk.Context, txID txtypes.TxID) (*types.InitiateTxState, bool) {
+func (k Keeper) GetTxState(ctx sdk.Context, txID txtypes.TxID) (*types.InitiateTxState, bool) {
 	var state types.InitiateTxState
 	bz := prefix.NewStore(k.store(ctx), types.KeyInitiateTxState()).Get(txID)
 	if bz == nil {
