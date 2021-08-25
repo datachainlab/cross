@@ -7,6 +7,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
 // msg types
@@ -62,7 +63,10 @@ func (msg MsgSignTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-var _ sdk.Msg = (*MsgIBCSignTx)(nil)
+var (
+	_ sdk.Msg                            = (*MsgIBCSignTx)(nil)
+	_ codectypes.UnpackInterfacesMessage = (*MsgIBCSignTx)(nil)
+)
 
 // NewMsgIBCSignTx creates a new instance of MsgIBCSignTx
 func NewMsgIBCSignTx(
@@ -122,14 +126,20 @@ func (msg MsgIBCSignTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
+// UnpackInterfaces implements UnpackInterfacesMessage
+func (msg *MsgIBCSignTx) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	return unpacker.UnpackAny(msg.CrossChainChannel, new(xcctypes.XCC))
+}
+
 // ExtAuthMsg defines an interface that supports an extension signing method
 type ExtAuthMsg interface {
 	GetSignerAccounts() []Account
 }
 
 var (
-	_ sdk.Msg    = (*MsgExtSignTx)(nil)
-	_ ExtAuthMsg = (*MsgExtSignTx)(nil)
+	_ sdk.Msg                            = (*MsgExtSignTx)(nil)
+	_ ExtAuthMsg                         = (*MsgExtSignTx)(nil)
+	_ codectypes.UnpackInterfacesMessage = (*MsgExtSignTx)(nil)
 )
 
 // ValidateBasic does a simple validation check that
@@ -169,4 +179,14 @@ func (MsgExtSignTx) Type() string {
 // GetSignerAccounts implements ExtAuthMsg
 func (msg MsgExtSignTx) GetSignerAccounts() []Account {
 	return msg.Signers
+}
+
+// UnpackInterfaces implements UnpackInterfacesMessage
+func (msg *MsgExtSignTx) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	for _, signer := range msg.Signers {
+		if err := signer.UnpackInterfaces(unpacker); err != nil {
+			return err
+		}
+	}
+	return nil
 }
