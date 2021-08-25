@@ -34,8 +34,8 @@ func CommitModeFromContext(ctx context.Context) CommitMode {
 type contractSignersContextKey struct{}
 
 // ContractSignersFromContext returns the []AccountID from context
-func ContractSignersFromContext(ctx context.Context) []authtypes.AccountID {
-	return ctx.Value(contractSignersContextKey{}).([]authtypes.AccountID)
+func ContractSignersFromContext(ctx context.Context) []authtypes.Account {
+	return ctx.Value(contractSignersContextKey{}).([]authtypes.Account)
 }
 
 // ContextWithContractSigners returns a context with an updated accounts

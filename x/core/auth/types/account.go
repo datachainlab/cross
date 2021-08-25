@@ -1,9 +1,12 @@
 package types
 
 import (
+	"encoding/hex"
+
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
+	"github.com/gogo/protobuf/proto"
 )
 
 // AccountID represents ID of account
@@ -27,14 +30,29 @@ func NewAccount(id AccountID, authType AuthType) Account {
 	return Account{Id: id, AuthType: authType}
 }
 
-// // GetCrossChainChannel returns CrossChainChannel
-// func (acc Account) GetCrossChainChannel(m codec.Codec) xcctypes.XCC {
-// 	xcc, err := xcctypes.UnpackCrossChainChannel(m, *acc.CrossChainChannel)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return xcc
-// }
+func NewAccountFromHexString(s string) (*Account, error) {
+	bz, err := hex.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	var acc Account
+	if err := proto.Unmarshal(bz, &acc); err != nil {
+		return nil, err
+	}
+	return &acc, nil
+}
+
+func (acc Account) HexString() string {
+	bz, err := proto.Marshal(&acc)
+	if err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(bz)
+}
+
+func NewLocalAccount(id AccountID) Account {
+	return Account{Id: id, AuthType: NewAuthTypeLocal()}
+}
 
 func NewAuthTypeLocal() AuthType {
 	return AuthType{

@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -79,15 +78,15 @@ func (suite *KeeperTestSuite) TestCall() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -105,15 +104,15 @@ func (suite *KeeperTestSuite) TestCall() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -131,15 +130,15 @@ func (suite *KeeperTestSuite) TestCall() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -153,15 +152,15 @@ func (suite *KeeperTestSuite) TestCall() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -175,15 +174,15 @@ func (suite *KeeperTestSuite) TestCall() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -201,20 +200,20 @@ func (suite *KeeperTestSuite) TestCall() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest(
 						"external-call",
-						hex.EncodeToString(suite.chainB.SenderAccount.GetAddress()),
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)).HexString(),
 						channelA.ID,
 					).ContractCallInfo(suite.chainA.App.AppCodec()),
 					Links: []initiatortypes.Link{{SrcIndex: 1}},
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo:    samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 					ReturnValue: txtypes.NewReturnValue(sdk.Uint64ToBigEndian(3)),
@@ -233,20 +232,20 @@ func (suite *KeeperTestSuite) TestCall() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo:    samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 					ReturnValue: txtypes.NewReturnValue(sdk.Uint64ToBigEndian(3)),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest(
 						"external-call",
-						hex.EncodeToString(suite.chainA.SenderAccount.GetAddress()),
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())).HexString(),
 						channelB.ID,
 					).ContractCallInfo(suite.chainB.App.AppCodec()),
 					Links: []initiatortypes.Link{{SrcIndex: 0}},
@@ -259,6 +258,34 @@ func (suite *KeeperTestSuite) TestCall() {
 			false,
 			true,
 			[2][]byte{sdk.Uint64ToBigEndian(3), sdk.Uint64ToBigEndian(3)},
+		},
+		{
+			"case7: a caller of external contract is invalid",
+			[2]initiatortypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest(
+						"external-call",
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)).HexString(),
+						channelA.ID,
+					).ContractCallInfo(suite.chainA.App.AppCodec()),
+					Links: []initiatortypes.Link{{SrcIndex: 1}},
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress())),
+					},
+					CallInfo:    samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+					ReturnValue: txtypes.NewReturnValue(sdk.Uint64ToBigEndian(3)),
+				},
+			},
+			true,
+			// the following parameters are ignored
+			0, 0, 0, false, false, [2][]byte{nil, nil},
 		},
 	}
 
