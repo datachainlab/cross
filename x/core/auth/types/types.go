@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
+	"github.com/gogo/protobuf/proto"
 )
 
 // TxAuthenticator defines the expected interface of cross-chain authenticator
@@ -56,5 +57,6 @@ func getRemainingAccounts(signers, required []Account) []Account {
 
 // AuthExtensionVerifier defines an interface that verifies a tx with an auth extension signature
 type AuthExtensionVerifier interface {
+	proto.Message
 	Verify(signer Account, signature signing.SignatureV2, tx sdk.Tx) error
 }

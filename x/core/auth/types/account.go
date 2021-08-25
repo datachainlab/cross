@@ -6,6 +6,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
+	"github.com/datachainlab/cross/x/utils"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -94,9 +95,13 @@ func NewAuthTypeChannelWithAny(anyXCC *codectypes.Any) AuthType {
 	}
 }
 
-func NewAuthTypeExtenstion(extension *codectypes.Any) AuthType {
+func NewAuthTypeExtenstion(extension AuthExtensionVerifier) AuthType {
+	any, err := utils.PackAny(extension)
+	if err != nil {
+		panic(err)
+	}
 	return AuthType{
 		Mode:   AuthMode_AUTH_MODE_EXTENSION,
-		Option: extension,
+		Option: any,
 	}
 }
