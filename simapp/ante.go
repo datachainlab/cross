@@ -40,6 +40,15 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 		sigGasConsumer = ante.DefaultSigVerificationGasConsumer
 	}
 
+	sigHandler := sdk.ChainAnteDecorators(
+		ante.NewDeductFeeDecorator(options.AccountKeeper, options.BankKeeper, options.FeegrantKeeper),
+		ante.NewSetPubKeyDecorator(options.AccountKeeper), // SetPubKeyDecorator must be called before all signature verification decorators
+		ante.NewValidateSigCountDecorator(options.AccountKeeper),
+		ante.NewSigGasConsumeDecorator(options.AccountKeeper, sigGasConsumer),
+		ante.NewSigVerificationDecorator(options.AccountKeeper, options.SignModeHandler),
+		ante.NewIncrementSequenceDecorator(options.AccountKeeper),
+	)
+
 	anteDecorators := []sdk.AnteDecorator{
 		ante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
 		ante.NewRejectExtensionOptionsDecorator(),
@@ -48,13 +57,18 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 		ante.NewTxTimeoutHeightDecorator(),
 		ante.NewValidateMemoDecorator(options.AccountKeeper),
 		ante.NewConsumeGasForTxSizeDecorator(options.AccountKeeper),
-		ante.NewDeductFeeDecorator(options.AccountKeeper, options.BankKeeper, options.FeegrantKeeper),
-		ante.NewSetPubKeyDecorator(options.AccountKeeper), // SetPubKeyDecorator must be called before all signature verification decorators
-		ante.NewValidateSigCountDecorator(options.AccountKeeper),
-		ante.NewSigGasConsumeDecorator(options.AccountKeeper, sigGasConsumer),
-		crossante.NewExtAuthSigVerificationDecorator(ante.NewSigVerificationDecorator(options.AccountKeeper, options.SignModeHandler)),
-		ante.NewIncrementSequenceDecorator(options.AccountKeeper),
+		crossante.NewExtAuthSigVerificationDecorator(anteDecorator(sigHandler)),
 	}
 
 	return sdk.ChainAnteDecorators(anteDecorators...), nil
+}
+
+type anteDecorator func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error)
+
+func (dec anteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	newCtx, err = dec(ctx, tx, simulate)
+	if err != nil {
+		return
+	}
+	return next(newCtx, tx, simulate)
 }
