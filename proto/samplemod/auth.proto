@@ -1,0 +1,10 @@
+syntax = "proto3";
+package samplemod.types;
+
+import "google/api/annotations.proto";
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/datachainlab/cross/simapp/samplemod/types";
+option (gogoproto.goproto_getters_all) = false;
+
+message SampleAuthExtension {}
