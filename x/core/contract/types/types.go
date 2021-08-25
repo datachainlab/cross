@@ -50,7 +50,7 @@ func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) Cont
 	}
 }
 
-func SetupContractContext(ctx sdk.Context, signers []authtypes.AccountID, runtimeInfo ContractRuntimeInfo) sdk.Context {
+func SetupContractContext(ctx sdk.Context, signers []authtypes.Account, runtimeInfo ContractRuntimeInfo) sdk.Context {
 	goCtx := ctx.Context()
 	goCtx = ContextWithContractRuntimeInfo(goCtx, runtimeInfo)
 	goCtx = ContextWithContractSigners(goCtx, signers)
@@ -58,14 +58,14 @@ func SetupContractContext(ctx sdk.Context, signers []authtypes.AccountID, runtim
 }
 
 type ExternalContractCaller interface {
-	Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []authtypes.AccountID) []byte
+	Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []authtypes.Account) []byte
 }
 
 type externalContractCaller struct{}
 
 var _ ExternalContractCaller = (*externalContractCaller)(nil)
 
-func (cc externalContractCaller) Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []authtypes.AccountID) []byte {
+func (cc externalContractCaller) Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []authtypes.Account) []byte {
 	r := ContractRuntimeFromContext(ctx.Context()).ExternalObjectResolver
 	key := initiatortypes.MakeObjectKey(callInfo, signers)
 	obj, err := r.Resolve(xcc, key)

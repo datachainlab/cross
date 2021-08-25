@@ -104,7 +104,8 @@ func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallReques
 			Channel: channelID,
 		},
 		callInfo,
-		[]authtypes.AccountID{accID},
+		// TODO is this correct?
+		[]authtypes.Account{authtypes.NewAccount(accID, authtypes.NewAuthTypeLocal())},
 	)
 	return &txtypes.ContractCallResult{Data: ret}, nil
 }

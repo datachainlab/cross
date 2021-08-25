@@ -6,6 +6,7 @@ import "gogoproto/gogo.proto";
 import "ibc/core/client/v1/client.proto";
 import "cross/core/initiator/types.proto";
 import "cross/core/tx/types.proto";
+import "cross/core/auth/types.proto";
 
 option go_package = "github.com/datachainlab/cross/x/core/initiator/types";
 option (gogoproto.goproto_getters_all) = false;
@@ -20,19 +21,18 @@ message MsgInitiateTx {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  bytes  sender   = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/auth/types.AccountID"];
-  string chain_id = 2;
-  uint64 nonce    = 3;
-  cross.core.tx.CommitProtocol commit_protocol = 4;
-  repeated cross.core.initiator.ContractTransaction contract_transactions = 5 [(gogoproto.nullable) = false];
-  repeated bytes signers = 6 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/auth/types.AccountID"];
+  string chain_id = 1;
+  uint64 nonce    = 2;
+  cross.core.tx.CommitProtocol commit_protocol = 3;
+  repeated cross.core.initiator.ContractTransaction contract_transactions = 4 [(gogoproto.nullable) = false];
+  repeated cross.core.auth.Account signers = 5 [(gogoproto.nullable) = false];
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.
-  ibc.core.client.v1.Height timeout_height = 7
+  ibc.core.client.v1.Height timeout_height = 6
       [(gogoproto.moretags) = "yaml:\"timeout_height\"", (gogoproto.nullable) = false];
   // Timeout timestamp (in nanoseconds) relative to the current block timestamp.
   // The timeout is disabled when set to 0.
-  uint64 timeout_timestamp = 8
+  uint64 timeout_timestamp = 7
     [(gogoproto.moretags) = "yaml:\"timeout_timestamp\""];
 }
 

@@ -2,6 +2,7 @@ package types
 
 import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
@@ -118,4 +119,30 @@ func (msg MsgIBCSignTx) GetSigners() []sdk.AccAddress {
 	}
 
 	return signers
+}
+
+var (
+	_ sdk.Msg = (*MsgExtSignTx)(nil)
+	_ XCMsg   = (*MsgExtSignTx)(nil)
+)
+
+// ValidateBasic does a simple validation check that
+// doesn't require access to any other information.
+func (msg MsgExtSignTx) ValidateBasic() error {
+	return nil
+}
+
+// Signers returns the addrs of signers that must sign.
+// CONTRACT: All signatures must be present to be valid.
+// CONTRACT: Returns addrs in some deterministic order.
+func (msg MsgExtSignTx) GetSigners() []types.AccAddress {
+	panic("not supported") // TODO: Implement
+}
+
+func (msg MsgExtSignTx) GetSignerAccounts() []Account {
+	return msg.Signers
+}
+
+type XCMsg interface {
+	GetSignerAccounts() []Account
 }

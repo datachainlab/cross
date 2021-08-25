@@ -25,7 +25,7 @@ func (k Keeper) initTx(ctx sdk.Context, msg *types.MsgInitiateTx) (crosstypes.Tx
 		return nil, false, err
 	}
 
-	completed, err := k.authenticator.Sign(ctx, txID, msg.GetAccounts(k.xccResolver.GetSelfCrossChainChannel(ctx)))
+	completed, err := k.authenticator.Sign(ctx, txID, msg.GetSignerAccounts())
 	if err != nil {
 		return nil, false, err
 	}

@@ -39,6 +39,6 @@ func ContractSignersFromContext(ctx context.Context) []authtypes.AccountID {
 }
 
 // ContextWithContractSigners returns a context with an updated accounts
-func ContextWithContractSigners(ctx context.Context, accounts []authtypes.AccountID) context.Context {
+func ContextWithContractSigners(ctx context.Context, accounts []authtypes.Account) context.Context {
 	return context.WithValue(ctx, contractSignersContextKey{}, accounts)
 }

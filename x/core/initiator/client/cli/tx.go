@@ -52,7 +52,7 @@ func NewInitiateTxCmd() *cobra.Command {
 			version := clienttypes.ParseChainID(h.Header.ChainID)
 
 			msg := types.NewMsgInitiateTx(
-				sender,
+				[]authtypes.Account{authtypes.NewAccount(sender, authtypes.NewAuthTypeLocal())},
 				clientCtx.ChainID,
 				uint64(time.Now().Unix()),
 				txtypes.COMMIT_PROTOCOL_SIMPLE,

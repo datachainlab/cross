@@ -68,7 +68,7 @@ func (k Keeper) ReceiveIBCSignTx(
 
 	// Verify the signers of transaction
 
-	completed, err = k.Sign(ctx, data.TxID, makeExternalAccounts(xcc, data.Signers))
+	completed, err = k.Sign(ctx, data.TxID, makeChannelSigners(xcc, data.Signers))
 	if err != nil {
 		return false, err
 	} else if !completed {
@@ -79,10 +79,10 @@ func (k Keeper) ReceiveIBCSignTx(
 	return true, nil
 }
 
-func makeExternalAccounts(xcc xcctypes.XCC, signers []authtypes.AccountID) []authtypes.Account {
+func makeChannelSigners(xcc xcctypes.XCC, signers []authtypes.AccountID) []authtypes.Account {
 	var accs []authtypes.Account
 	for _, id := range signers {
-		accs = append(accs, authtypes.NewAccount(xcc, id))
+		accs = append(accs, authtypes.NewAccount(id, authtypes.NewAuthTypeChannel(xcc)))
 	}
 	return accs
 }

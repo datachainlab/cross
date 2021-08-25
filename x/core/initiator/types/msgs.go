@@ -9,7 +9,6 @@ import (
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
-	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -18,20 +17,23 @@ const (
 	TypeInitiateTx = "InitiateTx"
 )
 
-var _ sdk.Msg = (*MsgInitiateTx)(nil)
+var (
+	_ sdk.Msg         = (*MsgInitiateTx)(nil)
+	_ authtypes.XCMsg = (*MsgInitiateTx)(nil)
+)
 
 // NewMsgInitiateTx creates a new MsgInitiateTx instance
 func NewMsgInitiateTx(
-	sender authtypes.AccountID, chainID string, nonce uint64,
+	signers []authtypes.Account, chainID string, nonce uint64,
 	commitProtocol txtypes.CommitProtocol, ctxs []ContractTransaction,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgInitiateTx {
 	return &MsgInitiateTx{
-		Sender:               sender,
 		ChainId:              chainID,
 		Nonce:                nonce,
 		CommitProtocol:       commitProtocol,
 		ContractTransactions: ctxs,
+		Signers:              signers,
 		TimeoutHeight:        timeoutHeight,
 		TimeoutTimestamp:     timeoutTimestamp,
 	}
@@ -50,8 +52,8 @@ func (MsgInitiateTx) Type() string {
 // ValidateBasic performs a basic check of the MsgInitiateTx fields.
 // NOTE: timeout height or timestamp values can be 0 to disable the timeout.
 func (msg MsgInitiateTx) ValidateBasic() error {
-	if len(msg.Sender) == 0 {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing sender address")
+	if len(msg.Signers) == 0 {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing signer address")
 	}
 	return nil
 }
@@ -67,13 +69,20 @@ func (msg MsgInitiateTx) GetSignBytes() []byte {
 // Addresses are returned in a deterministic order.
 // Duplicate addresses will be omitted.
 func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
+	// Validation
+	for _, signer := range msg.Signers {
+		if signer.AuthType.Mode != authtypes.AuthMode_AUTH_MODE_LOCAL {
+			panic("GetSigners is not supported")
+		}
+	}
+
 	seen := map[string]bool{}
-	signers := []sdk.AccAddress{msg.Sender.AccAddress()}
+	signers := []sdk.AccAddress{}
 
 	for _, s := range msg.Signers {
-		addr := s.AccAddress().String()
+		addr := s.Id.AccAddress().String()
 		if !seen[addr] {
-			signers = append(signers, s.AccAddress())
+			signers = append(signers, s.Id.AccAddress())
 			seen[addr] = true
 		}
 	}
@@ -81,21 +90,14 @@ func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-func (msg MsgInitiateTx) GetAccounts(selfXCC xcctypes.XCC) []authtypes.Account {
-	var accs []authtypes.Account
-	signers := msg.GetSigners()
-	for _, id := range signers {
-		accs = append(accs, authtypes.NewAccount(selfXCC, authtypes.AccountID(id)))
-	}
-	return accs
+func (msg MsgInitiateTx) GetSignerAccounts() []authtypes.Account {
+	return msg.Signers
 }
 
 func (msg MsgInitiateTx) GetRequiredAccounts() []authtypes.Account {
 	var accs []authtypes.Account
 	for _, tx := range msg.ContractTransactions {
-		for _, id := range tx.Signers {
-			accs = append(accs, authtypes.Account{CrossChainChannel: tx.CrossChainChannel, Id: id})
-		}
+		accs = append(accs, tx.Signers...)
 	}
 	return accs
 }

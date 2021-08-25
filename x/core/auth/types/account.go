@@ -1,7 +1,6 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
@@ -24,23 +23,46 @@ func (id AccountID) AccAddress() sdk.AccAddress {
 // Account definition
 
 // NewAccount creates a new instance of Account
-func NewAccount(xcc xcctypes.XCC, id AccountID) Account {
-	var anyCrossChainChannel *codectypes.Any
-	if xcc != nil {
-		var err error
-		anyCrossChainChannel, err = xcctypes.PackCrossChainChannel(xcc)
-		if err != nil {
-			panic(err)
-		}
-	}
-	return Account{CrossChainChannel: anyCrossChainChannel, Id: id}
+func NewAccount(id AccountID, authType AuthType) Account {
+	return Account{Id: id, AuthType: authType}
 }
 
-// GetCrossChainChannel returns CrossChainChannel
-func (acc Account) GetCrossChainChannel(m codec.Codec) xcctypes.XCC {
-	xcc, err := xcctypes.UnpackCrossChainChannel(m, *acc.CrossChainChannel)
+// // GetCrossChainChannel returns CrossChainChannel
+// func (acc Account) GetCrossChainChannel(m codec.Codec) xcctypes.XCC {
+// 	xcc, err := xcctypes.UnpackCrossChainChannel(m, *acc.CrossChainChannel)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return xcc
+// }
+
+func NewAuthTypeLocal() AuthType {
+	return AuthType{
+		Mode: AuthMode_AUTH_MODE_LOCAL,
+	}
+}
+
+func NewAuthTypeChannel(xcc xcctypes.XCC) AuthType {
+	anyCrossChainChannel, err := xcctypes.PackCrossChainChannel(xcc)
 	if err != nil {
 		panic(err)
 	}
-	return xcc
+	return AuthType{
+		Mode:   AuthMode_AUTH_MODE_CHANNEL,
+		Option: anyCrossChainChannel,
+	}
+}
+
+func NewAuthTypeChannelWithAny(anyXCC *codectypes.Any) AuthType {
+	return AuthType{
+		Mode:   AuthMode_AUTH_MODE_CHANNEL,
+		Option: anyXCC,
+	}
+}
+
+func NewAuthTypeExtenstion(extension *codectypes.Any) AuthType {
+	return AuthType{
+		Mode:   AuthMode_AUTH_MODE_EXTENSION,
+		Option: extension,
+	}
 }

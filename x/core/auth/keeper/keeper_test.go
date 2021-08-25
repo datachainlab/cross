@@ -52,8 +52,8 @@ func (suite *KeeperTestSuite) TestAuth() {
 
 	akA := suite.chainA.App.CrossKeeper.AuthKeeper()
 
-	accB := authtypes.NewAccount(&chAB, suite.chainB.SenderAccount.GetAddress().Bytes())
-	accC := authtypes.NewAccount(&chAC, suite.chainC.SenderAccount.GetAddress().Bytes())
+	accB := authtypes.NewAccount(&chAB, suite.chainB.SenderAccount.GetAddress().Bytes(), authtypes.NewAuthTypeChannel())
+	accC := authtypes.NewAccount(&chAC, suite.chainC.SenderAccount.GetAddress().Bytes(), authtypes.NewAuthTypeChannel())
 
 	var txID = []byte("tx0")
 	var signers = []authtypes.Account{accB, accC}
