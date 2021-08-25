@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 )
 
@@ -51,4 +52,9 @@ func getRemainingAccounts(signers, required []Account) []Account {
 		}
 	}
 	return remaining
+}
+
+// AuthExtensionVerifier defines an interface that verifies a tx with an auth extension signature
+type AuthExtensionVerifier interface {
+	Verify(signer Account, signature signing.SignatureV2, tx sdk.Tx) error
 }

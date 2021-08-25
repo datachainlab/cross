@@ -18,8 +18,8 @@ const (
 )
 
 var (
-	_ sdk.Msg         = (*MsgInitiateTx)(nil)
-	_ authtypes.XCMsg = (*MsgInitiateTx)(nil)
+	_ sdk.Msg              = (*MsgInitiateTx)(nil)
+	_ authtypes.ExtAuthMsg = (*MsgInitiateTx)(nil)
 )
 
 // NewMsgInitiateTx creates a new MsgInitiateTx instance
@@ -90,6 +90,7 @@ func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
+// GetSignerAccounts implements authtypes.ExtAuthMsg
 func (msg MsgInitiateTx) GetSignerAccounts() []authtypes.Account {
 	return msg.Signers
 }

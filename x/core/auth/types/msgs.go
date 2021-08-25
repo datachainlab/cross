@@ -13,6 +13,7 @@ import (
 const (
 	TypeSignTx    = "SignTx"
 	TypeIBCSignTx = "IBCSignTx"
+	TypeExtSignTx = "ExtSignTx"
 )
 
 var _ sdk.Msg = (*MsgSignTx)(nil)
@@ -121,9 +122,14 @@ func (msg MsgIBCSignTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
+// ExtAuthMsg defines an interface that supports an extension signing method
+type ExtAuthMsg interface {
+	GetSignerAccounts() []Account
+}
+
 var (
-	_ sdk.Msg = (*MsgExtSignTx)(nil)
-	_ XCMsg   = (*MsgExtSignTx)(nil)
+	_ sdk.Msg    = (*MsgExtSignTx)(nil)
+	_ ExtAuthMsg = (*MsgExtSignTx)(nil)
 )
 
 // ValidateBasic does a simple validation check that
@@ -136,13 +142,31 @@ func (msg MsgExtSignTx) ValidateBasic() error {
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
 func (msg MsgExtSignTx) GetSigners() []types.AccAddress {
-	panic("not supported") // TODO: Implement
+	seen := map[string]bool{}
+	signers := []sdk.AccAddress{}
+
+	for _, s := range msg.Signers {
+		addr := s.Id.AccAddress().String()
+		if !seen[addr] {
+			signers = append(signers, s.Id.AccAddress())
+			seen[addr] = true
+		}
+	}
+
+	return signers
 }
 
+// Route implements sdk.Msg
+func (MsgExtSignTx) Route() string {
+	return crosstypes.RouterKey
+}
+
+// Type implements sdk.Msg
+func (MsgExtSignTx) Type() string {
+	return TypeExtSignTx
+}
+
+// GetSignerAccounts implements ExtAuthMsg
 func (msg MsgExtSignTx) GetSignerAccounts() []Account {
 	return msg.Signers
-}
-
-type XCMsg interface {
-	GetSignerAccounts() []Account
 }
