@@ -68,22 +68,22 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 	// Send a MsgInitiateTx to chainA
 	{
 		msg0 := initiatortypes.NewMsgInitiateTx(
-			suite.chainA.SenderAccount.GetAddress().Bytes(),
+			[]authtypes.Account{authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()))},
 			suite.chainA.ChainID,
 			0,
 			txtypes.COMMIT_PROTOCOL_SIMPLE,
 			[]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -199,22 +199,22 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	// Send a MsgInitiateTx to chainA
 	{
 		msg0 := initiatortypes.NewMsgInitiateTx(
-			suite.chainA.SenderAccount.GetAddress().Bytes(),
+			[]authtypes.Account{authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()))},
 			suite.chainA.ChainID,
 			0,
 			txtypes.COMMIT_PROTOCOL_TPC,
 			[]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccAB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccAB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccAC,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccAC)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
