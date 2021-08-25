@@ -3,12 +3,14 @@ package types
 import (
 	"crypto/sha256"
 
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
+	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -18,8 +20,9 @@ const (
 )
 
 var (
-	_ sdk.Msg              = (*MsgInitiateTx)(nil)
-	_ authtypes.ExtAuthMsg = (*MsgInitiateTx)(nil)
+	_ sdk.Msg                            = (*MsgInitiateTx)(nil)
+	_ authtypes.ExtAuthMsg               = (*MsgInitiateTx)(nil)
+	_ codectypes.UnpackInterfacesMessage = (*MsgInitiateTx)(nil)
 )
 
 // NewMsgInitiateTx creates a new MsgInitiateTx instance
@@ -101,6 +104,35 @@ func (msg MsgInitiateTx) GetRequiredAccounts() []authtypes.Account {
 		accs = append(accs, tx.Signers...)
 	}
 	return accs
+}
+
+// UnpackInterfaces implements UnpackInterfacesMessage
+func (msg *MsgInitiateTx) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	for _, tx := range msg.ContractTransactions {
+		if err := tx.UnpackInterfaces(unpacker); err != nil {
+			return err
+		}
+	}
+	for _, signer := range msg.Signers {
+		if err := signer.UnpackInterfaces(unpacker); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ codectypes.UnpackInterfacesMessage = (*ContractTransaction)(nil)
+
+func (tx *ContractTransaction) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	if err := unpacker.UnpackAny(tx.CrossChainChannel, new(xcctypes.XCC)); err != nil {
+		return err
+	}
+	for _, signer := range tx.Signers {
+		if err := signer.UnpackInterfaces(unpacker); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // MakeTxID generates TxID with a given msg

@@ -25,9 +25,25 @@ func (id AccountID) AccAddress() sdk.AccAddress {
 
 // Account definition
 
+var _ codectypes.UnpackInterfacesMessage = (*Account)(nil)
+
 // NewAccount creates a new instance of Account
 func NewAccount(id AccountID, authType AuthType) Account {
 	return Account{Id: id, AuthType: authType}
+}
+
+func (acc *Account) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	if acc.AuthType.Option == nil {
+		return nil
+	}
+	switch acc.AuthType.Mode {
+	case AuthMode_AUTH_MODE_CHANNEL:
+		return unpacker.UnpackAny(acc.AuthType.Option, new(xcctypes.XCC))
+	case AuthMode_AUTH_MODE_EXTENSION:
+		return unpacker.UnpackAny(acc.AuthType.Option, new(AuthExtensionVerifier))
+	default:
+		return nil
+	}
 }
 
 func NewAccountFromHexString(s string) (*Account, error) {
