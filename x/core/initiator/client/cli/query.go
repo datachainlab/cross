@@ -68,8 +68,12 @@ func GetCreateContractTransaction() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				signer := authtypes.NewAccount(authtypes.AccountIDFromAccAddress(keyInfo.GetAddress()), authtypes.NewAuthTypeLocal())
-				signers = append(signers, signer)
+				accountID := authtypes.AccountIDFromAccAddress(keyInfo.GetAddress())
+				if isInitiator {
+					signers = append(signers, authtypes.NewAccount(accountID, authtypes.NewAuthTypeLocal()))
+				} else {
+					signers = append(signers, authtypes.NewAccount(accountID, authtypes.NewAuthTypeChannelWithAny(anyXCC)))
+				}
 			}
 
 			callInfo := []byte(viper.GetString(flagCallInfo))
