@@ -459,3 +459,16 @@ var _ client.TxConfig = (*MockTxConfig)(nil)
 func NewMockTxConfig(txConfig client.TxConfig) MockTxConfig {
 	return MockTxConfig{TxConfig: txConfig}
 }
+
+func (cfg MockTxConfig) NewTxBuilder() client.TxBuilder {
+	builder := cfg.TxConfig.NewTxBuilder()
+	return &mockTxBuilder{TxBuilder: builder}
+}
+
+type mockTxBuilder struct {
+	client.TxBuilder
+}
+
+func (bd *mockTxBuilder) SetMemo(memo string) {
+	bd.TxBuilder.SetMemo("sample")
+}

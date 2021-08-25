@@ -304,8 +304,7 @@ func (chain *TestChain) SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error) {
 func (chain *TestChain) SendMsgsWithTxConfig(txConfig client.TxConfig, msgs ...sdk.Msg) (*sdk.Result, error) {
 	_, r, err := simapp.SignAndDeliver(
 		chain.t,
-		// txConfig,
-		chain.TxConfig,
+		txConfig,
 		chain.App.GetBaseApp(),
 		chain.GetContext().BlockHeader(),
 		msgs,
@@ -320,9 +319,6 @@ func (chain *TestChain) SendMsgsWithTxConfig(txConfig client.TxConfig, msgs ...s
 
 	// SignCheckDeliver calls app.Commit()
 	chain.NextBlock()
-
-	// increment sequence for successful transaction execution
-	// chain.SenderAccount.SetSequence(chain.SenderAccount.GetSequence() + 1)
 
 	return r, nil
 }

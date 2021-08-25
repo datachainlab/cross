@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
@@ -9,6 +11,9 @@ import (
 var _ authtypes.AuthExtensionVerifier = (*SampleAuthExtension)(nil)
 
 func (SampleAuthExtension) Verify(signer authtypes.Account, signature signing.SignatureV2, tx sdk.Tx) error {
-	// always returns nil
-	return nil
+	t := tx.(sdk.TxWithMemo)
+	if t.GetMemo() == "sample" {
+		return nil
+	}
+	return fmt.Errorf("unexpected memo: %v", t.GetMemo())
 }
