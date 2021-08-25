@@ -301,6 +301,32 @@ func (chain *TestChain) SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error) {
 	return r, nil
 }
 
+func (chain *TestChain) SendMsgsWithTxConfig(txConfig client.TxConfig, msgs ...sdk.Msg) (*sdk.Result, error) {
+	_, r, err := simapp.SignAndDeliver(
+		chain.t,
+		// txConfig,
+		chain.TxConfig,
+		chain.App.GetBaseApp(),
+		chain.GetContext().BlockHeader(),
+		msgs,
+		chain.ChainID,
+		[]uint64{chain.SenderAccount.GetAccountNumber()},
+		[]uint64{chain.SenderAccount.GetSequence()},
+		true, true, chain.senderPrivKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// SignCheckDeliver calls app.Commit()
+	chain.NextBlock()
+
+	// increment sequence for successful transaction execution
+	// chain.SenderAccount.SetSequence(chain.SenderAccount.GetSequence() + 1)
+
+	return r, nil
+}
+
 // GetClientState retrieves the client state for the provided clientID. The client is
 // expected to exist otherwise testing will fail.
 func (chain *TestChain) GetClientState(clientID string) exported.ClientState {
