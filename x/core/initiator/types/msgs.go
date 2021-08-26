@@ -72,21 +72,14 @@ func (msg MsgInitiateTx) GetSignBytes() []byte {
 // Addresses are returned in a deterministic order.
 // Duplicate addresses will be omitted.
 func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
-	// Validation
-	for _, signer := range msg.Signers {
-		if signer.AuthType.Mode != authtypes.AuthMode_AUTH_MODE_LOCAL {
-			panic("GetSigners is not supported")
-		}
-	}
-
 	seen := map[string]bool{}
 	signers := []sdk.AccAddress{}
 
 	for _, s := range msg.Signers {
-		addr := s.Id.AccAddress().String()
-		if !seen[addr] {
+		acc := s.HexString()
+		if !seen[acc] {
 			signers = append(signers, s.Id.AccAddress())
-			seen[addr] = true
+			seen[acc] = true
 		}
 	}
 

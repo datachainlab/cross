@@ -156,10 +156,10 @@ func (msg MsgExtSignTx) GetSigners() []types.AccAddress {
 	signers := []sdk.AccAddress{}
 
 	for _, s := range msg.Signers {
-		addr := s.Id.AccAddress().String()
-		if !seen[addr] {
+		acc := s.HexString()
+		if !seen[acc] {
 			signers = append(signers, s.Id.AccAddress())
-			seen[addr] = true
+			seen[acc] = true
 		}
 	}
 
