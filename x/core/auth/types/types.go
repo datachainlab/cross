@@ -58,5 +58,5 @@ func getRemainingAccounts(signers, required []Account) []Account {
 // AuthExtensionVerifier defines an interface that verifies a tx with an auth extension signature
 type AuthExtensionVerifier interface {
 	proto.Message
-	Verify(signer Account, signature signing.SignatureV2, tx sdk.Tx) error
+	Verify(ctx sdk.Context, signer Account, signature signing.SignatureV2, tx sdk.Tx) error
 }

@@ -76,7 +76,7 @@ func (dec ExtAuthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx
 			if !ok {
 				return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidType, "unexpected extension type")
 			}
-			if err := ext.Verify(signer, sigs[i], tx); err != nil {
+			if err := ext.Verify(ctx, signer, sigs[i], tx); err != nil {
 				return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, err.Error())
 			}
 			i++

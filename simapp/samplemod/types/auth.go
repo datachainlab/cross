@@ -10,7 +10,7 @@ import (
 
 var _ authtypes.AuthExtensionVerifier = (*SampleAuthExtension)(nil)
 
-func (SampleAuthExtension) Verify(signer authtypes.Account, signature signing.SignatureV2, tx sdk.Tx) error {
+func (SampleAuthExtension) Verify(ctx sdk.Context, signer authtypes.Account, signature signing.SignatureV2, tx sdk.Tx) error {
 	t := tx.(sdk.TxWithMemo)
 	if t.GetMemo() == "sample" {
 		return nil
