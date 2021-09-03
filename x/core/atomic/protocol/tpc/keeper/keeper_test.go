@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types"
 	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
@@ -75,15 +75,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -96,15 +96,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -117,15 +117,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -138,15 +138,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},

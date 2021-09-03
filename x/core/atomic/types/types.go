@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
@@ -21,7 +22,7 @@ func NewCoordinatorState(cp txtypes.CommitProtocol, phase CoordinatorPhase, chan
 }
 
 // Confirm append a given txIndex to confirmedTxs if it doesn't exist
-func (cs *CoordinatorState) Confirm(txIndex txtypes.TxIndex, channel xcctypes.ChannelInfo) error {
+func (cs *CoordinatorState) Confirm(txIndex crosstypes.TxIndex, channel xcctypes.ChannelInfo) error {
 	for _, id := range cs.ConfirmedTxs {
 		if txIndex == id {
 			return errors.New("this tx is already confirmed")
@@ -44,7 +45,7 @@ func (cs CoordinatorState) IsConfirmedALLPrepares() bool {
 }
 
 // AddAck adds txIndex to Acks if it doesn't exist
-func (cs *CoordinatorState) AddAck(txIndex txtypes.TxIndex) bool {
+func (cs *CoordinatorState) AddAck(txIndex crosstypes.TxIndex) bool {
 	for _, id := range cs.Acks {
 		if txIndex == id {
 			return false

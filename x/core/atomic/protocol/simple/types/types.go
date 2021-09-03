@@ -2,6 +2,7 @@ package types
 
 import (
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
@@ -13,7 +14,7 @@ var _ packets.PacketDataPayload = (*PacketDataCall)(nil)
 
 // NewPacketDataCall creates a new instance of PacketDataCall
 func NewPacketDataCall(
-	txID txtypes.TxID,
+	txID crosstypes.TxID,
 	tx txtypes.ResolvedContractTransaction,
 ) *PacketDataCall {
 	return &PacketDataCall{TxId: txID, Tx: tx}

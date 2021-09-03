@@ -20,12 +20,12 @@ message MsgInitiateTx {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  bytes  sender   = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
+  bytes  sender   = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/auth/types.AccountID"];
   string chain_id = 2;
   uint64 nonce    = 3;
   cross.core.tx.CommitProtocol commit_protocol = 4;
   repeated cross.core.initiator.ContractTransaction contract_transactions = 5 [(gogoproto.nullable) = false];
-  repeated bytes signers = 6 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/account/types.AccountID"];
+  repeated bytes signers = 6 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/auth/types.AccountID"];
   // Timeout height relative to the current block height.
   // The timeout is disabled when set to 0.
   ibc.core.client.v1.Height timeout_height = 7
@@ -41,7 +41,7 @@ message MsgInitiateTxResponse {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/tx/types.TxID"];
+  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
   InitiateTxStatus status = 2;
 }
 

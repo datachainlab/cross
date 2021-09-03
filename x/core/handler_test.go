@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	samplemodtypes "github.com/datachainlab/cross/simapp/samplemod/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	"github.com/datachainlab/cross/x/core/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	ibctesting "github.com/datachainlab/cross/x/ibc/testing"
 )
@@ -63,7 +63,7 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 	xccSelf, err := xcctypes.PackCrossChainChannel(suite.chainA.App.XCCResolver.GetSelfCrossChainChannel(suite.chainA.GetContext()))
 	suite.Require().NoError(err)
 
-	var txID txtypes.TxID
+	var txID crosstypes.TxID
 
 	// Send a MsgInitiateTx to chainA
 	{
@@ -75,15 +75,15 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 			[]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -109,7 +109,7 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 		msg1 := authtypes.MsgIBCSignTx{
 			CrossChainChannel: xccA,
 			TxID:              txID,
-			Signers:           []accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+			Signers:           []authtypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
 			TimeoutHeight:     clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
 			TimeoutTimestamp:  0,
 		}
@@ -194,7 +194,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	xccCA, err := xcctypes.PackCrossChainChannel(&chCA)
 	suite.Require().NoError(err)
 
-	var txID txtypes.TxID
+	var txID crosstypes.TxID
 
 	// Send a MsgInitiateTx to chainA
 	{
@@ -206,15 +206,15 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 			[]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccAB,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccAC,
-					Signers: []accounttypes.AccountID{
-						accounttypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.AccountID{
+						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -239,7 +239,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 		msg := authtypes.MsgIBCSignTx{
 			CrossChainChannel: xccBA,
 			TxID:              txID,
-			Signers:           []accounttypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
+			Signers:           []authtypes.AccountID{suite.chainB.SenderAccount.GetAddress().Bytes()},
 			TimeoutHeight:     clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+100),
 			TimeoutTimestamp:  0,
 		}
@@ -266,7 +266,7 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 		msg := authtypes.MsgIBCSignTx{
 			CrossChainChannel: xccCA,
 			TxID:              txID,
-			Signers:           []accounttypes.AccountID{suite.chainC.SenderAccount.GetAddress().Bytes()},
+			Signers:           []authtypes.AccountID{suite.chainC.SenderAccount.GetAddress().Bytes()},
 			TimeoutHeight:     clienttypes.NewHeight(0, uint64(suite.chainC.CurrentHeader.Height)+100),
 			TimeoutTimestamp:  0,
 		}

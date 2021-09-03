@@ -6,7 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
@@ -22,7 +22,7 @@ var _ sdk.Msg = (*MsgInitiateTx)(nil)
 
 // NewMsgInitiateTx creates a new MsgInitiateTx instance
 func NewMsgInitiateTx(
-	sender accounttypes.AccountID, chainID string, nonce uint64,
+	sender authtypes.AccountID, chainID string, nonce uint64,
 	commitProtocol txtypes.CommitProtocol, ctxs []ContractTransaction,
 	timeoutHeight clienttypes.Height, timeoutTimestamp uint64,
 ) *MsgInitiateTx {
@@ -81,27 +81,27 @@ func (msg MsgInitiateTx) GetSigners() []sdk.AccAddress {
 	return signers
 }
 
-func (msg MsgInitiateTx) GetAccounts(selfXCC xcctypes.XCC) []accounttypes.Account {
-	var accs []accounttypes.Account
+func (msg MsgInitiateTx) GetAccounts(selfXCC xcctypes.XCC) []authtypes.Account {
+	var accs []authtypes.Account
 	signers := msg.GetSigners()
 	for _, id := range signers {
-		accs = append(accs, accounttypes.NewAccount(selfXCC, accounttypes.AccountID(id)))
+		accs = append(accs, authtypes.NewAccount(selfXCC, authtypes.AccountID(id)))
 	}
 	return accs
 }
 
-func (msg MsgInitiateTx) GetRequiredAccounts() []accounttypes.Account {
-	var accs []accounttypes.Account
+func (msg MsgInitiateTx) GetRequiredAccounts() []authtypes.Account {
+	var accs []authtypes.Account
 	for _, tx := range msg.ContractTransactions {
 		for _, id := range tx.Signers {
-			accs = append(accs, accounttypes.Account{CrossChainChannel: tx.CrossChainChannel, Id: id})
+			accs = append(accs, authtypes.Account{CrossChainChannel: tx.CrossChainChannel, Id: id})
 		}
 	}
 	return accs
 }
 
 // MakeTxID generates TxID with a given msg
-func MakeTxID(msg *MsgInitiateTx) txtypes.TxID {
+func MakeTxID(msg *MsgInitiateTx) crosstypes.TxID {
 	bz, err := proto.Marshal(msg)
 	if err != nil {
 		panic(err)

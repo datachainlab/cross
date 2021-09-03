@@ -5,7 +5,7 @@ import (
 	"math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
@@ -28,8 +28,8 @@ func (lk Link) ValidateBasic() error {
 	return nil
 }
 
-func (lk Link) GetSrcIndex() txtypes.TxIndex {
-	return txtypes.TxIndex(lk.SrcIndex)
+func (lk Link) GetSrcIndex() crosstypes.TxIndex {
+	return crosstypes.TxIndex(lk.SrcIndex)
 }
 
 // NewInitiateTxState creates an new instance of InitiateTxState

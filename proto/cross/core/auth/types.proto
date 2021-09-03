@@ -2,13 +2,19 @@ syntax = "proto3";
 package cross.core.auth;
 
 import "gogoproto/gogo.proto";
-import "cross/core/account/types.proto";
+import "google/protobuf/any.proto";
 
 option go_package = "github.com/datachainlab/cross/x/core/auth/types";
 option (gogoproto.goproto_getters_all) = false;
 
+message Account {
+  option (gogoproto.equal) = true;
+  google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
+  bytes id = 2 [(gogoproto.casttype) = "AccountID"];
+}
+
 message TxAuthState {
   option (gogoproto.equal) = false;
 
-  repeated cross.core.account.Account remaining_signers = 1 [(gogoproto.nullable) = false];
+  repeated Account remaining_signers = 1 [(gogoproto.nullable) = false];
 }

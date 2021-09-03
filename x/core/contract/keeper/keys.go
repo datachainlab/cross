@@ -1,11 +1,11 @@
 package keeper
 
 import (
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/utils"
 )
 
-func makeContractTransactionID(txID txtypes.TxID, txIndex txtypes.TxIndex) []byte {
+func makeContractTransactionID(txID crosstypes.TxID, txIndex crosstypes.TxIndex) []byte {
 	size := len(txID)
 	bz := make([]byte, size+4)
 	copy(bz[:size], txID[:])

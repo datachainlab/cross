@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/stretchr/testify/suite"
 
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
@@ -53,11 +52,11 @@ func (suite *KeeperTestSuite) TestAuth() {
 
 	akA := suite.chainA.App.CrossKeeper.AuthKeeper()
 
-	accB := accounttypes.NewAccount(&chAB, suite.chainB.SenderAccount.GetAddress().Bytes())
-	accC := accounttypes.NewAccount(&chAC, suite.chainC.SenderAccount.GetAddress().Bytes())
+	accB := authtypes.NewAccount(&chAB, suite.chainB.SenderAccount.GetAddress().Bytes())
+	accC := authtypes.NewAccount(&chAC, suite.chainC.SenderAccount.GetAddress().Bytes())
 
 	var txID = []byte("tx0")
-	var signers = []accounttypes.Account{accB, accC}
+	var signers = []authtypes.Account{accB, accC}
 
 	suite.Require().NoError(
 		akA.InitAuthState(
@@ -68,7 +67,7 @@ func (suite *KeeperTestSuite) TestAuth() {
 	)
 
 	{
-		var accounts = []accounttypes.AccountID{accB.Id}
+		var accounts = []authtypes.AccountID{accB.Id}
 		completed, err := akA.ReceiveIBCSignTx(
 			suite.chainA.GetContext(),
 			channelAB.PortID, chAB.Channel,
@@ -78,7 +77,7 @@ func (suite *KeeperTestSuite) TestAuth() {
 		suite.Require().False(completed)
 	}
 	{
-		var accounts = []accounttypes.AccountID{accC.Id}
+		var accounts = []authtypes.AccountID{accC.Id}
 		completed, err := akA.ReceiveIBCSignTx(
 			suite.chainA.GetContext(),
 			channelAC.PortID, chAC.Channel,

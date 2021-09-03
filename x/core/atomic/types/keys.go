@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	"github.com/datachainlab/cross/x/utils"
 )
 
@@ -23,14 +23,14 @@ func KeyPrefixBytes(prefix uint8) []byte {
 	return []byte(fmt.Sprintf("%d/", prefix))
 }
 
-func KeyCoordinatorState(txID txtypes.TxID) []byte {
+func KeyCoordinatorState(txID crosstypes.TxID) []byte {
 	return append(
 		KeyPrefixBytes(KeyCoordinatorStatePrefix),
 		txID[:]...,
 	)
 }
 
-func KeyContractTransactionState(txID txtypes.TxID, txIndex txtypes.TxIndex) []byte {
+func KeyContractTransactionState(txID crosstypes.TxID, txIndex crosstypes.TxIndex) []byte {
 	return append(
 		append(
 			KeyPrefixBytes(KeyContractTransactionStatePrefix),

@@ -7,8 +7,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
@@ -17,14 +18,14 @@ import (
 type Linker struct {
 	cdc                       codec.Codec
 	crossChainChannelResolver xcctypes.XCCResolver
-	objects                   map[txtypes.TxIndex]lazyObject
+	objects                   map[crosstypes.TxIndex]lazyObject
 }
 
 // MakeLinker returns Linker
 func MakeLinker(cdc codec.Codec, xccResolver xcctypes.XCCResolver, txs []ContractTransaction) (*Linker, error) {
-	lkr := Linker{cdc: cdc, crossChainChannelResolver: xccResolver, objects: make(map[txtypes.TxIndex]lazyObject, len(txs))}
+	lkr := Linker{cdc: cdc, crossChainChannelResolver: xccResolver, objects: make(map[crosstypes.TxIndex]lazyObject, len(txs))}
 	for i, tx := range txs {
-		idx := txtypes.TxIndex(i)
+		idx := crosstypes.TxIndex(i)
 		tx := tx
 		lkr.objects[idx] = makeLazyObject(func() returnObject {
 			if tx.ReturnValue.IsNil() {
@@ -85,7 +86,7 @@ func makeLazyObject(f func() returnObject) lazyObject {
 }
 
 // MakeObjectKey returns a key that can be used to identify a contract call
-func MakeObjectKey(callInfo txtypes.ContractCallInfo, signers []accounttypes.AccountID) []byte {
+func MakeObjectKey(callInfo txtypes.ContractCallInfo, signers []authtypes.AccountID) []byte {
 	h := tmhash.New()
 	h.Write(callInfo)
 	for _, signer := range signers {

@@ -17,8 +17,8 @@ import (
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
 	"github.com/datachainlab/cross/x/core/auth/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 )
 
@@ -45,7 +45,7 @@ func NewIBCSignTxCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			signer := accounttypes.AccountIDFromAccAddress(clientCtx.FromAddress)
+			signer := authtypes.AccountIDFromAccAddress(clientCtx.FromAddress)
 			txID, err := hex.DecodeString(viper.GetString(flagTxID))
 			if err != nil {
 				return err
@@ -58,7 +58,7 @@ func NewIBCSignTxCmd() *cobra.Command {
 			msg := types.NewMsgIBCSignTx(
 				anyXCC,
 				txID,
-				[]accounttypes.AccountID{signer},
+				[]authtypes.AccountID{signer},
 				clienttypes.NewHeight(version, uint64(height)+100),
 				0,
 			)

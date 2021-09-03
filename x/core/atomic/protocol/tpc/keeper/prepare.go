@@ -12,6 +12,7 @@ import (
 	"github.com/datachainlab/cross/x/core/atomic/protocol/tpc/types"
 	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
@@ -19,7 +20,7 @@ import (
 func (k Keeper) SendPrepare(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,
-	txID txtypes.TxID,
+	txID crosstypes.TxID,
 	transactions []txtypes.ResolvedContractTransaction,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
@@ -37,7 +38,7 @@ func (k Keeper) SendPrepare(
 		data := types.NewPacketDataPrepare(
 			txID,
 			tx,
-			txtypes.TxIndex(i),
+			crosstypes.TxIndex(i),
 		)
 		xcc, err := tx.GetCrossChainChannel(k.cdc)
 		if err != nil {
@@ -116,8 +117,8 @@ func (k Keeper) HandlePacketAcknowledgementPrepare(
 	sourcePort string,
 	sourceChannel string,
 	ack types.PacketAcknowledgementPrepare,
-	txID txtypes.TxID,
-	txIndex txtypes.TxIndex,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
 	ps packets.PacketSender,
 ) (*sdk.Result, error) {
 	state, err := k.receivePrepareAcknowledgement(
@@ -154,8 +155,8 @@ func (k Keeper) receivePrepareAcknowledgement(
 	sourcePort string,
 	sourceChannel string,
 	ack types.PacketAcknowledgementPrepare,
-	txID txtypes.TxID,
-	txIndex txtypes.TxIndex,
+	txID crosstypes.TxID,
+	txIndex crosstypes.TxIndex,
 ) (*receivePrepareState, error) {
 	if err := ack.ValidateBasic(); err != nil {
 		return nil, err

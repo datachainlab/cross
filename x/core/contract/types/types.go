@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	accounttypes "github.com/datachainlab/cross/x/core/account/types"
+	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 	initiatortypes "github.com/datachainlab/cross/x/core/initiator/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
@@ -50,7 +50,7 @@ func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) Cont
 	}
 }
 
-func SetupContractContext(ctx sdk.Context, signers []accounttypes.AccountID, runtimeInfo ContractRuntimeInfo) sdk.Context {
+func SetupContractContext(ctx sdk.Context, signers []authtypes.AccountID, runtimeInfo ContractRuntimeInfo) sdk.Context {
 	goCtx := ctx.Context()
 	goCtx = ContextWithContractRuntimeInfo(goCtx, runtimeInfo)
 	goCtx = ContextWithContractSigners(goCtx, signers)
@@ -58,14 +58,14 @@ func SetupContractContext(ctx sdk.Context, signers []accounttypes.AccountID, run
 }
 
 type ExternalContractCaller interface {
-	Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []accounttypes.AccountID) []byte
+	Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []authtypes.AccountID) []byte
 }
 
 type externalContractCaller struct{}
 
 var _ ExternalContractCaller = (*externalContractCaller)(nil)
 
-func (cc externalContractCaller) Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []accounttypes.AccountID) []byte {
+func (cc externalContractCaller) Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []authtypes.AccountID) []byte {
 	r := ContractRuntimeFromContext(ctx.Context()).ExternalObjectResolver
 	key := initiatortypes.MakeObjectKey(callInfo, signers)
 	obj, err := r.Resolve(xcc, key)

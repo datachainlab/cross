@@ -15,13 +15,14 @@ import (
 	"github.com/datachainlab/cross/x/core/atomic/protocol/simple/types"
 	atomictypes "github.com/datachainlab/cross/x/core/atomic/types"
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
+	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
 	"github.com/datachainlab/cross/x/packets"
 )
 
 const (
-	TxIndexCoordinator txtypes.TxIndex = 0
-	TxIndexParticipant txtypes.TxIndex = 1
+	TxIndexCoordinator crosstypes.TxIndex = 0
+	TxIndexParticipant crosstypes.TxIndex = 1
 )
 
 const (
@@ -56,7 +57,7 @@ func NewKeeper(
 func (k Keeper) SendCall(
 	ctx sdk.Context,
 	packetSender packets.PacketSender,
-	txID txtypes.TxID,
+	txID crosstypes.TxID,
 	transactions []txtypes.ResolvedContractTransaction,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
@@ -182,7 +183,7 @@ func (k Keeper) ReceiveCallAcknowledgement(
 	sourcePort string,
 	sourceChannel string,
 	ack types.PacketAcknowledgementCall,
-	txID txtypes.TxID,
+	txID crosstypes.TxID,
 ) (isCommittable bool, err error) {
 	cs, found := k.GetCoordinatorState(ctx, txID)
 	if !found {
@@ -224,7 +225,7 @@ func (k Keeper) ReceiveCallAcknowledgement(
 // caller is coordinator
 func (k Keeper) TryCommit(
 	ctx sdk.Context,
-	txID txtypes.TxID,
+	txID crosstypes.TxID,
 	isCommittable bool,
 ) (*txtypes.ContractCallResult, error) {
 	_, err := k.EnsureContractTransactionStatus(ctx, txID, TxIndexCoordinator, atomictypes.CONTRACT_TRANSACTION_STATUS_PREPARE)
