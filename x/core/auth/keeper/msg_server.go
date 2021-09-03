@@ -18,7 +18,7 @@ func (k Keeper) SignTx(goCtx context.Context, msg *types.MsgSignTx) (*types.MsgS
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	var accounts []authtypes.Account
 	for _, addr := range msg.Signers {
-		accounts = append(accounts, authtypes.NewAccount(k.xccResolver.GetSelfCrossChainChannel(ctx), addr))
+		accounts = append(accounts, authtypes.NewAccount(addr, authtypes.NewAuthTypeLocal()))
 	}
 	completed, err := k.Sign(ctx, msg.TxID, accounts)
 	if err != nil {
@@ -49,11 +49,6 @@ func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*type
 		return nil, err
 	}
 
-	var accounts []authtypes.Account
-	for _, addr := range msg.Signers {
-		accounts = append(accounts, authtypes.NewAccount(k.xccResolver.GetSelfCrossChainChannel(ctx), addr))
-	}
-
 	err = k.SendIBCSignTx(
 		ctx,
 		ps,
@@ -67,4 +62,18 @@ func (k Keeper) IBCSignTx(goCtx context.Context, msg *types.MsgIBCSignTx) (*type
 		return nil, err
 	}
 	return &types.MsgIBCSignTxResponse{}, nil
+}
+
+func (k Keeper) ExtSignTx(goCtx context.Context, msg *types.MsgExtSignTx) (*types.MsgExtSignTxResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	completed, err := k.Sign(ctx, msg.TxID, msg.GetSignerAccounts())
+	if err != nil {
+		return nil, err
+	}
+	if completed {
+		if err := k.txManager.OnPostAuth(ctx, msg.TxID); err != nil {
+			k.Logger(ctx).Error("failed to call PostAuth", "err", err)
+		}
+	}
+	return &types.MsgExtSignTxResponse{}, nil
 }

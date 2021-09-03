@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
@@ -63,27 +64,31 @@ func (suite *CrossTestSuite) TestInitiateTxSimple() {
 	xccSelf, err := xcctypes.PackCrossChainChannel(suite.chainA.App.XCCResolver.GetSelfCrossChainChannel(suite.chainA.GetContext()))
 	suite.Require().NoError(err)
 
+	// Signing process:
+	// 1. MsgInitiateTx consumes Tx#0 from chainA
+	// 2. MsgIBCSignTx consumes Tx#1 from chainB
+
 	var txID crosstypes.TxID
 
 	// Send a MsgInitiateTx to chainA
 	{
 		msg0 := initiatortypes.NewMsgInitiateTx(
-			suite.chainA.SenderAccount.GetAddress().Bytes(),
+			[]authtypes.Account{authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()))},
 			suite.chainA.ChainID,
 			0,
 			txtypes.COMMIT_PROTOCOL_SIMPLE,
 			[]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccSelf,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -194,27 +199,32 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	xccCA, err := xcctypes.PackCrossChainChannel(&chCA)
 	suite.Require().NoError(err)
 
+	// Signing process:
+	// 1. MsgInitiateTx consumes nothing from chainA
+	// 2. MsgIBCSignTx consumes Tx#0 from chainB
+	// 3. MsgIBCSignTx consumes Tx#1 from chainC
+
 	var txID crosstypes.TxID
 
 	// Send a MsgInitiateTx to chainA
 	{
 		msg0 := initiatortypes.NewMsgInitiateTx(
-			suite.chainA.SenderAccount.GetAddress().Bytes(),
+			[]authtypes.Account{authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()))},
 			suite.chainA.ChainID,
 			0,
 			txtypes.COMMIT_PROTOCOL_TPC,
 			[]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccAB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccAB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccAC,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccAC)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -291,8 +301,225 @@ func (suite *CrossTestSuite) TestInitiateTxTPC() {
 	}
 }
 
+func (suite *CrossTestSuite) TestExtSignTx() {
+	// setup
+
+	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint, ibctesting.CrossVersion)
+	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, types.PortID, types.PortID, channeltypes.UNORDERED)
+
+	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
+	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
+	suite.Require().NoError(err)
+
+	xccSelf, err := xcctypes.PackCrossChainChannel(suite.chainA.App.XCCResolver.GetSelfCrossChainChannel(suite.chainA.GetContext()))
+	suite.Require().NoError(err)
+
+	// Signing process:
+	// 1. MsgInitiateTx consumes Tx#0 from chainA
+	// 2. MsgExtSignTx consumes Tx#1 from chainA
+
+	var txID crosstypes.TxID
+
+	// Send a MsgInitiateTx to chainA
+	{
+		msg0 := initiatortypes.NewMsgInitiateTx(
+			[]authtypes.Account{authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()))},
+			suite.chainA.ChainID,
+			0,
+			txtypes.COMMIT_PROTOCOL_SIMPLE,
+			[]initiatortypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{})),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+			},
+			clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
+			0,
+		)
+		res0, err := sendMsgs(suite.coordinator, suite.chainA, suite.chainB, clientB, msg0)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
+
+		var txMsgData sdk.TxMsgData
+		var initiateTxRes initiatortypes.MsgInitiateTxResponse
+		suite.Require().NoError(proto.Unmarshal(res0.Data, &txMsgData))
+		suite.Require().NoError(proto.Unmarshal(txMsgData.Data[0].Data, &initiateTxRes))
+		suite.Require().Equal(initiatortypes.INITIATE_TX_STATUS_PENDING, initiateTxRes.Status)
+		txID = initiateTxRes.TxID
+	}
+
+	// Send a MsgExtSignTx to chainA to run the transaction on chainA
+	var packetCall channeltypes.Packet
+	{
+		msg1 := authtypes.MsgExtSignTx{
+			TxID: txID,
+			Signers: []authtypes.Account{
+				{
+					Id:       authtypes.AccountID(suite.chainB.SenderAccount.GetAddress().Bytes()),
+					AuthType: authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{}),
+				},
+			},
+		}
+		res1, err := sendMsgsWithMockTxConfig(suite.coordinator, suite.chainA, suite.chainB, clientB, &msg1)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
+
+		ps, err := ibctesting.GetPacketsFromEvents(res1.GetEvents().ToABCIEvents())
+		suite.Require().NoError(err)
+		suite.Require().Len(ps, 1)
+		packetCall = ps[0]
+		res2, err := recvPacket(
+			suite.coordinator, suite.chainA, suite.chainB, clientA, packetCall,
+		)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
+
+		acks, err := ibctesting.GetPacketAcknowledgementsFromEvents(res2.GetEvents().ToABCIEvents())
+		suite.Require().NoError(err)
+		suite.Require().Len(acks, 1)
+		_, err = acknowledgePacket(
+			suite.coordinator,
+			suite.chainA,
+			suite.chainB,
+			clientB,
+			packetCall,
+			acks[0].Data(),
+		)
+		suite.Require().NoError(err)
+		suite.chainB.NextBlock()
+	}
+}
+
+func (suite *CrossTestSuite) TestExtAuth() {
+	// setup
+
+	clientA, clientB, connA, connB := suite.coordinator.SetupClientConnections(suite.chainA, suite.chainB, exported.Tendermint, ibctesting.CrossVersion)
+	channelA, _ := suite.coordinator.CreateChannel(suite.chainA, suite.chainB, connA, connB, types.PortID, types.PortID, channeltypes.UNORDERED)
+
+	chAB := xcctypes.ChannelInfo{Port: channelA.PortID, Channel: channelA.ID}
+	xccB, err := xcctypes.PackCrossChainChannel(&chAB)
+	suite.Require().NoError(err)
+
+	xccSelf, err := xcctypes.PackCrossChainChannel(suite.chainA.App.XCCResolver.GetSelfCrossChainChannel(suite.chainA.GetContext()))
+	suite.Require().NoError(err)
+
+	// Signing process:
+	// 1. MsgInitiateTx consumes Tx#1 from chainA
+	// 2. MsgSignTx consumes Tx#0 from chainA
+
+	var txID crosstypes.TxID
+
+	// Send a MsgInitiateTx to chainA
+	{
+		msg0 := initiatortypes.NewMsgInitiateTx(
+			[]authtypes.Account{
+				{
+					Id:       authtypes.AccountID(suite.chainB.SenderAccount.GetAddress().Bytes()),
+					AuthType: authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{}),
+				},
+			},
+			suite.chainA.ChainID,
+			0,
+			txtypes.COMMIT_PROTOCOL_SIMPLE,
+			[]initiatortypes.ContractTransaction{
+				{
+					CrossChainChannel: xccSelf,
+					Signers: []authtypes.Account{
+						authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainA.App.AppCodec()),
+				},
+				{
+					CrossChainChannel: xccB,
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{})),
+					},
+					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
+				},
+			},
+			clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
+			0,
+		)
+		// res0, err := sendMsgs(suite.coordinator, suite.chainA, suite.chainB, clientB, msg0)
+		res0, err := sendMsgsWithMockTxConfig(suite.coordinator, suite.chainA, suite.chainB, clientB, msg0)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
+
+		var txMsgData sdk.TxMsgData
+		var initiateTxRes initiatortypes.MsgInitiateTxResponse
+		suite.Require().NoError(proto.Unmarshal(res0.Data, &txMsgData))
+		suite.Require().NoError(proto.Unmarshal(txMsgData.Data[0].Data, &initiateTxRes))
+		suite.Require().Equal(initiatortypes.INITIATE_TX_STATUS_PENDING, initiateTxRes.Status)
+		txID = initiateTxRes.TxID
+	}
+
+	// Send a MsgExtSignTx to chainA to run the transaction on chainA
+	var packetCall channeltypes.Packet
+	{
+		msg1 := authtypes.MsgSignTx{
+			TxID:    txID,
+			Signers: []authtypes.AccountID{authtypes.AccountID(suite.chainA.SenderAccount.GetAddress().Bytes())},
+		}
+		res1, err := sendMsgs(suite.coordinator, suite.chainA, suite.chainB, clientB, &msg1)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
+
+		ps, err := ibctesting.GetPacketsFromEvents(res1.GetEvents().ToABCIEvents())
+		suite.Require().NoError(err)
+		suite.Require().Len(ps, 1)
+		packetCall = ps[0]
+		res2, err := recvPacket(
+			suite.coordinator, suite.chainA, suite.chainB, clientA, packetCall,
+		)
+		suite.Require().NoError(err)
+		suite.chainA.NextBlock()
+
+		acks, err := ibctesting.GetPacketAcknowledgementsFromEvents(res2.GetEvents().ToABCIEvents())
+		suite.Require().NoError(err)
+		suite.Require().Len(acks, 1)
+		_, err = acknowledgePacket(
+			suite.coordinator,
+			suite.chainA,
+			suite.chainB,
+			clientB,
+			packetCall,
+			acks[0].Data(),
+		)
+		suite.Require().NoError(err)
+		suite.chainB.NextBlock()
+	}
+}
+
 func sendMsgs(coord *ibctesting.Coordinator, source, counterparty *ibctesting.TestChain, counterpartyClientID string, msgs ...sdk.Msg) (*sdk.Result, error) {
 	res, err := source.SendMsgs(msgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	coord.IncrementTime()
+	err = coord.UpdateClient(
+		counterparty, source,
+		counterpartyClientID, exported.Tendermint,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func sendMsgsWithMockTxConfig(coord *ibctesting.Coordinator, source, counterparty *ibctesting.TestChain, counterpartyClientID string, msgs ...sdk.Msg) (*sdk.Result, error) {
+	res, err := source.SendMsgsWithTxConfig(NewMockTxConfig(source.TxConfig), msgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -334,4 +561,27 @@ func acknowledgePacket(coord *ibctesting.Coordinator,
 
 func TestCrossTestSuite(t *testing.T) {
 	suite.Run(t, new(CrossTestSuite))
+}
+
+type MockTxConfig struct {
+	client.TxConfig
+}
+
+var _ client.TxConfig = (*MockTxConfig)(nil)
+
+func NewMockTxConfig(txConfig client.TxConfig) MockTxConfig {
+	return MockTxConfig{TxConfig: txConfig}
+}
+
+func (cfg MockTxConfig) NewTxBuilder() client.TxBuilder {
+	builder := cfg.TxConfig.NewTxBuilder()
+	return &mockTxBuilder{TxBuilder: builder}
+}
+
+type mockTxBuilder struct {
+	client.TxBuilder
+}
+
+func (bd *mockTxBuilder) SetMemo(memo string) {
+	bd.TxBuilder.SetMemo("sample")
 }

@@ -23,6 +23,9 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case *authtypes.MsgIBCSignTx:
 			res, err := k.IBCSignTx(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
+		case *authtypes.MsgExtSignTx:
+			res, err := k.ExtSignTx(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized IBC message type: %T", msg)
 		}

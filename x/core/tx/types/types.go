@@ -164,7 +164,7 @@ func (FakeResolver) Resolve(xcc xcctypes.XCC, key []byte) (Object, error) {
 	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%v' '%X'", xcc, key))
 }
 
-func NewResolvedContractTransaction(anyXCC *codectypes.Any, signers []authtypes.AccountID, callInfo ContractCallInfo, returnValue *ReturnValue, linkObjects []Object) ResolvedContractTransaction {
+func NewResolvedContractTransaction(anyXCC *codectypes.Any, signers []authtypes.Account, callInfo ContractCallInfo, returnValue *ReturnValue, linkObjects []Object) ResolvedContractTransaction {
 	anyObjects, err := PackObjects(linkObjects)
 	if err != nil {
 		panic(err)

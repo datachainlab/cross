@@ -75,15 +75,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccC)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -96,15 +96,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccC)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -117,15 +117,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccC)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},
@@ -138,15 +138,15 @@ func (suite *KeeperTestSuite) TestTransaction() {
 			[2]initiatortypes.ContractTransaction{
 				{
 					CrossChainChannel: xccB,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
 				{
 					CrossChainChannel: xccC,
-					Signers: []authtypes.AccountID{
-						authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()),
+					Signers: []authtypes.Account{
+						authtypes.NewAccount(authtypes.AccountID(suite.chainC.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccC)),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("fail").ContractCallInfo(suite.chainC.App.AppCodec()),
 				},

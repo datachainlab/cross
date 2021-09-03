@@ -15,6 +15,8 @@ service Msg {
   rpc SignTx(MsgSignTx) returns (MsgSignTxResponse);
   // IBCSignTx defines a rpc handler method for MsgIBCSignTx.
   rpc IBCSignTx(MsgIBCSignTx) returns (MsgIBCSignTxResponse);
+  // ExtSignTx
+  rpc ExtSignTx(MsgExtSignTx) returns (MsgExtSignTxResponse);
 }
 
 message MsgSignTx {
@@ -61,6 +63,19 @@ message MsgIBCSignTx {
 
 // MsgIBCSignTxResponse defines the Msg/IBCSignTx response type.
 message MsgIBCSignTxResponse {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+}
+
+message MsgExtSignTx {
+  option (gogoproto.equal)           = false;
+  option (gogoproto.goproto_getters) = false;
+
+  bytes txID = 1 [(gogoproto.casttype) = "github.com/datachainlab/cross/x/core/types.TxID"];
+  repeated Account signers = 2 [(gogoproto.nullable) = false];
+}
+
+message MsgExtSignTxResponse {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 }

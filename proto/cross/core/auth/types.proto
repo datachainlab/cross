@@ -9,8 +9,21 @@ option (gogoproto.goproto_getters_all) = false;
 
 message Account {
   option (gogoproto.equal) = true;
-  google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = true];
-  bytes id = 2 [(gogoproto.casttype) = "AccountID"];
+  bytes id = 1 [(gogoproto.casttype) = "AccountID"];
+  AuthType auth_type = 2 [(gogoproto.nullable) = false];
+}
+
+enum AuthMode {
+  AUTH_MODE_UNSPECIFIED = 0;
+  AUTH_MODE_LOCAL       = 1;
+  AUTH_MODE_CHANNEL     = 2;
+  AUTH_MODE_EXTENSION   = 3;
+}
+
+message AuthType {
+  option (gogoproto.equal) = true;
+  AuthMode mode = 1;
+  google.protobuf.Any option = 2 [(gogoproto.nullable) = true]; // xcc or extension_type_url
 }
 
 message TxAuthState {

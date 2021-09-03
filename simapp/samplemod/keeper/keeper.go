@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -61,8 +60,8 @@ var counterKey = []byte("counter")
 func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*txtypes.ContractCallResult, error) {
 	// use the account ID as namespace
 	account := contracttypes.ContractSignersFromContext(ctx.Context())[0]
-	v := k.getCounter(ctx, account)
-	bz := k.setCounter(ctx, account, v+1)
+	v := k.getCounter(ctx, account.Id)
+	bz := k.setCounter(ctx, account.Id, v+1)
 	return &txtypes.ContractCallResult{Data: bz}, nil
 }
 
@@ -88,7 +87,7 @@ func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallReques
 		return nil, fmt.Errorf("the number of arguments must be 2")
 	}
 
-	accID, err := hex.DecodeString(req.Args[0])
+	acc, err := authtypes.NewAccountFromHexString(req.Args[0])
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +103,7 @@ func (k Keeper) HandleExternalCall(ctx sdk.Context, req types.ContractCallReques
 			Channel: channelID,
 		},
 		callInfo,
-		[]authtypes.AccountID{accID},
+		[]authtypes.Account{*acc},
 	)
 	return &txtypes.ContractCallResult{Data: ret}, nil
 }

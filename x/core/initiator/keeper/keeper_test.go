@@ -62,15 +62,15 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	txs := []initiatortypes.ContractTransaction{
 		{
 			CrossChainChannel: xccSelf,
-			Signers: []authtypes.AccountID{
-				authtypes.AccountID(suite.chainA.SenderAccount.GetAddress()),
+			Signers: []authtypes.Account{
+				authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 			},
 			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainA.App.AppCodec()),
 		},
 		{
 			CrossChainChannel: xccB,
-			Signers: []authtypes.AccountID{
-				authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()),
+			Signers: []authtypes.Account{
+				authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeChannelWithAny(xccB)),
 			},
 			CallInfo: samplemodtypes.NewContractCallRequest("nop").ContractCallInfo(suite.chainB.App.AppCodec()),
 		},
@@ -79,13 +79,12 @@ func (suite *KeeperTestSuite) TestInitiateTx() {
 	// InitiateTx on chainA
 
 	msg0 := &initiatortypes.MsgInitiateTx{
-		Sender:               suite.chainA.SenderAccount.GetAddress().Bytes(),
 		ChainId:              suite.chainA.ChainID,
 		Nonce:                0,
 		CommitProtocol:       txtypes.COMMIT_PROTOCOL_SIMPLE,
 		ContractTransactions: txs,
-		Signers: []authtypes.AccountID{
-			suite.chainA.SenderAccount.GetAddress().Bytes(),
+		Signers: []authtypes.Account{
+			authtypes.NewLocalAccount(authtypes.AccountID(suite.chainA.SenderAccount.GetAddress())),
 		},
 		TimeoutHeight: clienttypes.NewHeight(0, uint64(suite.chainA.CurrentHeader.Height)+100),
 	}

@@ -11,6 +11,7 @@ import (
 	txtypes "github.com/datachainlab/cross/x/core/tx/types"
 	crosstypes "github.com/datachainlab/cross/x/core/types"
 	xcctypes "github.com/datachainlab/cross/x/core/xcc/types"
+	"github.com/gogo/protobuf/proto"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -86,11 +87,15 @@ func makeLazyObject(f func() returnObject) lazyObject {
 }
 
 // MakeObjectKey returns a key that can be used to identify a contract call
-func MakeObjectKey(callInfo txtypes.ContractCallInfo, signers []authtypes.AccountID) []byte {
+func MakeObjectKey(callInfo txtypes.ContractCallInfo, signers []authtypes.Account) []byte {
 	h := tmhash.New()
 	h.Write(callInfo)
 	for _, signer := range signers {
-		h.Write(signer)
+		bz, err := proto.Marshal(&signer)
+		if err != nil {
+			panic(err)
+		}
+		h.Write(bz)
 	}
 	return h.Sum(nil)
 }

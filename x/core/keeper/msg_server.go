@@ -20,3 +20,7 @@ func (k Keeper) SignTx(ctx context.Context, msg *authtypes.MsgSignTx) (*authtype
 func (k Keeper) IBCSignTx(ctx context.Context, msg *authtypes.MsgIBCSignTx) (*authtypes.MsgIBCSignTxResponse, error) {
 	return k.authKeeper.IBCSignTx(ctx, msg)
 }
+
+func (k Keeper) ExtSignTx(ctx context.Context, msg *authtypes.MsgExtSignTx) (*authtypes.MsgExtSignTxResponse, error) {
+	return k.authKeeper.ExtSignTx(ctx, msg)
+}

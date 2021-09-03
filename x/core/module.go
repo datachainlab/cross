@@ -141,6 +141,7 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	initiatortypes.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 	authtypes.RegisterQueryServer(cfg.QueryServer(), am.keeper)
+	authtypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 }
 
 // InitGenesis performs the capability module's genesis initialization It returns

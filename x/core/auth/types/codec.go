@@ -14,6 +14,11 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*sdk.Msg)(nil),
 		&MsgSignTx{},
 		&MsgIBCSignTx{},
+		&MsgExtSignTx{},
+	)
+	registry.RegisterImplementations(
+		(*ExtAuthMsg)(nil),
+		&MsgExtSignTx{},
 	)
 	registry.RegisterImplementations(
 		(*packets.PacketDataPayload)(nil),
