@@ -338,7 +338,7 @@ func (suite *CrossTestSuite) TestExtSignTx() {
 				{
 					CrossChainChannel: xccB,
 					Signers: []authtypes.Account{
-						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeExtenstion(&samplemodtypes.SampleAuthExtension{})),
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{})),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},
@@ -366,7 +366,7 @@ func (suite *CrossTestSuite) TestExtSignTx() {
 			Signers: []authtypes.Account{
 				{
 					Id:       authtypes.AccountID(suite.chainB.SenderAccount.GetAddress().Bytes()),
-					AuthType: authtypes.NewAuthTypeExtenstion(&samplemodtypes.SampleAuthExtension{}),
+					AuthType: authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{}),
 				},
 			},
 		}
@@ -425,7 +425,7 @@ func (suite *CrossTestSuite) TestExtAuth() {
 			[]authtypes.Account{
 				{
 					Id:       authtypes.AccountID(suite.chainB.SenderAccount.GetAddress().Bytes()),
-					AuthType: authtypes.NewAuthTypeExtenstion(&samplemodtypes.SampleAuthExtension{}),
+					AuthType: authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{}),
 				},
 			},
 			suite.chainA.ChainID,
@@ -442,7 +442,7 @@ func (suite *CrossTestSuite) TestExtAuth() {
 				{
 					CrossChainChannel: xccB,
 					Signers: []authtypes.Account{
-						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeExtenstion(&samplemodtypes.SampleAuthExtension{})),
+						authtypes.NewAccount(authtypes.AccountID(suite.chainB.SenderAccount.GetAddress()), authtypes.NewAuthTypeExtension(&samplemodtypes.SampleAuthExtension{})),
 					},
 					CallInfo: samplemodtypes.NewContractCallRequest("counter").ContractCallInfo(suite.chainB.App.AppCodec()),
 				},

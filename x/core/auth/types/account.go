@@ -95,7 +95,7 @@ func NewAuthTypeChannelWithAny(anyXCC *codectypes.Any) AuthType {
 	}
 }
 
-func NewAuthTypeExtenstion(extension AuthExtensionVerifier) AuthType {
+func NewAuthTypeExtension(extension AuthExtensionVerifier) AuthType {
 	any, err := utils.PackAny(extension)
 	if err != nil {
 		panic(err)
