@@ -74,7 +74,6 @@ func (k contractManager) setupContext(
 	// Setup a context
 	ctx = types.SetupContractContext(
 		ctx,
-		tx.Signers,
 		types.ContractRuntimeInfo{
 			CommitMode:             commitMode,
 			ExternalObjectResolver: rs,
@@ -103,6 +102,7 @@ func (k contractManager) processTransaction(
 
 	res, err = k.mod.OnContractCall(
 		sdk.WrapSDKContext(ctx),
+		tx.Signers,
 		tx.CallInfo,
 	)
 	if err != nil {
