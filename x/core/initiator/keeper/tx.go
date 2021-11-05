@@ -90,11 +90,11 @@ func (k Keeper) ResolveTransactions(ctx sdk.Context, ctxs []types.ContractTransa
 		if err != nil {
 			return nil, err
 		}
-		objs, err := lkr.Resolve(ctx, xcc, ct.Links)
+		results, err := lkr.Resolve(ctx, xcc, ct.Links)
 		if err != nil {
 			return nil, err
 		}
-		anyObjs, err := txtypes.PackObjects(objs)
+		anyResults, err := txtypes.PackCallResults(results)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (k Keeper) ResolveTransactions(ctx sdk.Context, ctxs []types.ContractTransa
 			Signers:           ct.Signers,
 			CallInfo:          ct.CallInfo,
 			ReturnValue:       ct.ReturnValue,
-			Objects:           anyObjs,
+			CallResults:       anyResults,
 		}
 		rtxs = append(rtxs, rt)
 	}
