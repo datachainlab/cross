@@ -32,9 +32,10 @@ func (k Keeper) SendCommit(
 		return fmt.Errorf("coordinator must decide any status")
 	}
 
+	// NOTE: packet-timeout isn't supported in the two-phase commit
 	timeoutHeight := clienttypes.NewHeight(
 		clienttypes.ParseChainID(ctx.ChainID()),
-		math.MaxInt64,
+		math.MaxUint64,
 	)
 	for id, c := range cs.Channels {
 		ch, found := k.ChannelKeeper().GetChannel(ctx, c.Port, c.Channel)
