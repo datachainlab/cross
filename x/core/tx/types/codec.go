@@ -10,8 +10,8 @@ import (
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
-		(*Object)(nil),
-		&ConstantValueObject{},
+		(*CallResult)(nil),
+		&ConstantValueCallResult{},
 	)
 }
 
@@ -24,10 +24,10 @@ var (
 	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 )
 
-func PackObjects(objs []Object) ([]codectypes.Any, error) {
+func PackCallResults(results []CallResult) ([]codectypes.Any, error) {
 	var anys []codectypes.Any
-	for _, obj := range objs {
-		any, err := utils.PackAny(obj)
+	for _, result := range results {
+		any, err := utils.PackAny(result)
 		if err != nil {
 			return nil, err
 		}
@@ -36,14 +36,14 @@ func PackObjects(objs []Object) ([]codectypes.Any, error) {
 	return anys, nil
 }
 
-func UnpackObjects(m codec.Codec, objects []codectypes.Any) ([]Object, error) {
-	var objs []Object
-	for _, v := range objects {
-		var obj Object
-		if err := m.UnpackAny(&v, &obj); err != nil {
+func UnpackCallResults(m codec.Codec, anyCallResults []codectypes.Any) ([]CallResult, error) {
+	var results []CallResult
+	for _, v := range anyCallResults {
+		var result CallResult
+		if err := m.UnpackAny(&v, &result); err != nil {
 			return nil, err
 		}
-		objs = append(objs, obj)
+		results = append(results, result)
 	}
-	return objs, nil
+	return results, nil
 }

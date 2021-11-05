@@ -3,8 +3,6 @@ package types
 import (
 	"context"
 	"fmt"
-
-	authtypes "github.com/datachainlab/cross/x/core/auth/types"
 )
 
 type contractRuntimeInfoContextKey struct{}
@@ -29,16 +27,4 @@ func CommitModeFromContext(ctx context.Context) CommitMode {
 	default:
 		panic(fmt.Sprintf("unknown type: %T", v))
 	}
-}
-
-type contractSignersContextKey struct{}
-
-// ContractSignersFromContext returns the []AccountID from context
-func ContractSignersFromContext(ctx context.Context) []authtypes.Account {
-	return ctx.Value(contractSignersContextKey{}).([]authtypes.Account)
-}
-
-// ContextWithContractSigners returns a context with an updated accounts
-func ContextWithContractSigners(ctx context.Context, accounts []authtypes.Account) context.Context {
-	return context.WithValue(ctx, contractSignersContextKey{}, accounts)
 }

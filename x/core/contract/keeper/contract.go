@@ -16,7 +16,7 @@ type contractManager struct {
 
 	mod                     types.ContractModule
 	commitStore             types.CommitStoreI
-	resolverProvider        txtypes.ObjectResolverProvider
+	resolverProvider        txtypes.CallResolverProvider
 	contractHandleDecorator types.ContractHandleDecorator
 }
 
@@ -35,7 +35,7 @@ func NewContractManager(
 		storeKey:                storeKey,
 		mod:                     mod,
 		commitStore:             commitStore,
-		resolverProvider:        txtypes.DefaultResolverProvider(),
+		resolverProvider:        txtypes.DefaultCallResolverProvider(),
 		contractHandleDecorator: contractHandleDecorator,
 	}
 }
@@ -66,7 +66,7 @@ func (k contractManager) setupContext(
 	tx txtypes.ResolvedContractTransaction,
 	commitMode types.CommitMode,
 ) (sdk.Context, error) {
-	rs, err := k.resolverProvider(k.cdc, tx.UnpackObjects(k.cdc))
+	rs, err := k.resolverProvider(k.cdc, tx.UnpackCallResults(k.cdc))
 	if err != nil {
 		return ctx, err
 	}
@@ -74,10 +74,9 @@ func (k contractManager) setupContext(
 	// Setup a context
 	ctx = types.SetupContractContext(
 		ctx,
-		tx.Signers,
 		types.ContractRuntimeInfo{
-			CommitMode:             commitMode,
-			ExternalObjectResolver: rs,
+			CommitMode:           commitMode,
+			ExternalCallResolver: rs,
 		},
 	)
 	goCtx, err := k.contractHandleDecorator.Handle(ctx.Context(), tx.CallInfo)
@@ -103,6 +102,7 @@ func (k contractManager) processTransaction(
 
 	res, err = k.mod.OnContractCall(
 		sdk.WrapSDKContext(ctx),
+		tx.Signers,
 		tx.CallInfo,
 	)
 	if err != nil {

@@ -32,7 +32,7 @@ message ResolvedContractTransaction {
   repeated cross.core.auth.Account signers = 2 [(gogoproto.nullable) = false];
   bytes call_info = 3 [(gogoproto.casttype) = "ContractCallInfo"];
   ReturnValue return_value = 4;
-  repeated google.protobuf.Any objects = 5 [(gogoproto.nullable) = false];
+  repeated google.protobuf.Any call_results = 5 [(gogoproto.nullable) = false];
 }
 
 enum CommitProtocol {
@@ -47,8 +47,8 @@ message ReturnValue {
   bytes value = 1;
 }
 
-// ConstantValueObject is an Object wraps a constant value
-message ConstantValueObject {
+// ConstantValueCallResult is a CallResult wraps a constant value
+message ConstantValueCallResult {
   google.protobuf.Any cross_chain_channel = 1 [(gogoproto.nullable) = false];
   bytes k = 2;
   bytes v = 3;

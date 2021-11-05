@@ -36,109 +36,109 @@ type TxRunner interface {
 	RunTx(ctx sdk.Context, tx Tx, ps packets.PacketSender) error
 }
 
-// ObjectType is a type of Object
-type ObjectType = uint8
+// CallResultType is a type of CallResult
+type CallResultType = uint8
 
 const (
-	// ObjectTypeConstantValue is ObjectType indicates a constant value
-	ObjectTypeConstantValue ObjectType = iota + 1
+	// ConstantValueCallResultType indicates a type of constant value
+	ConstantValueCallResultType CallResultType = iota + 1
 )
 
-// Object wraps an actual value
-type Object interface {
+// CallResult wraps an actual value
+type CallResult interface {
 	proto.Message
-	Type() ObjectType
+	Type() CallResultType
 	Key() []byte
+	Value() []byte
 	GetCrossChainChannel(m codec.Codec) xcctypes.XCC
-	WithCrossChainChannel(m codec.Codec, xcc xcctypes.XCC) Object
-	Evaluate([]byte) ([]byte, error)
+	WithCrossChainChannel(m codec.Codec, xcc xcctypes.XCC) CallResult
 }
 
-var _ Object = (*ConstantValueObject)(nil)
+var _ CallResult = (*ConstantValueCallResult)(nil)
 
-// MakeConstantValueObject returns ConstantValueObject
-func MakeConstantValueObject(xcc xcctypes.XCC, key []byte, value []byte) ConstantValueObject {
+// NewConstantValueCallResult returns ConstantValueObject
+func NewConstantValueCallResult(xcc xcctypes.XCC, key []byte, value []byte) ConstantValueCallResult {
 	anyXCC, err := xcctypes.PackCrossChainChannel(xcc)
 	if err != nil {
 		panic(err)
 	}
-	return ConstantValueObject{
+	return ConstantValueCallResult{
 		CrossChainChannel: *anyXCC,
 		K:                 key,
 		V:                 value,
 	}
 }
 
-// Type implements Object.Type
-func (ConstantValueObject) Type() ObjectType {
-	return ObjectTypeConstantValue
+// Type implements CallResult.Type
+func (ConstantValueCallResult) Type() CallResultType {
+	return ConstantValueCallResultType
 }
 
-// GetCrossChainChannel implements Object.GetCrossChainChannel
-func (obj ConstantValueObject) GetCrossChainChannel(m codec.Codec) xcctypes.XCC {
-	xcc, err := xcctypes.UnpackCrossChainChannel(m, obj.CrossChainChannel)
+// GetCrossChainChannel implements CallResult.GetCrossChainChannel
+func (r ConstantValueCallResult) GetCrossChainChannel(m codec.Codec) xcctypes.XCC {
+	xcc, err := xcctypes.UnpackCrossChainChannel(m, r.CrossChainChannel)
 	if err != nil {
 		panic(err)
 	}
 	return xcc
 }
 
-// WithChainID implements Object.WithCrossChainChannel
-func (obj ConstantValueObject) WithCrossChainChannel(m codec.Codec, xcc xcctypes.XCC) Object {
+// WithChainID implements CallResult.WithCrossChainChannel
+func (r ConstantValueCallResult) WithCrossChainChannel(m codec.Codec, xcc xcctypes.XCC) CallResult {
 	anyXCC, err := xcctypes.PackCrossChainChannel(xcc)
 	if err != nil {
 		panic(err)
 	}
-	obj.CrossChainChannel = *anyXCC
-	return &obj
+	r.CrossChainChannel = *anyXCC
+	return &r
 }
 
-// Key implements Object.Key
-func (l ConstantValueObject) Key() []byte {
-	return l.K
+// Key implements CallResult.Key
+func (r ConstantValueCallResult) Key() []byte {
+	return r.K
 }
 
 // Evaluate returns a constant value
-func (l ConstantValueObject) Evaluate(bz []byte) ([]byte, error) {
-	return l.V, nil
+func (r ConstantValueCallResult) Value() []byte {
+	return r.V
 }
 
-// ObjectResolverProvider is a provider of ObjectResolver
-type ObjectResolverProvider func(m codec.Codec, libs []Object) (ObjectResolver, error)
+// CallResolverProvider is a provider of CallResultResolver
+type CallResolverProvider func(m codec.Codec, results []CallResult) (CallResolver, error)
 
-// DefaultResolverProvider returns a default implements of ObjectResolver
-func DefaultResolverProvider() ObjectResolverProvider {
-	return func(m codec.Codec, libs []Object) (ObjectResolver, error) {
-		return NewSequentialResolver(m, libs), nil
+// DefaultCallResolverProvider returns a default implements of CallResolverProvider
+func DefaultCallResolverProvider() CallResolverProvider {
+	return func(m codec.Codec, results []CallResult) (CallResolver, error) {
+		return NewSequentialResolver(m, results), nil
 	}
 }
 
-// ObjectResolver resolves a given key to Object
-type ObjectResolver interface {
-	Resolve(xcc xcctypes.XCC, key []byte) (Object, error)
+// CallResolver resolves a given key to CallResult
+type CallResolver interface {
+	Resolve(xcc xcctypes.XCC, key []byte) (CallResult, error)
 }
 
-// SequentialResolver is a resolver that resolves an object in sequential
+// SequentialResolver is a resolver that resolves a CallResult in sequential
 type SequentialResolver struct {
 	m       codec.Codec
 	seq     uint8
-	objects []Object
+	results []CallResult
 }
 
-var _ ObjectResolver = (*SequentialResolver)(nil)
+var _ CallResolver = (*SequentialResolver)(nil)
 
 // NewSequentialResolver returns SequentialResolver
-func NewSequentialResolver(m codec.Codec, objects []Object) *SequentialResolver {
-	return &SequentialResolver{m: m, seq: 0, objects: objects}
+func NewSequentialResolver(m codec.Codec, results []CallResult) *SequentialResolver {
+	return &SequentialResolver{m: m, seq: 0, results: results}
 }
 
 // Resolve implements ObjectResolver.Resolve
 // If success, resolver increments the internal sequence
-func (r *SequentialResolver) Resolve(xcc xcctypes.XCC, key []byte) (Object, error) {
-	if len(r.objects) <= int(r.seq) {
-		return nil, fmt.Errorf("object not found: seq=%X", r.seq)
+func (r *SequentialResolver) Resolve(xcc xcctypes.XCC, key []byte) (CallResult, error) {
+	if len(r.results) <= int(r.seq) {
+		return nil, fmt.Errorf("result not found: seq=%X", r.seq)
 	}
-	obj := r.objects[r.seq]
+	obj := r.results[r.seq]
 	if !bytes.Equal(obj.Key(), key) {
 		return nil, fmt.Errorf("keys mismatch: %X != %X", obj.Key(), key)
 	}
@@ -149,23 +149,23 @@ func (r *SequentialResolver) Resolve(xcc xcctypes.XCC, key []byte) (Object, erro
 	return obj, nil
 }
 
-// FakeResolver is a resolver that always fails to resolve an object
+// FakeResolver is a resolver that always fails to resolve an result
 type FakeResolver struct{}
 
-var _ ObjectResolver = (*FakeResolver)(nil)
+var _ CallResolver = (*FakeResolver)(nil)
 
 // NewFakeResolver returns FakeResolver
 func NewFakeResolver() FakeResolver {
 	return FakeResolver{}
 }
 
-// Resolve implements ObjectResolver.Resolve
-func (FakeResolver) Resolve(xcc xcctypes.XCC, key []byte) (Object, error) {
-	panic(fmt.Errorf("FakeResolver cannot resolve any objects, but received '%v' '%X'", xcc, key))
+// Resolve implements CallResolver.Resolve
+func (FakeResolver) Resolve(xcc xcctypes.XCC, key []byte) (CallResult, error) {
+	panic(fmt.Errorf("FakeResolver cannot resolve any results, but received '%v' '%X'", xcc, key))
 }
 
-func NewResolvedContractTransaction(anyXCC *codectypes.Any, signers []authtypes.Account, callInfo ContractCallInfo, returnValue *ReturnValue, linkObjects []Object) ResolvedContractTransaction {
-	anyObjects, err := PackObjects(linkObjects)
+func NewResolvedContractTransaction(anyXCC *codectypes.Any, signers []authtypes.Account, callInfo ContractCallInfo, returnValue *ReturnValue, results []CallResult) ResolvedContractTransaction {
+	anyResults, err := PackCallResults(results)
 	if err != nil {
 		panic(err)
 	}
@@ -174,7 +174,7 @@ func NewResolvedContractTransaction(anyXCC *codectypes.Any, signers []authtypes.
 		Signers:           signers,
 		CallInfo:          callInfo,
 		ReturnValue:       returnValue,
-		Objects:           anyObjects,
+		CallResults:       anyResults,
 	}
 }
 
@@ -182,12 +182,12 @@ func (tx ResolvedContractTransaction) ValidateBasic() error {
 	return nil
 }
 
-func (tx ResolvedContractTransaction) UnpackObjects(m codec.Codec) []Object {
-	objects, err := UnpackObjects(m, tx.Objects)
+func (tx ResolvedContractTransaction) UnpackCallResults(m codec.Codec) []CallResult {
+	results, err := UnpackCallResults(m, tx.CallResults)
 	if err != nil {
 		panic(err)
 	}
-	return objects
+	return results
 }
 
 func (tx ResolvedContractTransaction) GetCrossChainChannel(m codec.Codec) (xcctypes.XCC, error) {

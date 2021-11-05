@@ -35,7 +35,7 @@ func NewKeeper(m codec.Codec, storeKey sdk.StoreKey, xstore storetypes.KVStoreI)
 }
 
 // HandleContractCall is called by ContractModule
-func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error) {
+func (k Keeper) HandleContractCall(goCtx context.Context, signers []authtypes.Account, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error) {
 	var req types.ContractCallRequest
 	if err := k.m.UnmarshalJSON(callInfo, &req); err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.Contr
 	case "nop":
 		return &txtypes.ContractCallResult{}, nil
 	case "counter":
-		return k.HandleCounter(ctx, req)
+		return k.HandleCounter(ctx, signers, req)
 	case "external-call":
 		return k.HandleExternalCall(ctx, req)
 	case "fail":
@@ -57,9 +57,9 @@ func (k Keeper) HandleContractCall(goCtx context.Context, callInfo txtypes.Contr
 
 var counterKey = []byte("counter")
 
-func (k Keeper) HandleCounter(ctx sdk.Context, req types.ContractCallRequest) (*txtypes.ContractCallResult, error) {
+func (k Keeper) HandleCounter(ctx sdk.Context, signers []authtypes.Account, req types.ContractCallRequest) (*txtypes.ContractCallResult, error) {
 	// use the account ID as namespace
-	account := contracttypes.ContractSignersFromContext(ctx.Context())[0]
+	account := signers[0]
 	v := k.getCounter(ctx, account.Id)
 	bz := k.setCounter(ctx, account.Id, v+1)
 	return &txtypes.ContractCallResult{Data: bz}, nil

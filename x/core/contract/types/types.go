@@ -11,10 +11,10 @@ import (
 )
 
 type ContractModule interface {
-	OnContractCall(ctx context.Context, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error)
+	OnContractCall(ctx context.Context, signers []authtypes.Account, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error)
 }
 
-type ContractHandler func(ctx context.Context, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error)
+type ContractHandler func(ctx context.Context, signers []authtypes.Account, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error)
 
 type ContractHandleDecorator interface {
 	Handle(ctx context.Context, callInfo txtypes.ContractCallInfo) (newCtx context.Context, err error)
@@ -38,7 +38,7 @@ func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) Cont
 	if h == nil {
 		panic("ContractHandler cannot be nil")
 	}
-	return func(ctx context.Context, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error) {
+	return func(ctx context.Context, signers []authtypes.Account, callInfo txtypes.ContractCallInfo) (*txtypes.ContractCallResult, error) {
 		var err error
 		for _, dec := range decs {
 			ctx, err = dec.Handle(ctx, callInfo)
@@ -46,14 +46,13 @@ func NewContractHandler(h ContractHandler, decs ...ContractHandleDecorator) Cont
 				return nil, err
 			}
 		}
-		return h(ctx, callInfo)
+		return h(ctx, signers, callInfo)
 	}
 }
 
-func SetupContractContext(ctx sdk.Context, signers []authtypes.Account, runtimeInfo ContractRuntimeInfo) sdk.Context {
+func SetupContractContext(ctx sdk.Context, runtimeInfo ContractRuntimeInfo) sdk.Context {
 	goCtx := ctx.Context()
 	goCtx = ContextWithContractRuntimeInfo(goCtx, runtimeInfo)
-	goCtx = ContextWithContractSigners(goCtx, signers)
 	return ctx.WithContext(goCtx)
 }
 
@@ -66,17 +65,12 @@ type externalContractCaller struct{}
 var _ ExternalContractCaller = (*externalContractCaller)(nil)
 
 func (cc externalContractCaller) Call(ctx sdk.Context, xcc xcctypes.XCC, callInfo txtypes.ContractCallInfo, signers []authtypes.Account) []byte {
-	r := ContractRuntimeFromContext(ctx.Context()).ExternalObjectResolver
-	key := initiatortypes.MakeObjectKey(callInfo, signers)
-	obj, err := r.Resolve(xcc, key)
+	r := ContractRuntimeFromContext(ctx.Context()).ExternalCallResolver
+	res, err := r.Resolve(xcc, initiatortypes.MakeCallResultKey(callInfo, signers))
 	if err != nil {
 		panic(err)
 	}
-	v, err := obj.Evaluate(key)
-	if err != nil {
-		panic(err)
-	}
-	return v
+	return res.Value()
 }
 
 func NewExternalContractCaller() ExternalContractCaller {
@@ -84,6 +78,6 @@ func NewExternalContractCaller() ExternalContractCaller {
 }
 
 type ContractRuntimeInfo struct {
-	CommitMode             CommitMode
-	ExternalObjectResolver txtypes.ObjectResolver
+	CommitMode           CommitMode
+	ExternalCallResolver txtypes.CallResolver
 }

@@ -64,7 +64,7 @@ func (k Keeper) SendCall(
 ) error {
 	if len(transactions) != 2 {
 		return errors.New("the number of contract transactions must be 2")
-	} else if !k.xccResolver.Capabilities().CrossChainCalls(ctx) && (len(transactions[0].Objects) > 0 || len(transactions[1].Objects) > 0) {
+	} else if !k.xccResolver.Capabilities().CrossChainCalls(ctx) && (len(transactions[0].CallResults) > 0 || len(transactions[1].CallResults) > 0) {
 		return errors.New("the chainResolver cannot resolve cannot support the cross-chain calls feature")
 	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetRevisionHeight() {
 		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetRevisionHeight())

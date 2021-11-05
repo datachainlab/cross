@@ -36,16 +36,16 @@ func MakeLinker(cdc codec.Codec, xccResolver xcctypes.XCCResolver, txs []Contrac
 			if err != nil {
 				return returnObject{err: err}
 			}
-			obj := txtypes.MakeConstantValueObject(xcc, MakeObjectKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
-			return returnObject{obj: &obj}
+			res := txtypes.NewConstantValueCallResult(xcc, MakeCallResultKey(tx.CallInfo, tx.Signers), tx.ReturnValue.Value)
+			return returnObject{res: &res}
 		})
 	}
 	return &lkr, nil
 }
 
 // Resolve resolves given links and returns resolved Object
-func (lkr Linker) Resolve(ctx sdk.Context, callerc xcctypes.XCC, lks []Link) ([]txtypes.Object, error) {
-	var objects []txtypes.Object
+func (lkr Linker) Resolve(ctx sdk.Context, callerc xcctypes.XCC, lks []Link) ([]txtypes.CallResult, error) {
+	var results []txtypes.CallResult
 	for _, lk := range lks {
 		idx := lk.GetSrcIndex()
 		lzObj, ok := lkr.objects[idx]
@@ -56,19 +56,19 @@ func (lkr Linker) Resolve(ctx sdk.Context, callerc xcctypes.XCC, lks []Link) ([]
 		if ret.err != nil {
 			return nil, ret.err
 		}
-		calleeID := ret.obj.GetCrossChainChannel(lkr.cdc)
+		calleeID := ret.res.GetCrossChainChannel(lkr.cdc)
 		xcc, err := lkr.crossChainChannelResolver.ConvertCrossChainChannel(ctx, calleeID, callerc)
 		if err != nil {
 			return nil, err
 		}
-		obj := ret.obj.WithCrossChainChannel(lkr.cdc, xcc)
-		objects = append(objects, obj)
+		result := ret.res.WithCrossChainChannel(lkr.cdc, xcc)
+		results = append(results, result)
 	}
-	return objects, nil
+	return results, nil
 }
 
 type returnObject struct {
-	obj txtypes.Object
+	res txtypes.CallResult
 	err error
 }
 
@@ -86,8 +86,8 @@ func makeLazyObject(f func() returnObject) lazyObject {
 	}
 }
 
-// MakeObjectKey returns a key that can be used to identify a contract call
-func MakeObjectKey(callInfo txtypes.ContractCallInfo, signers []authtypes.Account) []byte {
+// MakeCallResultKey returns a key that can be used to identify a contract call
+func MakeCallResultKey(callInfo txtypes.ContractCallInfo, signers []authtypes.Account) []byte {
 	h := tmhash.New()
 	h.Write(callInfo)
 	for _, signer := range signers {
