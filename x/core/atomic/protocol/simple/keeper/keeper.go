@@ -3,6 +3,7 @@ package keeper
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -66,8 +67,10 @@ func (k Keeper) SendCall(
 		return errors.New("the number of contract transactions must be 2")
 	} else if !k.xccResolver.Capabilities().CrossChainCalls(ctx) && (len(transactions[0].CallResults) > 0 || len(transactions[1].CallResults) > 0) {
 		return errors.New("the chainResolver cannot resolve cannot support the cross-chain calls feature")
-	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetRevisionHeight() {
+	} else if !timeoutHeight.IsZero() && uint64(ctx.BlockHeight()) >= timeoutHeight.GetRevisionHeight() {
 		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetRevisionHeight())
+	} else if timeoutTimestamp != 0 && uint64(ctx.BlockTime().Unix()) >= timeoutTimestamp {
+		return fmt.Errorf("the given timeoutTimestamp is in the past: current=%v timeout=%v", ctx.BlockTime().Unix(), timeoutTimestamp)
 	} else if _, found := k.GetCoordinatorState(ctx, txID); found {
 		return fmt.Errorf("txID '%X' already exists", txID)
 	}
@@ -118,8 +121,9 @@ func (k Keeper) SendCall(
 			types.NewPacketDataCall(txID, tx1),
 			ch1.Port, ch1.Channel,
 			c.Counterparty.PortId, c.Counterparty.ChannelId,
-			timeoutHeight,
-			timeoutTimestamp,
+			// NOTE: packet-timeout isn't supported in the simple commit
+			clienttypes.NewHeight(clienttypes.ParseChainID(ctx.ChainID()), math.MaxUint64),
+			0,
 		); err != nil {
 			return err
 		}

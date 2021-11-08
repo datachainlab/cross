@@ -3,6 +3,7 @@ package keeper
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -27,12 +28,19 @@ func (k Keeper) SendPrepare(
 ) error {
 	if len(transactions) == 0 {
 		return errors.New("the number of contract transactions must be greater than 1")
-	} else if uint64(ctx.BlockHeight()) >= timeoutHeight.GetRevisionHeight() {
+	} else if !timeoutHeight.IsZero() && uint64(ctx.BlockHeight()) >= timeoutHeight.GetRevisionHeight() {
 		return fmt.Errorf("the given timeoutHeight is in the past: current=%v timeout=%v", ctx.BlockHeight(), timeoutHeight.GetRevisionHeight())
+	} else if timeoutTimestamp != 0 && uint64(ctx.BlockTime().Unix()) >= timeoutTimestamp {
+		return fmt.Errorf("the given timeoutTimestamp is in the past: current=%v timeout=%v", ctx.BlockTime().Unix(), timeoutTimestamp)
 	} else if _, found := k.GetCoordinatorState(ctx, txID); found {
 		return fmt.Errorf("txID '%X' already exists", txID)
 	}
 
+	// NOTE: packet-timeout isn't supported in the two-phase commit
+	packetTimeoutHeight := clienttypes.NewHeight(
+		clienttypes.ParseChainID(ctx.ChainID()),
+		math.MaxUint64,
+	)
 	var channels []xcctypes.ChannelInfo
 	for i, tx := range transactions {
 		data := types.NewPacketDataPrepare(
@@ -57,7 +65,7 @@ func (k Keeper) SendPrepare(
 			packetSender,
 			&data,
 			ci.Port, ci.Channel, ch.Counterparty.PortId, ch.Counterparty.ChannelId,
-			timeoutHeight, timeoutTimestamp,
+			packetTimeoutHeight, 0,
 		); err != nil {
 			return err
 		}
