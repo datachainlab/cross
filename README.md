@@ -27,6 +27,7 @@ Please see [here](https://github.com/datachainlab/public-docs/blob/master/cross/
 
 - https://github.com/datachainlab/cross-solidity: A solidity implementation for Ethereum
 - https://github.com/datachainlab/cross-cdt: A store that supports efficient concurrent operations
+- https://github.com/hyperledger-labs/yui-docs: YUI enables interoperability between multiple heterogeneous ledgers
 
 ## Motivation
 
