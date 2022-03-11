@@ -21,7 +21,7 @@ Cross provides several key features:
 
 ## Documents
 
-Please see [here](https://github.com/datachainlab/public-docs/blob/master/cross/concepts_ja.md).
+Please see [here](https://datachainlab.github.io/cross-docs/).
 
 ## Related Projects
 
