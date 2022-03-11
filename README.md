@@ -11,13 +11,22 @@
   <img alt="gh-action" src="https://github.com/datachainlab/cross/workflows/Test/badge.svg" />
 </div>
 
-Cross is a framework for Cross-chain transaction. It is implemented as [Cosmos module](https://github.com/cosmos/cosmos-sdk).
+Cross is a framework that enables distributed transactions over multiple blockchains. It is implemented as [Cosmos module](https://github.com/cosmos/cosmos-sdk).
 
 Cross provides several key features:
 
-- **Cross-chain transaction support** - Supports the transaction that can support an atomic execution on different blockchains. We call such a transaction "Cross-chain transaction".
-- **General application support** - Provides a framework to enable the support of "general" application as smart contract. ("general" application refers to models like smart contract on Ethereum, not UTXO model.) With Cross framework, smart contract developers are not forced to implement Atomic commit and locking protocol at each contract develop.
-- **Compliant with [ics-004](https://github.com/cosmos/ibc/tree/master/spec/core/ics-004-channel-and-packet-semantics)** - Supports above features on networks where membership changes dynamically
+- **Cross-chain transaction support** - supports [Atomic Commit Protocol](https://datachainlab.github.io/cross-docs/architecture/atomic-commit-protocol) beteen multiple blockchains.
+- **General application support** - provides a framework to enable the support of "general" application as smart contract ("general" application means Account model like Ethereum, not UTXO model). Using this framework, smart contract developers are not forced to implement Atomic Commit and locking protocol at each contract development.
+- **Built on [IBC](https://github.com/cosmos/ibc)** - supports above features on networks where membership changes dynamically
+
+## Documents
+
+Please see [here](https://github.com/datachainlab/public-docs/blob/master/cross/concepts_ja.md).
+
+## Related Projects
+
+- https://github.com/datachainlab/cross-solidity: A solidity implementation for Ethereum
+- https://github.com/datachainlab/cross-cdt: A store that supports efficient concurrent operations
 
 ## Motivation
 
@@ -25,10 +34,11 @@ It is difficult to atomically execute general smart contract on multiple network
 
 To solve such problem, we need to be able to execute All or Nothing reservation contracts that exist in two different chains, rather than pegging to single blockchain. This is similar to Atomic commit protocol for distributed systems. To achieve this, each contract's state machine needs to lock the state required for "commit" at "prepare" phase. But it is not safe to enforce these requirements on each contract developers. Therefore, we decided to implement Atomic commit protocol in compliance with ics-004 and create a datastore that transparently meets the required locking protocol.
 
-## Documents
-
-Japanese documents can be found [here](https://github.com/datachainlab/public-docs/blob/master/cross/concepts_ja.md).
-
 ## Maintainers
 
 - [Jun Kimura](https://github.com/bluele)
+- [Ryo Sato](https://github.com/3100)
+
+## Contact
+
+Please contact us [here](https://form.run/@datachain-contact-en).
