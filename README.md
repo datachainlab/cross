@@ -17,7 +17,7 @@ Cross provides several key features:
 
 - **Cross-chain transaction support** - supports [Atomic Commit Protocol](https://datachainlab.github.io/cross-docs/architecture/atomic-commit-protocol) beteen multiple blockchains.
 - **General application support** - provides a framework to enable the support of "general" application as smart contract ("general" application means Account model like Ethereum, not UTXO model). Using this framework, smart contract developers are not forced to implement Atomic Commit and locking protocol at each contract development.
-- **Built on [IBC](https://github.com/cosmos/ibc)** - supports above features on networks where membership changes dynamically
+- **Built with [IBC](https://github.com/cosmos/ibc)** - supports above features on networks where membership changes dynamically
 
 ## Documents
 
@@ -25,9 +25,15 @@ Please see [here](https://datachainlab.github.io/cross-docs/).
 
 ## Related Projects
 
+### Library
+
 - https://github.com/datachainlab/cross-solidity: A solidity implementation for Ethereum
 - https://github.com/datachainlab/cross-cdt: A store that supports efficient concurrent operations
 - https://github.com/hyperledger-labs/yui-docs: YUI enables interoperability between multiple heterogeneous ledgers
+
+### Demo
+
+- https://github.com/datachainlab/fabric-tendermint-cross-demo: An E2E demo project using Cross between Hyperledger Fabric and Tendermint.
 
 ## Motivation
 
