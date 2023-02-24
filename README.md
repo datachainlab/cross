@@ -15,7 +15,7 @@ Cross is a framework that enables distributed transactions over multiple blockch
 
 Cross provides several key features:
 
-- **Cross-chain transaction support** - supports [Atomic Commit Protocol](https://datachainlab.github.io/cross-docs/architecture/atomic-commit-protocol) beteen multiple blockchains.
+- **Cross-chain transaction support** - supports [Atomic Commit Protocol](https://datachainlab.github.io/cross-docs/docs/architecture/atomic-commit-protocol/) between multiple blockchains.
 - **General application support** - provides a framework to enable the support of "general" application as smart contract ("general" application means Account model like Ethereum, not UTXO model). Using this framework, smart contract developers are not forced to implement Atomic Commit and locking protocol at each contract development.
 - **Use [IBC](https://github.com/cosmos/ibc) as messaging layer** - realize trustless communications between multiple chains.
 
