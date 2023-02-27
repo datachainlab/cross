@@ -8,22 +8,22 @@ jobs:
     steps:
 
     - name: Set up Go 1.16
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v3
       with:
         go-version: 1.16
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Build
       run: make build
-    
+
     - name: Test
       run: make test
 
     - name: upload simd binary
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: simd
         path: ./build
@@ -35,16 +35,16 @@ jobs:
     steps:
 
     - name: Set up Go 1.16
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v3
       with:
         go-version: 1.16
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: download simd
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v3
       with:
         name: simd
         path: ./build
